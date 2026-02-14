@@ -8,6 +8,10 @@
   --font-sans: var(--font-inter), var(--font-noto-sans-jp), "SF Pro Display", sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--color-mieno-gray);
