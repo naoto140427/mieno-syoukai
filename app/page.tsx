@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
 import MienoEcosystem from "@/components/MienoEcosystem";
 import History from "@/components/History";
+import PerformanceReport from "@/components/PerformanceReport";
 
 export default function Home() {
   return (
@@ -17,6 +18,9 @@ export default function Home() {
 
         {/* Historyセクション */}
         <History />
+
+        {/* IR Informationセクション */}
+        <PerformanceReport />
       </main>
       <Footer />
     </div>
