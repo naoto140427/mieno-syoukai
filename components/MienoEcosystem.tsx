@@ -26,7 +26,7 @@ const services: Service[] = [
     title: 'Mieno Intelligence',
     description: '気象データと路面状況のリアルタイム解析による、最適な経路の算出。',
     icon: Brain,
-    className: 'md:col-span-2 md:row-span-1 bg-white',
+    className: 'md:col-span-1 md:row-span-2 bg-white',
   },
   {
     id: 'shareplay',
@@ -43,18 +43,18 @@ const services: Service[] = [
     className: 'md:col-span-1 md:row-span-1 bg-white',
   },
   {
-    id: 'private',
-    title: 'Mieno Private',
-    description: 'ナンバープレートの高度な秘匿化アルゴリズム。',
-    icon: Lock,
-    className: 'md:col-span-1 md:row-span-1 bg-white',
-  },
-  {
     id: 'care',
     title: 'Mieno Care+',
     description: 'メンバーによる24時間体制の緊急ロードサービスおよびアセット（工具）の共有。',
     icon: Wrench,
     className: 'md:col-span-2 md:row-span-1 bg-white',
+  },
+  {
+    id: 'private',
+    title: 'Mieno Private',
+    description: 'ナンバープレートの高度な秘匿化アルゴリズム。',
+    icon: Lock,
+    className: 'md:col-span-1 md:row-span-1 bg-white',
   },
 ];
 
@@ -97,14 +97,14 @@ export default function MienoEcosystem() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-[minmax(180px,auto)]"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(180px,auto)]"
         >
           {services.map((service) => (
             <motion.div
               key={service.id}
               variants={itemVariants}
               whileHover={{ scale: 1.02 }}
-              className={`group relative overflow-hidden rounded-3xl p-8 shadow-sm ring-1 ring-gray-900/5 hover:ring-gray-900/10 transition-all duration-300 ${service.className}`}
+              className={`group relative overflow-hidden rounded-3xl p-6 md:p-8 shadow-sm ring-1 ring-gray-900/5 hover:ring-gray-900/10 transition-all duration-300 ${service.className}`}
             >
               <div className="flex flex-col h-full justify-between">
                 <div>
