@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mieno-navy: #001A4D;
+  --color-mieno-gray: #F5F5F7;
+  --color-mieno-text: #1D1D1F;
+
+  --font-sans: var(--font-inter), var(--font-noto-sans-jp), "SF Pro Display", sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-mieno-gray);
+  color: var(--color-mieno-text);
+  margin: 0;
+}
