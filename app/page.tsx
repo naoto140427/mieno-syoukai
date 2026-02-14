@@ -4,6 +4,7 @@ import Hero from "@/components/Hero";
 import MienoEcosystem from "@/components/MienoEcosystem";
 import History from "@/components/History";
 import PerformanceReport from "@/components/PerformanceReport";
+import StrategicUnits from "@/components/StrategicUnits";
 
 export default function Home() {
   return (
@@ -11,16 +12,29 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         {/* Heroセクション */}
-        <Hero />
+        <section id="hero">
+          <Hero />
+        </section>
+
+        {/* Strategic Units セクション */}
+        <section id="units">
+          <StrategicUnits />
+        </section>
 
         {/* Ecosystemセクション */}
-        <MienoEcosystem />
+        <section id="ecosystem">
+          <MienoEcosystem />
+        </section>
 
         {/* Historyセクション */}
-        <History />
+        <section id="history">
+          <History />
+        </section>
 
         {/* IR Informationセクション */}
-        <PerformanceReport />
+        <section id="performance">
+          <PerformanceReport />
+        </section>
       </main>
       <Footer />
     </div>
