@@ -1,10 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
-<<<<<<< HEAD
-=======
-import StrategicUnits from "@/components/StrategicUnits";
->>>>>>> origin/phase1-initial-setup-7652132207238665624
 
 export default function Home() {
   return (
@@ -14,7 +10,6 @@ export default function Home() {
         {/* Heroセクション */}
         <Hero />
 
-<<<<<<< HEAD
         {/* スクロール確認用ダミーコンテンツ */}
         <section className="mx-auto max-w-7xl px-6 lg:px-8 py-24">
           <div className="space-y-16">
@@ -33,10 +28,6 @@ export default function Home() {
             ))}
           </div>
         </section>
-=======
-        {/* Strategic Units Section */}
-        <StrategicUnits />
->>>>>>> origin/phase1-initial-setup-7652132207238665624
       </main>
       <Footer />
     </div>
