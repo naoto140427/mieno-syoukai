@@ -1,17 +1,54 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 const Contact = () => {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success'>('idle');
 
+  // State for form fields
+  const [formData, setFormData] = useState({
+    name: '',
+    asset: '',
+    type: '',
+    message: ''
+  });
+
+  // Derived state for validation
+  const isValid = useMemo(() => {
+    // 'asset' is optional in the original code (placeholder said "Current Asset (所有機材)"),
+    // but usually user wants "all required fields".
+    // The original code had 'required' on name and message, but not asset or type.
+    // However, the prompt says "すべての必須項目が埋まるまで".
+    // I will assume Name, Type, and Message are required. Asset is optional based on context ("required" attribute was missing on asset in original).
+    // Wait, looking at original code:
+    // name: required
+    // message: required
+    // type: defaultValue="" and option disabled "Select an option", so effectively required.
+    // asset: no required attribute.
+
+    return (
+      formData.name.trim().length > 0 &&
+      formData.type !== '' &&
+      formData.message.trim().length > 0
+    );
+  }, [formData]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValid) return;
+
     setFormState('submitting');
     // Simulate network request
     setTimeout(() => {
       setFormState('success');
+      // Reset form (optional, but good UX)
+      setFormData({ name: '', asset: '', type: '', message: '' });
     }, 1500);
   };
 
@@ -96,12 +133,14 @@ const Contact = () => {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="space-y-2">
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     id="name"
                     required
-                    className="w-full px-4 py-4 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-mieno-navy/20 focus:ring-2 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg placeholder:text-gray-300"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-mieno-navy/30 focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg placeholder:text-gray-300"
                     placeholder="T. Mieno"
                   />
                 </div>
@@ -111,18 +150,22 @@ const Contact = () => {
                   <input
                     type="text"
                     id="asset"
-                    className="w-full px-4 py-4 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-mieno-navy/20 focus:ring-2 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg placeholder:text-gray-300"
+                    value={formData.asset}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-mieno-navy/30 focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg placeholder:text-gray-300"
                     placeholder="CBR400R, SERENA LUXION, etc."
                   />
                 </div>
 
                 <div className="space-y-2">
-                   <label htmlFor="type" className="block text-sm font-medium text-gray-700">Inquiry Type (要件)</label>
+                   <label htmlFor="type" className="block text-sm font-medium text-gray-700">Inquiry Type (要件) <span className="text-red-500">*</span></label>
                    <div className="relative">
                      <select
                        id="type"
-                       className="w-full px-4 py-4 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-mieno-navy/20 focus:ring-2 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg appearance-none cursor-pointer"
-                       defaultValue=""
+                       required
+                       value={formData.type}
+                       onChange={handleChange}
+                       className="w-full px-4 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-mieno-navy/30 focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg appearance-none cursor-pointer"
                      >
                        <option value="" disabled>Select an option</option>
                        <option value="touring">共同フィールドワーク（ツーリング）への参加申請</option>
@@ -136,24 +179,26 @@ const Contact = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700">Message</label>
+                  <label htmlFor="message" className="block text-sm font-medium text-gray-700">Message <span className="text-red-500">*</span></label>
                   <textarea
                     id="message"
                     rows={5}
                     required
-                    className="w-full px-4 py-4 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-mieno-navy/20 focus:ring-2 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg resize-none placeholder:text-gray-300"
+                    value={formData.message}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-mieno-navy/30 focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg resize-none placeholder:text-gray-300"
                     placeholder="作戦の詳細を記入してください..."
                   ></textarea>
                 </div>
 
                 <motion.button
                   type="submit"
-                  disabled={formState === 'submitting'}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`w-full py-4 rounded-2xl font-bold text-lg transition-colors duration-300 ${
-                    formState === 'submitting'
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  disabled={!isValid || formState === 'submitting'}
+                  whileHover={isValid && formState !== 'submitting' ? { scale: 1.02 } : {}}
+                  whileTap={isValid && formState !== 'submitting' ? { scale: 0.98 } : {}}
+                  className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 ${
+                    !isValid || formState === 'submitting'
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-70'
                       : 'bg-mieno-navy text-white hover:bg-opacity-90 shadow-lg hover:shadow-xl'
                   }`}
                 >

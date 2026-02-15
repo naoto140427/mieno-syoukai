@@ -2,12 +2,25 @@
 > temp-app@0.1.0 dev
 > next dev
 
-⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
 ▲ Next.js 16.1.6 (Turbopack)
-- Local:         http://localhost:3001
-- Network:       http://192.168.0.2:3001
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
 
 ✓ Starting...
-⨯ Unable to acquire lock at /app/.next/dev/lock, is another instance of next dev running?
-  Suggestion: If you intended to restart next dev, terminate the other process, and then try again.
-[?25h
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+✓ Ready in 1059ms
+○ Compiling / ...
+ GET / 200 in 7.5s (compile: 6.8s, render: 692ms)
+ GET /contact 200 in 1043ms (compile: 926ms, render: 118ms)
+ GET / 200 in 119ms (compile: 5ms, render: 114ms)
+ GET /logistics 200 in 900ms (compile: 716ms, render: 184ms)
+ GET /images/noise.png 404 in 1050ms (compile: 930ms, render: 121ms)
+ GET /contact 200 in 128ms (compile: 8ms, render: 120ms)
+ GET / 200 in 132ms (compile: 11ms, render: 121ms)
+ GET /logistics 200 in 197ms (compile: 5ms, render: 192ms)
+ GET /images/noise.png 404 in 122ms (compile: 8ms, render: 114ms)
+ GET /contact 200 in 98ms (compile: 5ms, render: 93ms)
