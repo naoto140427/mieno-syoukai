@@ -7,7 +7,7 @@ def run():
         page = browser.new_page()
 
         # Navigate to the page
-        page.goto("http://localhost:3000")
+        page.goto("http://localhost:3000/logistics")
 
         # Wait for the page to load
         page.wait_for_load_state("networkidle")

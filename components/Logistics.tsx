@@ -20,7 +20,7 @@ const Logistics = () => {
   const routePath = "M 160 460 L 250 460 L 350 360 L 500 360 L 500 330";
 
   return (
-    <section className="bg-black text-white py-24 overflow-hidden relative">
+    <section id="logistics" className="bg-black text-white py-24 overflow-hidden relative">
       {/* Background Grid Effect */}
       <div className="absolute inset-0 z-0 opacity-20 pointer-events-none"
            style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '40px 40px' }}>

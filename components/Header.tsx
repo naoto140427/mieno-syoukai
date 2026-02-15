@@ -4,13 +4,13 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 const navItems = [
-  { name: "Strategic Units", href: "#units" },
-  { name: "Services", href: "#ecosystem" },
+  { name: "Strategic Units", href: "/units" },
+  { name: "Services", href: "/services" },
   { name: "Projects", href: "#" },
-  { name: "Logistics", href: "#" },
-  { name: "History", href: "#history" },
+  { name: "Logistics", href: "/logistics" },
+  { name: "History", href: "/history" },
   { name: "Store", href: "#" },
-  { name: "Support", href: "#performance" },
+  { name: "Support", href: "/ir" },
 ];
 
 export default function Header() {
