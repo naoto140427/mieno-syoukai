@@ -11,6 +11,7 @@ const navItems = [
   { name: "History", href: "/history" },
   { name: "Store", href: "#" },
   { name: "Support", href: "/ir" },
+  { name: "Contact", href: "/contact" },
 ];
 
 export default function Header() {
