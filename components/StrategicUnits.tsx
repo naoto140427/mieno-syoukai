@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Link from 'next/link';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 
 interface UnitData {
@@ -164,9 +165,9 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
             </motion.div>
           </AnimatePresence>
 
-          <button className="text-mieno-navy font-semibold hover:underline decoration-1 underline-offset-4 group flex items-center gap-2">
+          <Link href="/logistics" className="text-mieno-navy font-semibold hover:underline decoration-1 underline-offset-4 group flex items-center gap-2 w-fit">
             View Details <span className="group-hover:translate-x-1 transition-transform">→</span>
-          </button>
+          </Link>
         </motion.div>
 
       </div>

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Hero() {
   const containerVariants = {
@@ -66,22 +67,24 @@ export default function Hero() {
 
         {/* CTA (画面下部) */}
         <motion.div
-          className="absolute bottom-10 flex flex-col items-center gap-2 cursor-pointer pb-8"
+          className="absolute bottom-10 z-20"
           variants={itemVariants}
         >
-          <span className="text-sm font-medium text-gray-300 tracking-wide">
-            さらに詳しく
-          </span>
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            <ChevronDown className="h-8 w-8 text-white opacity-80" />
-          </motion.div>
+          <Link href="/units" className="flex flex-col items-center gap-2 cursor-pointer pb-8">
+            <span className="text-sm font-medium text-gray-300 tracking-wide">
+              さらに詳しく
+            </span>
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              <ChevronDown className="h-8 w-8 text-white opacity-80" />
+            </motion.div>
+          </Link>
         </motion.div>
       </motion.div>
     </section>

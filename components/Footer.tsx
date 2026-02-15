@@ -2,25 +2,21 @@ import Link from "next/link";
 
 const footerNavigation = {
   solutions: [
-    { name: "Strategic Planning", href: "#" },
-    { name: "Logistics Optimization", href: "#" },
-    { name: "Risk Management", href: "#" },
-    { name: "Global Operations", href: "#" },
+    { name: "Strategic Units", href: "/units" },
+    { name: "Logistics Operations", href: "/logistics" },
+    { name: "Mieno Ecosystem", href: "/services" },
   ],
   support: [
-    { name: "Documentation", href: "#" },
-    { name: "API Status", href: "#" },
-    { name: "Technical Support", href: "#" },
+    { name: "Performance Report (IR)", href: "/ir" },
+    { name: "Documentation", href: "/history" },
   ],
   company: [
-    { name: "About", href: "#" },
-    { name: "Blog", href: "#" },
-    { name: "Careers", href: "#" },
-    { name: "Press", href: "#" },
+    { name: "Corporate History", href: "/history" },
+    { name: "News", href: "/" },
   ],
   legal: [
-    { name: "Privacy", href: "#" },
-    { name: "Terms", href: "#" },
+    { name: "Privacy Policy", href: "/" },
+    { name: "Terms of Service", href: "/" },
   ],
 };
 

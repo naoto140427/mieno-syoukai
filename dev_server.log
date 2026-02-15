@@ -7,8 +7,18 @@
 - Network:       http://192.168.0.2:3000
 
 ✓ Starting...
-✓ Ready in 1025ms
-○ Compiling / ...
- HEAD / 200 in 5.2s (compile: 4.8s, render: 443ms)
- GET / 200 in 156ms (compile: 9ms, render: 147ms)
- GET / 200 in 51ms (compile: 6ms, render: 45ms)
+✓ Ready in 1068ms
+ GET / 200 in 2.2s (compile: 1725ms, render: 448ms)
+ GET /units 200 in 939ms (compile: 900ms, render: 38ms)
+ GET / 200 in 140ms (compile: 7ms, render: 132ms)
+ GET /units 200 in 29ms (compile: 6ms, render: 24ms)
+ GET /logistics 200 in 840ms (compile: 644ms, render: 196ms)
+ GET / 200 in 91ms (compile: 6ms, render: 84ms)
+ GET /units 200 in 51ms (compile: 6ms, render: 45ms)
+ GET /logistics 200 in 114ms (compile: 5ms, render: 109ms)
+ GET /logistics 200 in 415ms (compile: 132ms, render: 284ms)
+✓ Compiled in 490ms
+✓ Compiled in 835ms
+ GET / 200 in 3.2s (compile: 1544ms, render: 1607ms)
+ GET /units 200 in 1378ms (compile: 861ms, render: 517ms)
+ GET / 200 in 154ms (compile: 7ms, render: 147ms)
