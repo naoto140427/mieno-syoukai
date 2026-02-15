@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
 import MienoEcosystem from "@/components/MienoEcosystem";
 import History from "@/components/History";
+import Logistics from "@/components/Logistics";
 import PerformanceReport from "@/components/PerformanceReport";
 import StrategicUnits from "@/components/StrategicUnits";
 
@@ -29,6 +30,11 @@ export default function Home() {
         {/* Historyセクション */}
         <section id="history">
           <History />
+        </section>
+
+        {/* Logisticsセクション */}
+        <section id="logistics">
+          <Logistics />
         </section>
 
         {/* IR Informationセクション */}
