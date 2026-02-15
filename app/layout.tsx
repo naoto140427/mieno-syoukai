@@ -17,8 +17,33 @@ const notoSansJP = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "株式会社三重野商会",
-  description: "私たちは、時空を超えたロジスティクスと戦略的単位の融合により、未来の価値を創造するグローバルカンパニーです。",
+  title: {
+    default: "株式会社三重野商会 | MIENO CORP.",
+    template: "%s | MIENO CORP.",
+  },
+  description: "変革の風を、二輪で切り裂く。路面と対話し、未踏の地に足跡（タイヤ痕）を残す戦略的モビリティ・カンパニー。",
+  openGraph: {
+    type: "website",
+    locale: "ja_JP",
+    url: "https://mieno-syoukai.vercel.app/",
+    siteName: "株式会社三重野商会",
+    title: "株式会社三重野商会 | MIENO CORP.",
+    description: "変革の風を、二輪で切り裂く。路面と対話し、未踏の地に足跡（タイヤ痕）を残す戦略的モビリティ・カンパニー。",
+    images: [
+      {
+        url: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=1200&h=630&auto=format&fit=crop",
+        width: 1200,
+        height: 630,
+        alt: "MIENO CORP. OGP Image",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "株式会社三重野商会 | MIENO CORP.",
+    description: "変革の風を、二輪で切り裂く。戦略的モビリティ・カンパニー。",
+    images: ["https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=1200&h=630&auto=format&fit=crop"],
+  },
 };
 
 export default function RootLayout({
