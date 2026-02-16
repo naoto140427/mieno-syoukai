@@ -115,6 +115,7 @@ const Logistics = () => {
 
            <motion.svg
              viewBox="0 0 800 600"
+             preserveAspectRatio="xMidYMid meet"
              className="w-full h-full p-4 lg:p-8"
              initial="hidden"
              whileInView="visible"
