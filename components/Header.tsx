@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import EasterEggModal from "./EasterEggModal";
 
 const navItems = [
   { name: "Strategic Units", href: "/units" },
@@ -18,9 +19,33 @@ const navItems = [
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [clickCount, setClickCount] = useState(0);
+  const [lastClickTime, setLastClickTime] = useState(0);
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    const now = Date.now();
+    // Reset if more than 1 second has passed since the last click
+    if (now - lastClickTime > 1000) {
+      setClickCount(1);
+    } else {
+      setClickCount((prev) => prev + 1);
+    }
+    setLastClickTime(now);
+
+    // Calculate current count including this click
+    const currentCount = now - lastClickTime > 1000 ? 1 : clickCount + 1;
+
+    if (currentCount >= 5) {
+      e.preventDefault();
+      setShowEasterEgg(true);
+      setClickCount(0);
+    }
+  };
 
   return (
     <>
+      <EasterEggModal isOpen={showEasterEgg} onClose={() => setShowEasterEgg(false)} />
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -29,7 +54,11 @@ export default function Header() {
       >
         <nav className="mx-auto flex h-12 max-w-7xl items-center justify-between px-6 lg:px-8" aria-label="Global">
           <div className="flex lg:flex-1">
-            <Link href="/" className="-m-1.5 p-1.5 text-mieno-navy font-bold tracking-tight text-lg z-50 relative">
+            <Link
+              href="/"
+              className="-m-1.5 p-1.5 text-mieno-navy font-bold tracking-tight text-lg z-50 relative"
+              onClick={handleLogoClick}
+            >
               MIENO CORP.
             </Link>
           </div>
