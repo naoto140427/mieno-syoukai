@@ -12,7 +12,7 @@ const START_POINT = [131.75, 33.20]; // Oita (Miyagawachi)
 const END_POINT = [138.65, 35.70];   // Yamanashi (Hottarakashi Onsen approx)
 
 // GeoJSON for the route
-import { Feature, LineString } from 'geojson';
+import type { Feature, LineString } from 'geojson';
 const routeGeoJSON: Feature<LineString> = {
   type: 'Feature',
   properties: {},
