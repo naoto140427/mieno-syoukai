@@ -76,7 +76,7 @@ export default function News() {
              viewport={{ once: true }}
              transition={{ duration: 0.6 }}
           >
-             <Link href="#" className="text-sm font-semibold leading-6 text-gray-300 hover:text-white flex items-center gap-1">
+             <Link href="/logistics" className="text-sm font-semibold leading-6 text-gray-300 hover:text-white flex items-center gap-1">
                View All <ArrowRight className="h-4 w-4" />
              </Link>
           </motion.div>

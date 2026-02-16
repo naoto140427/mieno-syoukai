@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 // SVG Path Data for simplified Japan map
 const japanMapPaths = [
@@ -94,6 +95,15 @@ const Logistics = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Added Button */}
+              <div className="mt-8">
+                <Link href="/units" className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-900/20 border border-cyan-500/30 text-cyan-400 font-mono text-sm tracking-wider rounded-lg hover:bg-cyan-900/40 hover:border-cyan-500/60 transition-all duration-300 group">
+                  ACCESS ASSET DATABASE
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </Link>
+              </div>
+
             </div>
           </motion.div>
         </div>

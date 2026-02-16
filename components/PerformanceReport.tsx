@@ -2,6 +2,8 @@
 
 import { motion, useInView, useSpring, useTransform, Variants } from 'framer-motion';
 import { useRef, useEffect } from 'react';
+import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface KPI {
   id: string;
@@ -161,6 +163,17 @@ export default function PerformanceReport() {
             </motion.div>
           ))}
         </motion.div>
+
+        {/* CTA Button */}
+        <div className="mt-16 text-center">
+            <Link
+                href="/contact"
+                className="inline-flex items-center gap-2 text-white border-b border-white pb-1 hover:text-gray-300 hover:border-gray-300 transition-colors group"
+            >
+                Request Detailed Metrics
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+        </div>
       </div>
     </section>
   );
