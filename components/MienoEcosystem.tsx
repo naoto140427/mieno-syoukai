@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { HardDrive, Brain, Radio, Eye, Lock, Wrench, LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 
 interface Service {
   id: string;
@@ -134,6 +135,16 @@ export default function MienoEcosystem() {
             </motion.div>
           ))}
         </motion.div>
+
+        {/* CTA Button */}
+        <div className="mt-16 text-center">
+            <Link
+                href="/contact"
+                className="inline-block px-10 py-4 bg-mieno-navy text-white text-lg font-bold rounded-full shadow-lg hover:bg-blue-900 transition-colors shadow-blue-900/20"
+            >
+                Contact Support
+            </Link>
+        </div>
       </div>
     </section>
   );

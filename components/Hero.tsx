@@ -30,7 +30,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-black text-center text-white">
+    <section className="relative min-h-screen flex flex-col justify-between overflow-hidden bg-black text-center text-white">
       {/* 背景画像 */}
       <div className="absolute inset-0 z-0 h-full w-full">
         <Image
@@ -46,32 +46,34 @@ export default function Hero() {
 
       {/* アニメーションコンテナ */}
       <motion.div
-        className="relative z-10 w-full h-full flex flex-col items-center justify-center px-6 lg:px-8"
+        className="relative z-10 w-full flex-grow flex flex-col items-center justify-center px-6 lg:px-8 py-20"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <motion.h1
-          className="text-5xl font-bold tracking-tighter sm:text-7xl mb-6"
-          variants={itemVariants}
-        >
-          変革の風を、二輪で切り裂く。
-        </motion.h1>
+        <div className="flex-grow flex flex-col items-center justify-center">
+            <motion.h1
+            className="text-5xl font-bold tracking-tighter sm:text-7xl mb-6"
+            variants={itemVariants}
+            >
+            変革の風を、二輪で切り裂く。
+            </motion.h1>
 
-        <motion.p
-          className="text-xl text-gray-400 sm:text-2xl max-w-3xl mb-16"
-          variants={itemVariants}
-        >
-          株式会社三重野商会は、路面と対話し、未踏の地に足跡（タイヤ痕）を残す。
-        </motion.p>
+            <motion.p
+            className="text-xl text-gray-400 sm:text-2xl max-w-3xl mb-16"
+            variants={itemVariants}
+            >
+            株式会社三重野商会は、路面と対話し、未踏の地に足跡（タイヤ痕）を残す。
+            </motion.p>
+        </div>
 
-        {/* CTA (画面下部) */}
+        {/* CTA (画面下部) - justify-betweenにより自然に下部へ配置されるが、念のためmt-autoとpbを追加 */}
         <motion.div
-          className="absolute bottom-10 z-20"
+          className="mt-auto pb-12 z-20"
           variants={itemVariants}
         >
-          <Link href="/units" className="flex flex-col items-center gap-2 cursor-pointer pb-8">
-            <span className="text-sm font-medium text-gray-300 tracking-wide">
+          <Link href="/units" className="flex flex-col items-center gap-2 cursor-pointer group">
+            <span className="text-sm font-medium text-gray-300 tracking-wide group-hover:text-white transition-colors">
               さらに詳しく
             </span>
             <motion.div
@@ -82,7 +84,7 @@ export default function Hero() {
                 ease: "easeInOut",
               }}
             >
-              <ChevronDown className="h-8 w-8 text-white opacity-80" />
+              <ChevronDown className="h-8 w-8 text-white opacity-80 group-hover:opacity-100 transition-opacity" />
             </motion.div>
           </Link>
         </motion.div>

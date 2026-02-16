@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 interface HistoryEvent {
   year: string;
@@ -60,7 +61,7 @@ export default function History() {
           />
         </div>
 
-        <div className="space-y-16 md:space-y-24">
+        <div className="space-y-16 md:space-y-24 mb-16">
           {historyData.map((event, index) => (
             <motion.div
               key={index}
@@ -95,6 +96,17 @@ export default function History() {
             </motion.div>
           ))}
         </div>
+
+        {/* CTA Button */}
+        <div className="text-center relative z-10">
+          <Link
+            href="/contact"
+            className="inline-block px-10 py-4 bg-mieno-navy text-white text-lg font-bold rounded-full shadow-lg hover:bg-blue-900 transition-transform hover:-translate-y-1"
+          >
+            JOIN THE LEGACY
+          </Link>
+        </div>
+
       </div>
     </section>
   );
