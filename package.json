@@ -10,17 +10,22 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@splinetool/react-spline": "^4.1.0",
     "@supabase/supabase-js": "^2.95.3",
     "@vercel/analytics": "^1.6.1",
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.564.0",
+    "mapbox-gl": "^3.18.1",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-map-gl": "^8.1.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
+    "@types/geojson": "^7946.0.16",
+    "@types/mapbox-gl": "^3.4.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
