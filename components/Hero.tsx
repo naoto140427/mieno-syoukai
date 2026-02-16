@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import Spline from '@splinetool/react-spline';
 import { useState } from 'react';
 
 export default function Hero() {
@@ -50,12 +49,13 @@ export default function Hero() {
         <div className="absolute inset-0 bg-black/60 z-10" />
       </div>
 
-      {/* Spline 3D Scene */}
-      <div className={`absolute inset-0 z-0 h-full w-full transition-opacity duration-1000 ease-in-out ${isSplineLoaded ? 'opacity-100' : 'opacity-0'}`}>
-         <Spline
-           scene="https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode"
-           onLoad={() => setIsSplineLoaded(true)}
-           className="w-full h-full"
+      {/* Spline 3D Scene (Embedded via Iframe for Event Isolation) */}
+      <div className={`absolute inset-0 z-0 h-full w-full pointer-events-none transition-opacity duration-1000 ease-in-out ${isSplineLoaded ? 'opacity-100' : 'opacity-0'}`}>
+         <iframe
+            src="/spline-bg.html"
+            className="w-full h-full border-0 pointer-events-none"
+            title="Spline Background"
+            onLoad={() => setIsSplineLoaded(true)}
          />
          {/* Overlay for text readability over 3D model (Always visible on top of Spline) */}
          <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none" />
