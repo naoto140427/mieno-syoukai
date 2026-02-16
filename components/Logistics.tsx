@@ -2,24 +2,64 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useState } from 'react';
+// @ts-ignore
+import Map, { Source, Layer, LineLayer } from 'react-map-gl/mapbox';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
-// SVG Path Data for simplified Japan map
-const japanMapPaths = [
-  // Kyushu
-  "M 120 450 L 180 430 L 190 500 L 120 480 Z",
-  // Shikoku
-  "M 220 440 L 300 420 L 290 470 L 220 460 Z",
-  // Honshu (Simplified)
-  "M 190 410 L 250 380 L 450 300 L 600 200 L 650 250 L 550 350 L 400 380 L 300 410 Z",
-  // Hokkaido
-  "M 620 180 L 700 150 L 750 200 L 650 220 Z"
-];
+// Coordinates
+const START_POINT = [131.75, 33.20]; // Oita (Miyagawachi)
+const END_POINT = [138.65, 35.70];   // Yamanashi (Hottarakashi Onsen approx)
 
-// Route Path: Oita (approx 160, 460) -> Yamanashi (approx 500, 330)
-// Smooth curve using cubic bezier
-const routePath = "M 160 460 C 250 460, 350 360, 500 330";
+// GeoJSON for the route
+const routeGeoJSON: any = {
+  type: 'Feature',
+  properties: {},
+  geometry: {
+    type: 'LineString',
+    coordinates: [START_POINT, END_POINT]
+  }
+};
+
+const layerStyle: LineLayer = {
+  id: 'route-line',
+  type: 'line',
+  layout: {
+    'line-join': 'round',
+    'line-cap': 'round'
+  },
+  paint: {
+    'line-color': '#06b6d4', // cyan-500
+    'line-width': 4,
+    'line-blur': 0
+  }
+};
+
+const glowLayerStyle: LineLayer = {
+  id: 'route-glow',
+  type: 'line',
+  layout: {
+    'line-join': 'round',
+    'line-cap': 'round'
+  },
+  paint: {
+    'line-color': '#22d3ee', // cyan-400
+    'line-width': 12,
+    'line-blur': 8,
+    'line-opacity': 0.6
+  }
+};
 
 const Logistics = () => {
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  const [viewState, setViewState] = useState({
+    longitude: 135.5,
+    latitude: 34.5,
+    zoom: 4.8,
+    pitch: 45,
+    bearing: 0
+  });
+
   return (
     <section className="min-h-screen bg-black text-white py-24 px-6 overflow-hidden relative flex flex-col items-center justify-center">
       {/* Background Grid Effect */}
@@ -110,143 +150,49 @@ const Logistics = () => {
 
         {/* Map Visualization (Right / Bottom) */}
         <div className="w-full lg:w-1/2 aspect-[4/3] relative rounded-2xl overflow-hidden border border-gray-800 bg-black shadow-[0_0_40px_rgba(0,0,0,0.5)]">
-           <div className="absolute inset-0 bg-[url('/images/noise.png')] opacity-10 mix-blend-overlay pointer-events-none"></div>
+
+           {/* Fallback / Offline UI */}
+           {!mapboxToken ? (
+             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm z-30">
+               <div className="text-red-500 font-mono text-2xl tracking-widest animate-pulse mb-2">SYSTEM OFFLINE</div>
+               <div className="text-gray-400 font-mono text-xs">MAP DATA UNAVAILABLE</div>
+               <div className="mt-4 px-4 py-2 border border-red-900/50 bg-red-900/20 rounded text-red-400 font-mono text-xs">
+                 ERROR: MISSING_ACCESS_TOKEN
+               </div>
+               <div className="mt-8 text-center px-8 text-gray-500 text-xs">
+                 <p>To initialize visualization system:</p>
+                 <code className="block mt-2 bg-black p-2 rounded border border-gray-800">NEXT_PUBLIC_MAPBOX_TOKEN=pk.xxx...</code>
+               </div>
+             </div>
+           ) : (
+            <Map
+                mapboxAccessToken={mapboxToken}
+                {...viewState}
+                onMove={evt => setViewState(evt.viewState)}
+                style={{width: '100%', height: '100%'}}
+                mapStyle="mapbox://styles/mapbox/dark-v11"
+                attributionControl={false}
+                reuseMaps
+            >
+                <Source id="route-data" type="geojson" data={routeGeoJSON}>
+                    <Layer {...glowLayerStyle} />
+                    <Layer {...layerStyle} />
+                </Source>
+            </Map>
+           )}
+
+           <div className="absolute inset-0 bg-[url('/images/noise.png')] opacity-10 mix-blend-overlay pointer-events-none z-20"></div>
 
            {/* UI Elements */}
-           <div className="absolute top-4 left-4 z-20 flex flex-col gap-1">
-             <span className="text-[10px] font-mono text-cyan-500 tracking-widest animate-pulse">SYSTEM STATUS: ONLINE</span>
-             <span className="text-[10px] font-mono text-gray-600">LAT: 35.6895 N / LNG: 139.6917 E</span>
+           <div className="absolute top-4 left-4 z-20 flex flex-col gap-1 pointer-events-none">
+             <span className="text-[10px] font-mono text-cyan-500 tracking-widest animate-pulse">SYSTEM STATUS: {mapboxToken ? 'ONLINE' : 'OFFLINE'}</span>
+             <span className="text-[10px] font-mono text-gray-600">LAT: {viewState.latitude.toFixed(4)} N / LNG: {viewState.longitude.toFixed(4)} E</span>
            </div>
 
-           <div className="absolute bottom-4 right-4 z-20 text-right">
+           <div className="absolute bottom-4 right-4 z-20 text-right pointer-events-none">
              <span className="text-[10px] font-mono text-cyan-500 tracking-widest block">TARGET ACQUISITION</span>
              <span className="text-[10px] font-mono text-gray-600">DISTANCE: 850KM (EST)</span>
            </div>
-
-           <motion.svg
-             viewBox="0 0 800 600"
-             preserveAspectRatio="xMidYMid meet"
-             className="w-full h-full p-4 lg:p-8"
-             initial="hidden"
-             whileInView="visible"
-             viewport={{ once: true, margin: "-100px" }}
-           >
-             {/* Map Outlines */}
-             {japanMapPaths.map((path, i) => (
-               <motion.path
-                 key={i}
-                 d={path}
-                 fill="rgba(30, 41, 59, 0.4)"
-                 stroke="rgba(100, 116, 139, 0.3)"
-                 strokeWidth="1"
-                 variants={{
-                   hidden: { opacity: 0, pathLength: 0 },
-                   visible: {
-                     opacity: 1,
-                     pathLength: 1,
-                     transition: {
-                       duration: 2,
-                       ease: "easeInOut",
-                       delay: i * 0.3
-                     }
-                   }
-                 }}
-               />
-             ))}
-
-             {/* Route Line Animation */}
-             <motion.path
-               d={routePath}
-               fill="none"
-               stroke="#06b6d4" // cyan-500
-               strokeWidth="4"
-               strokeLinecap="round"
-               strokeLinejoin="round"
-               filter="drop-shadow(0 0 6px #06b6d4)"
-               variants={{
-                 hidden: { pathLength: 0, opacity: 0 },
-                 visible: {
-                   pathLength: 1,
-                   opacity: 1,
-                   transition: {
-                     duration: 3,
-                     ease: "easeInOut",
-                     delay: 1.5
-                   }
-                 }
-               }}
-             />
-
-             {/* Glowing Pulse Effect on Route */}
-             <motion.path
-               d={routePath}
-               fill="none"
-               stroke="#fff"
-               strokeWidth="1"
-               strokeLinecap="round"
-               strokeLinejoin="round"
-               opacity="0.5"
-               variants={{
-                 hidden: { pathLength: 0, opacity: 0 },
-                 visible: {
-                   pathLength: 1,
-                   opacity: [0, 0.8, 0],
-                   transition: {
-                     duration: 3,
-                     ease: "easeInOut",
-                     delay: 1.5,
-                     repeat: Infinity,
-                     repeatType: "reverse",
-                     repeatDelay: 1
-                   }
-                 }
-               }}
-             />
-
-             {/* Start Point (Oita) */}
-             <motion.g
-               initial={{ scale: 0, opacity: 0 }}
-               whileInView={{ scale: 1, opacity: 1 }}
-               viewport={{ once: true }}
-               transition={{ delay: 1.5, type: "spring" }}
-             >
-               <circle cx="160" cy="460" r="4" fill="#fff" />
-               <circle cx="160" cy="460" r="10" stroke="#fff" strokeWidth="1" opacity="0.3" fill="none" />
-               <text x="140" y="485" fill="#9ca3af" fontSize="10" fontFamily="monospace" letterSpacing="1">OITA HQ</text>
-             </motion.g>
-
-             {/* End Point (Yamanashi) */}
-             <motion.g
-               variants={{
-                 hidden: { scale: 0, opacity: 0, y: -20 },
-                 visible: {
-                   scale: 1,
-                   opacity: 1,
-                   y: 0,
-                   transition: {
-                     delay: 4.5, // Appears after route is drawn (1.5 delay + 3 duration)
-                     type: "spring",
-                     stiffness: 200,
-                     damping: 10
-                   }
-                 }
-               }}
-             >
-               {/* Pin Body */}
-               <path d="M500 330 L500 310" stroke="#06b6d4" strokeWidth="2" />
-               <circle cx="500" cy="310" r="6" fill="#06b6d4" className="animate-pulse" />
-
-               {/* Ripple Effect */}
-               <circle cx="500" cy="310" r="12" stroke="#06b6d4" strokeWidth="1" fill="none" opacity="0.5">
-                 <animate attributeName="r" from="6" to="24" dur="2s" repeatCount="indefinite" />
-                 <animate attributeName="opacity" from="0.8" to="0" dur="2s" repeatCount="indefinite" />
-               </circle>
-
-               {/* Label */}
-               <text x="520" y="315" fill="#06b6d4" fontSize="12" fontFamily="monospace" fontWeight="bold" letterSpacing="1">TARGET: YAMANASHI</text>
-             </motion.g>
-
-           </motion.svg>
         </div>
 
       </div>

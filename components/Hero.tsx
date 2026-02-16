@@ -4,8 +4,12 @@ import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import Spline from '@splinetool/react-spline';
+import { useState } from 'react';
 
 export default function Hero() {
+  const [isSplineLoaded, setIsSplineLoaded] = useState(false);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -31,8 +35,10 @@ export default function Hero() {
 
   return (
     <section className="relative min-h-screen flex flex-col justify-between overflow-hidden bg-black text-center text-white">
-      {/* 背景画像 */}
-      <div className="absolute inset-0 z-0 h-full w-full">
+      {/* Fallback Background Image (Visible until Spline loads) */}
+      <div
+        className={`absolute inset-0 z-0 h-full w-full transition-opacity duration-1000 ease-in-out ${isSplineLoaded ? 'opacity-0' : 'opacity-100'}`}
+      >
         <Image
           src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=2070&auto=format&fit=crop"
           alt="Dark motorcycle background"
@@ -40,36 +46,47 @@ export default function Hero() {
           className="object-cover"
           priority
         />
-        {/* オーバーレイ */}
+        {/* オーバーレイ (画像用) */}
         <div className="absolute inset-0 bg-black/60 z-10" />
+      </div>
+
+      {/* Spline 3D Scene */}
+      <div className={`absolute inset-0 z-0 h-full w-full transition-opacity duration-1000 ease-in-out ${isSplineLoaded ? 'opacity-100' : 'opacity-0'}`}>
+         <Spline
+           scene="https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode"
+           onLoad={() => setIsSplineLoaded(true)}
+           className="w-full h-full"
+         />
+         {/* Overlay for text readability over 3D model (Always visible on top of Spline) */}
+         <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none" />
       </div>
 
       {/* アニメーションコンテナ */}
       <motion.div
-        className="relative z-10 w-full flex-grow flex flex-col items-center justify-center px-6 lg:px-8 py-20"
+        className="relative z-20 w-full flex-grow flex flex-col items-center justify-center px-6 lg:px-8 py-20 pointer-events-none"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <div className="flex-grow flex flex-col items-center justify-center">
+        <div className="flex-grow flex flex-col items-center justify-center pointer-events-auto">
             <motion.h1
-            className="text-5xl font-bold tracking-tighter sm:text-7xl mb-6"
+            className="text-5xl font-bold tracking-tighter sm:text-7xl mb-6 drop-shadow-2xl"
             variants={itemVariants}
             >
             変革の風を、二輪で切り裂く。
             </motion.h1>
 
             <motion.p
-            className="text-xl text-gray-400 sm:text-2xl max-w-3xl mb-16"
+            className="text-xl text-gray-200 sm:text-2xl max-w-3xl mb-16 drop-shadow-lg"
             variants={itemVariants}
             >
             株式会社三重野商会は、路面と対話し、未踏の地に足跡（タイヤ痕）を残す。
             </motion.p>
         </div>
 
-        {/* CTA (画面下部) - justify-betweenにより自然に下部へ配置されるが、念のためmt-autoとpbを追加 */}
+        {/* CTA (画面下部) */}
         <motion.div
-          className="mt-auto pb-12 z-20"
+          className="mt-auto pb-12 z-20 pointer-events-auto"
           variants={itemVariants}
         >
           <Link href="/units" className="flex flex-col items-center gap-2 cursor-pointer group">
