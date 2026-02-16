@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useState } from 'react';
-// @ts-ignore
+// @ts-expect-error react-map-gl/mapbox exports are not correctly typed in v8
 import Map, { Source, Layer, LineLayer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -12,7 +12,8 @@ const START_POINT = [131.75, 33.20]; // Oita (Miyagawachi)
 const END_POINT = [138.65, 35.70];   // Yamanashi (Hottarakashi Onsen approx)
 
 // GeoJSON for the route
-const routeGeoJSON: any = {
+import { Feature, LineString } from 'geojson';
+const routeGeoJSON: Feature<LineString> = {
   type: 'Feature',
   properties: {},
   geometry: {
