@@ -12,13 +12,17 @@ interface UnitData {
   description: string;
   imageLabel: string;
   slug: string;
-  isSpecial?: boolean; // For Watanabe's toggle
+  isSpecial?: boolean; // For Watanabe's & Suemori's toggle
   specialContent?: {
     secondaryName: string;
     secondaryCopy: string;
     secondaryDescription: string;
     secondaryImageLabel: string;
     secondarySlug: string;
+  };
+  toggleLabels?: {
+    primary: string;
+    secondary: string;
   };
 }
 
@@ -34,12 +38,24 @@ const units: UnitData[] = [
   },
   {
     id: 'cmo',
-    name: 'CBR600RR (2020) & Monkey 125',
+    name: 'CBR600RR (2020)',
     role: '末森 知輝 CMO',
     copy: '加速する情熱、緻密な機動力。Speed & Agility.',
-    description: '600ccの高回転型バリュー・エンジンと、ラストワンマイルを開拓するマイクロ・モビリティ。Dual-Platform戦略による圧倒的ポテンシャル。',
-    imageLabel: 'CBR600RR & Monkey 125 IMAGE',
+    description: '600ccの高回転型バリュー・エンジン。圧倒的なポテンシャルを誇るメイン機体。',
+    imageLabel: 'CBR600RR IMAGE',
     slug: 'cbr600rr-monkey125',
+    isSpecial: true,
+    toggleLabels: {
+      primary: 'Main Unit (Track)',
+      secondary: 'City Commuter'
+    },
+    specialContent: {
+      secondaryName: 'Monkey 125',
+      secondaryCopy: 'ラストワンマイルを開拓する。Define the Last Mile.',
+      secondaryDescription: '局地的な機動力を提供するマイクロ・モビリティ。Dual-Platform戦略の要。',
+      secondaryImageLabel: 'Monkey 125 IMAGE',
+      secondarySlug: 'cbr600rr-monkey125', // Both link to the combined page for now
+    },
   },
   {
     id: 'coo',
@@ -59,6 +75,10 @@ const units: UnitData[] = [
     imageLabel: 'CBR400R IMAGE',
     slug: 'cbr400r',
     isSpecial: true,
+    toggleLabels: {
+      primary: '2-Wheel Mode',
+      secondary: 'Command Center'
+    },
     specialContent: {
       secondaryName: 'SERENA LUXION (2025)',
       secondaryCopy: 'すべての道を、統治する。The Core of Operations.',
@@ -80,14 +100,14 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
   const y = useTransform(scrollYProgress, [0, 1], ["-10%", "10%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
 
-  // State for Watanabe's toggle
-  const [mode, setMode] = useState<'bike' | 'car'>('bike');
+  // State for toggle
+  const [mode, setMode] = useState<'primary' | 'secondary'>('primary');
 
-  const currentName = mode === 'bike' ? unit.name : unit.specialContent?.secondaryName;
-  const currentCopy = mode === 'bike' ? unit.copy : unit.specialContent?.secondaryCopy;
-  const currentDesc = mode === 'bike' ? unit.description : unit.specialContent?.secondaryDescription;
-  const currentImageLabel = mode === 'bike' ? unit.imageLabel : unit.specialContent?.secondaryImageLabel;
-  const currentSlug = mode === 'bike' ? unit.slug : unit.specialContent?.secondarySlug;
+  const currentName = mode === 'primary' ? unit.name : unit.specialContent?.secondaryName;
+  const currentCopy = mode === 'primary' ? unit.copy : unit.specialContent?.secondaryCopy;
+  const currentDesc = mode === 'primary' ? unit.description : unit.specialContent?.secondaryDescription;
+  const currentImageLabel = mode === 'primary' ? unit.imageLabel : unit.specialContent?.secondaryImageLabel;
+  const currentSlug = mode === 'primary' ? unit.slug : unit.specialContent?.secondarySlug;
 
   return (
     <section
@@ -124,19 +144,19 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
           <div className="space-y-2">
             <h3 className="text-mieno-navy text-xl font-medium tracking-wide">{unit.role}</h3>
 
-            {unit.isSpecial && (
+            {unit.isSpecial && unit.toggleLabels && (
                 <div className="flex items-center space-x-4 mb-6 bg-gray-100 rounded-full p-1 w-fit">
                     <button
-                        onClick={() => setMode('bike')}
-                        className={`px-4 py-1 rounded-full text-sm font-medium transition-colors duration-300 ${mode === 'bike' ? 'bg-mieno-navy text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setMode('primary')}
+                        className={`px-4 py-1 rounded-full text-sm font-medium transition-colors duration-300 ${mode === 'primary' ? 'bg-mieno-navy text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        二輪モード
+                        {unit.toggleLabels.primary}
                     </button>
                     <button
-                        onClick={() => setMode('car')}
-                        className={`px-4 py-1 rounded-full text-sm font-medium transition-colors duration-300 ${mode === 'car' ? 'bg-mieno-navy text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setMode('secondary')}
+                        className={`px-4 py-1 rounded-full text-sm font-medium transition-colors duration-300 ${mode === 'secondary' ? 'bg-mieno-navy text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        指揮車両
+                        {unit.toggleLabels.secondary}
                     </button>
                 </div>
             )}

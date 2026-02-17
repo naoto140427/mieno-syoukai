@@ -17,8 +17,6 @@ import {
   Zap,
   Cpu,
   Database,
-  Lock,
-  ChevronRight
 } from 'lucide-react';
 
 // --- Types ---
@@ -290,7 +288,7 @@ function DocCard({ doc }: { doc: DocItem }) {
   );
 }
 
-function LogItemView({ log, index, isLast }: { log: LogItem; index: number; isLast: boolean }) {
+function LogItemView({ log, isLast }: { log: LogItem; isLast: boolean }) {
   const getIcon = (type: LogItem['type']) => {
     switch(type) {
       case 'maintenance': return <Wrench size={16} />;
@@ -498,7 +496,6 @@ export default function UnitDetailPage({ params }: { params: Promise<{ slug: str
                   <LogItemView
                     key={index}
                     log={log}
-                    index={index}
                     isLast={index === unit.logs.length - 1}
                   />
                 ))}
