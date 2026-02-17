@@ -27,20 +27,9 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
 
-    - name: Wait for Vercel Preview
-      uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
-      id: wait_for_preview
-      if: github.event_name == 'pull_request'
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        max_timeout: 300
-        check_interval: 10
-
     - name: Run Playwright tests
       run: npx playwright test
       env:
-        # Use preview URL for PRs. If empty (push event), playwright config will start local server
-        BASE_URL: ${{ steps.wait_for_preview.outputs.url }}
         CI: true
         NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN }}
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
