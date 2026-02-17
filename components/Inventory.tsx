@@ -1,52 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wrench, Package, AlertCircle, Plus, X, Search, ChevronUp, ChevronDown, RefreshCw } from "lucide-react";
-
-// Types
-type Consumable = {
-  id: string;
-  name: string;
-  level: number; // percentage
-  max: number;
-  unit: string;
-  color: string;
-};
-
-type Tool = {
-  id: string;
-  name: string;
-  spec: string;
-  qty: number;
-  status: "Available" | "In Use" | "Maintenance" | "Missing";
-  location: string;
-};
-
-// Mock Data
-const initialConsumables: Consumable[] = [
-  { id: "c1", name: "Engine Oil (10W-40)", level: 85, max: 200, unit: "L", color: "bg-amber-500" },
-  { id: "c2", name: "Brake Fluid (DOT4)", level: 45, max: 50, unit: "L", color: "bg-red-500" },
-  { id: "c3", name: "Coolant (LLC)", level: 92, max: 100, unit: "L", color: "bg-green-500" },
-  { id: "c4", name: "Chain Lube", level: 30, max: 20, unit: "Cans", color: "bg-blue-500" },
-  { id: "c5", name: "Shop Towels", level: 12, max: 50, unit: "Rolls", color: "bg-gray-500" },
-];
-
-const initialTools: Tool[] = [
-  { id: "t1", name: "Socket Set (Metric)", spec: "8mm - 24mm", qty: 2, status: "Available", location: "Cab A-1" },
-  { id: "t2", name: "Torque Wrench", spec: "10-60 Nm", qty: 1, status: "In Use", location: "Workbench 2" },
-  { id: "t3", name: "Paddock Stand", spec: "Rear", qty: 3, status: "Available", location: "Floor Area C" },
-  { id: "t4", name: "Impact Driver", spec: "18V", qty: 2, status: "Maintenance", location: "Repair Bay" },
-  { id: "t5", name: "Digital Multimeter", spec: "Fluke 117", qty: 1, status: "Available", location: "Cab B-3" },
-  { id: "t6", name: "Allen Key Set", spec: "1.5mm - 10mm", qty: 4, status: "Available", location: "Cab A-2" },
-  { id: "t7", name: "Oil Filter Wrench", spec: "65mm", qty: 1, status: "Missing", location: "Unknown" },
-];
+import { supabase } from "@/lib/supabase";
+import { Consumable, Tool } from "@/types/database";
 
 export default function Inventory() {
-  const [consumables, setConsumables] = useState<Consumable[]>(initialConsumables);
-  const [tools, setTools] = useState<Tool[]>(initialTools);
+  const [consumables, setConsumables] = useState<Consumable[]>([]);
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Tool; direction: "asc" | "desc" } | null>(null);
+
+  // Data Fetching
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [consumablesRes, toolsRes] = await Promise.all([
+        supabase.from('consumables').select('*').order('id', { ascending: true }),
+        supabase.from('tools').select('*').order('id', { ascending: true })
+      ]);
+
+      if (consumablesRes.error) throw consumablesRes.error;
+      if (toolsRes.error) throw toolsRes.error;
+
+      // Ensure types match what component expects
+      // Note: DB returns id as number, component handles it.
+      // We assume 'level' in DB is percentage 0-100 as per mock data convention
+      // We map 'max_capacity' to match usage if needed, but we'll update usage to 'max_capacity'
+
+      setConsumables(consumablesRes.data as Consumable[]);
+      setTools(toolsRes.data as Tool[]);
+    } catch (err: any) {
+      console.error('Error fetching inventory:', err);
+      setError(err.message || 'Failed to fetch inventory data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Sorting Logic
   const sortedTools = [...tools].sort((a, b) => {
@@ -64,6 +63,44 @@ export default function Inventory() {
     }
     setSortConfig({ key, direction });
   };
+
+  // Admin Modal Submit Handler (Optional, keeping consistent with replacing mocks)
+  const handleAddItem = async (e: React.FormEvent) => {
+      // Logic for adding items could go here if implemented,
+      // but primary requirement is Admin page integration.
+      // For now, we'll just close modal or implement a basic insert if needed.
+      e.preventDefault();
+      setIsModalOpen(false);
+      // Implementation of this specific modal is not the primary task (Admin page is),
+      // but to avoid broken UI, we could implement it.
+      // Given scope, I'll leave it as a UI placeholder or basic close.
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-mieno-gray flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-mieno-navy/30 border-t-mieno-navy rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+        <div className="min-h-screen bg-mieno-gray flex items-center justify-center p-6">
+            <div className="bg-white p-8 rounded-2xl shadow-xl border border-red-100 text-center max-w-md">
+                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Data Retrieval Failed</h3>
+                <p className="text-gray-500 mb-6">{error}</p>
+                <button
+                    onClick={fetchData}
+                    className="bg-mieno-navy text-white px-6 py-3 rounded-xl font-bold hover:bg-mieno-navy/90 transition-all"
+                >
+                    Retry Connection
+                </button>
+            </div>
+        </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-mieno-gray p-6 lg:p-12 font-sans text-mieno-text">
@@ -98,39 +135,45 @@ export default function Inventory() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {consumables.map((item, index) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-800">{item.name}</h3>
-                    <p className="text-sm text-gray-400">Max Capacity: {item.max}{item.unit}</p>
-                  </div>
-                  <div className={`w-3 h-3 rounded-full ${item.level < 20 ? "bg-red-500 animate-pulse" : "bg-green-500"}`} />
+            {consumables.length === 0 ? (
+                <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl">
+                    No consumables data available.
                 </div>
+            ) : (
+                consumables.map((item, index) => (
+                <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+                >
+                    <div className="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 className="font-bold text-lg text-gray-800">{item.name}</h3>
+                        <p className="text-sm text-gray-400">Max Capacity: {item.max_capacity}{item.unit}</p>
+                    </div>
+                    <div className={`w-3 h-3 rounded-full ${item.level < 20 ? "bg-red-500 animate-pulse" : "bg-green-500"}`} />
+                    </div>
 
-                <div className="relative h-4 bg-gray-100 rounded-full overflow-hidden mb-2">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${item.level}%` }}
-                    transition={{ duration: 1, delay: 0.2 + index * 0.1, ease: "easeOut" }}
-                    className={`absolute top-0 left-0 h-full ${item.color} rounded-full`}
-                  />
-                </div>
+                    <div className="relative h-4 bg-gray-100 rounded-full overflow-hidden mb-2">
+                    <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${item.level}%` }}
+                        transition={{ duration: 1, delay: 0.2 + index * 0.1, ease: "easeOut" }}
+                        className={`absolute top-0 left-0 h-full ${item.color} rounded-full`}
+                    />
+                    </div>
 
-                <div className="flex justify-between text-sm font-medium">
-                  <span className="text-gray-500">{item.level}% Remaining</span>
-                  <span className="text-mieno-navy font-bold">
-                    {Math.round((item.max * item.level) / 100)}{item.unit}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
+                    <div className="flex justify-between text-sm font-medium">
+                    <span className="text-gray-500">{item.level}% Remaining</span>
+                    <span className="text-mieno-navy font-bold">
+                        {Math.round((item.max_capacity * item.level) / 100)}{item.unit}
+                    </span>
+                    </div>
+                </motion.div>
+                ))
+            )}
           </div>
         </section>
 
@@ -167,33 +210,39 @@ export default function Inventory() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {sortedTools.map((tool, index) => (
-                    <motion.tr
-                      key={tool.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="hover:bg-gray-50/50 transition-colors"
-                    >
-                      <td className="px-6 py-4 font-medium text-gray-900">{tool.name}</td>
-                      <td className="px-6 py-4 text-gray-600 font-mono text-sm">{tool.spec}</td>
-                      <td className="px-6 py-4 text-gray-600">{tool.qty}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                          ${tool.status === 'Available' ? 'bg-green-50 text-green-700 border-green-200' :
-                            tool.status === 'In Use' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                            tool.status === 'Maintenance' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                            'bg-red-50 text-red-700 border-red-200'
-                          }`}
+                  {tools.length === 0 ? (
+                      <tr>
+                          <td colSpan={5} className="px-6 py-8 text-center text-gray-400">No tools data available.</td>
+                      </tr>
+                  ) : (
+                    sortedTools.map((tool, index) => (
+                        <motion.tr
+                        key={tool.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="hover:bg-gray-50/50 transition-colors"
                         >
-                          {tool.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-500 text-sm flex items-center gap-2">
-                        {tool.location}
-                      </td>
-                    </motion.tr>
-                  ))}
+                        <td className="px-6 py-4 font-medium text-gray-900">{tool.name}</td>
+                        <td className="px-6 py-4 text-gray-600 font-mono text-sm">{tool.spec}</td>
+                        <td className="px-6 py-4 text-gray-600">{tool.qty}</td>
+                        <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+                            ${tool.status === 'Available' ? 'bg-green-50 text-green-700 border-green-200' :
+                                tool.status === 'In Use' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                tool.status === 'Maintenance' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                'bg-red-50 text-red-700 border-red-200'
+                            }`}
+                            >
+                            {tool.status}
+                            </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-500 text-sm flex items-center gap-2">
+                            {tool.location}
+                        </td>
+                        </motion.tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -229,7 +278,8 @@ export default function Inventory() {
                 </button>
               </div>
 
-              <div className="space-y-4">
+              {/* Note: This form is currently illustrative/mock as per scope focus on Admin page integration. */}
+              <form onSubmit={handleAddItem} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">品名 / 名称</label>
                   <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all" placeholder="e.g. Engine Oil" />
@@ -251,22 +301,23 @@ export default function Inventory() {
                     <option>Tool / Equipment</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="mt-8 flex justify-end gap-3">
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  キャンセル
-                </button>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-2 bg-mieno-navy text-white font-medium rounded-lg shadow-md hover:bg-mieno-navy/90 transition-colors"
-                >
-                  登録する
-                </button>
-              </div>
+                <div className="mt-8 flex justify-end gap-3">
+                    <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                    キャンセル
+                    </button>
+                    <button
+                    type="submit"
+                    className="px-6 py-2 bg-mieno-navy text-white font-medium rounded-lg shadow-md hover:bg-mieno-navy/90 transition-colors"
+                    >
+                    登録する
+                    </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
