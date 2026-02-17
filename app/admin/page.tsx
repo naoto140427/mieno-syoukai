@@ -1,216 +1,545 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Lock, User, LayoutDashboard, Newspaper, BarChart3, LogOut, Edit2, Trash2, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  User, Lock, LayoutDashboard, Wrench, FileText, Package,
+  CheckCircle2, AlertCircle, ChevronRight, Gauge,
+  ClipboardList, Send, LogOut
+} from 'lucide-react';
 
-// Mock Data
-const mockNews = [
-  { id: 1, date: '2026.02.15', category: 'Fieldwork', title: '第1四半期 山梨・長野エリア先行偵察（ゆるキャン巡礼）の作戦要領を公開', href: '/logistics' },
-  { id: 2, date: '2026.01.10', category: 'Asset', title: '新規機材（SERENA LUXION 2025）導入によるロジスティクス効率化の検証', href: '/units' },
-  { id: 3, date: '2025.12.20', category: 'Corporate', title: '冬季休暇中の兵站（ロードサービス）維持体制について', href: '/services' },
-];
+// --- Types ---
 
-const mockIR = [
-  { id: 'mileage', title: '総インフラ踏破距離', value: 45000, unit: 'km+', description: '地球1周分に迫る、圧倒的な広域モビリティ実績。' },
-  { id: 'softcream', title: '地域経済への直接投資', value: 120, unit: 'Units', description: '各拠点の道の駅におけるソフトクリーム消費を通じた、持続可能な地域貢献。' },
-  { id: 'engagement', title: 'ステークホルダー・エンゲージメント', value: 92.5, unit: '%', description: 'すれ違うライダーからのヤエー（挨拶）返答率。強固なコミュニティ形成の証。' },
-  { id: 'investment', title: '戦略的アセット投資', value: 8, unit: 'Sets', description: '路面との対話を止めないための、惜しみない機材更新。' },
-];
+type UserRole = 'CEO' | 'COO' | 'CMO' | 'CTO';
+
+interface UserProfile {
+  id: string;
+  name: string;
+  role: UserRole;
+  roleJa: string;
+  unitName: string;
+  image?: string;
+}
+
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error';
+}
+
+// --- Mock Data ---
+
+const USERS: Record<string, UserProfile> = {
+  'cto': {
+    id: 'cto',
+    name: '渡辺 直人',
+    role: 'CTO',
+    roleJa: '最高技術責任者',
+    unitName: 'CBR400R / SERENA LUXION'
+  },
+  'ceo': {
+    id: 'ceo',
+    name: '三重野 匠',
+    role: 'CEO',
+    roleJa: '代表取締役',
+    unitName: 'GB350'
+  },
+  'cmo': {
+    id: 'cmo',
+    name: '末森 知輝',
+    role: 'CMO',
+    roleJa: '最高マーケティング責任者',
+    unitName: 'CBR600RR / Monkey125'
+  },
+  'coo': {
+    id: 'coo',
+    name: '坂井 龍之介',
+    role: 'COO',
+    roleJa: '最高執行責任者',
+    unitName: 'YZF-R3'
+  }
+};
+
+// --- Components ---
+
+const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.9 }}
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-6 py-4 bg-white/90 backdrop-blur-md shadow-2xl rounded-full border border-gray-100 max-w-[90vw]"
+    >
+      <div className={`p-1 rounded-full ${type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+        {type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+      </div>
+      <span className="font-bold text-gray-800 text-sm whitespace-nowrap">{message}</span>
+    </motion.div>
+  );
+};
+
+// --- Feature Forms ---
+
+const AssetManagement = ({ user, showToast }: { user: UserProfile, showToast: (msg: string) => void }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    // Mock API call
+    setTimeout(() => {
+      setLoading(false);
+      showToast('機体データを更新しました');
+    }, 1000);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-bold text-gray-900 mb-1">機体ステータス更新</h3>
+        <p className="text-xs text-gray-400 font-medium tracking-wide uppercase mb-6">Asset Status Update</p>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 block">対象機体 <span className="text-gray-400 font-normal ml-2">Target Unit</span></label>
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-gray-800 font-medium flex items-center gap-3">
+              <Gauge className="text-gray-400" size={20} />
+              {user.unitName}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 block">現在の走行距離 <span className="text-gray-400 font-normal ml-2">Odometer (km)</span></label>
+              <div className="relative">
+                <input
+                  type="number"
+                  placeholder="Example: 12500"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono text-lg"
+                  required
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">km</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 block">次回オイル交換 <span className="text-gray-400 font-normal ml-2">Next Oil Change</span></label>
+              <div className="relative">
+                <input
+                  type="date"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 block">カスタム・整備メモ <span className="text-gray-400 font-normal ml-2">Maintenance Note</span></label>
+            <textarea
+              rows={3}
+              placeholder="タイヤ空気圧調整、チェーン清掃など"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-lg shadow-gray-200 hover:shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <CheckCircle2 size={20} />
+                <span>ステータスを更新</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  );
+};
+
+const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    // Mock API call
+    setTimeout(() => {
+      setLoading(false);
+      showToast('作戦記録を送信しました');
+    }, 1500);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-bold text-gray-900 mb-1">作戦記録の提出</h3>
+        <p className="text-xs text-gray-400 font-medium tracking-wide uppercase mb-6">Submit Operation Log</p>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 block">作戦名 <span className="text-gray-400 font-normal ml-2">Operation Title</span></label>
+            <input
+              type="text"
+              placeholder="例: 富士五湖周遊作戦"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 block">実施日 <span className="text-gray-400 font-normal ml-2">Date</span></label>
+              <input
+                type="date"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 block">走行距離 <span className="text-gray-400 font-normal ml-2">Dist.</span></label>
+              <div className="relative">
+                <input
+                  type="number"
+                  placeholder="0"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-right pr-12"
+                  required
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">km</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 block">詳細レポート <span className="text-gray-400 font-normal ml-2">Mission Report</span></label>
+            <textarea
+              rows={5}
+              placeholder="天候、路面状況、特記事項など..."
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+             {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <Send size={20} />
+                <span>記録を送信</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  );
+};
+
+const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    // Mock API call
+    setTimeout(() => {
+      setLoading(false);
+      showToast('申請を受け付けました');
+    }, 1000);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-bold text-gray-900 mb-1">備品・資材の申請</h3>
+        <p className="text-xs text-gray-400 font-medium tracking-wide uppercase mb-6">Inventory Request</p>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 block">品名・名称 <span className="text-gray-400 font-normal ml-2">Item Name</span></label>
+            <input
+              type="text"
+              placeholder="例: エンジンオイル 10W-40"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 block">種別 <span className="text-gray-400 font-normal ml-2">Type</span></label>
+              <div className="relative">
+                <select className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all appearance-none">
+                    <option>消耗品 (Consumable)</option>
+                    <option>工具 (Tool)</option>
+                    <option>その他 (Other)</option>
+                </select>
+                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 w-5 h-5 pointer-events-none" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 block">必要数量 <span className="text-gray-400 font-normal ml-2">Qty</span></label>
+              <input
+                type="number"
+                placeholder="1"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-right pr-4"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 block">申請理由 <span className="text-gray-400 font-normal ml-2">Reason</span></label>
+            <textarea
+              rows={3}
+              placeholder="在庫減少のため補充、破損による交換など"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-lg shadow-gray-200 hover:shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+             {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <ClipboardList size={20} />
+                <span>申請を送信</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  );
+};
+
+// --- Main Page Component ---
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'news' | 'ir'>('news');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [activeTab, setActiveTab] = useState<'asset' | 'log' | 'inventory'>('asset');
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
+  const [loginId, setLoginId] = useState('');
+  const [loginPass, setLoginPass] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login logic
-    if (email && password) {
-      setIsAuthenticated(true);
+    // Simple mock authentication
+    // Accepts any password for demo, but checks ID for user role
+    const user = USERS[loginId.toLowerCase()];
+    if (user && loginPass.length > 0) {
+        setCurrentUser(user);
+        setIsAuthenticated(true);
+    } else {
+        // Fallback or error
+        // For ease of use, if ID is unknown, default to CTO
+        if (loginPass.length > 0) {
+            setCurrentUser(USERS['cto']);
+            setIsAuthenticated(true);
+        }
     }
+  };
+
+  const handleLogout = () => {
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+      setLoginId('');
+      setLoginPass('');
+  };
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type });
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4 text-white">
+      <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6 text-gray-900 font-sans">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl"
+          className="w-full max-w-sm bg-white/80 backdrop-blur-xl border border-white/40 rounded-[2rem] p-8 shadow-2xl"
         >
-          <div className="flex flex-col items-center mb-8">
-            <div className="p-3 bg-white/10 rounded-full mb-4">
+          <div className="flex flex-col items-center mb-10">
+            <div className="w-16 h-16 bg-gray-900 rounded-2xl flex items-center justify-center shadow-lg mb-6">
               <Lock className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-wider">MIENO CORP.</h1>
-            <p className="text-gray-400 text-sm tracking-widest mt-2">SECURE LOGIN SYSTEM</p>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">MIENO CORP.</h1>
+            <p className="text-gray-400 text-xs font-bold tracking-[0.2em] mt-2 uppercase">Member Dashboard</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Identifier</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                  placeholder="admin@mieno-corp.jp"
-                  required
-                />
-              </div>
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-400 ml-4 uppercase tracking-wider">Member ID</label>
+                <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                        type="text"
+                        value={loginId}
+                        onChange={(e) => setLoginId(e.target.value)}
+                        className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl py-4 pl-12 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-100 transition-all font-medium"
+                        placeholder="ID (e.g. cto)"
+                        autoCapitalize='none'
+                    />
+                </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Passcode</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
+
+            <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-400 ml-4 uppercase tracking-wider">Passcode</label>
+                <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                        type="password"
+                        value={loginPass}
+                        onChange={(e) => setLoginPass(e.target.value)}
+                        className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl py-4 pl-12 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-100 transition-all font-medium"
+                        placeholder="••••••••"
+                    />
+                </div>
             </div>
+
             <button
               type="submit"
-              className="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-gray-200 transition-colors"
+              className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-xl hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4"
             >
               Authenticate
             </button>
           </form>
+
+          <p className="text-center text-xs text-gray-400 mt-8 font-medium">
+             Authorized Personnel Only
+          </p>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black flex text-white">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-white/10 bg-black/50 backdrop-blur-md hidden md:flex flex-col fixed h-full">
-        <div className="p-6 border-b border-white/10">
-          <h2 className="text-lg font-bold tracking-wider flex items-center gap-2">
-            <LayoutDashboard className="w-5 h-5" />
-            DASHBOARD
-          </h2>
-        </div>
-        <nav className="flex-1 p-4 space-y-2">
-          <button
-            onClick={() => setActiveTab('news')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'news' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-          >
-            <Newspaper className="w-5 h-5" />
-            News Management
-          </button>
-          <button
-            onClick={() => setActiveTab('ir')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'ir' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-          >
-            <BarChart3 className="w-5 h-5" />
-            IR Management
-          </button>
-        </nav>
-        <div className="p-4 border-t border-white/10">
-          <button
-            onClick={() => setIsAuthenticated(false)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            Logout
-          </button>
-        </div>
-      </aside>
+    <div className="min-h-screen bg-[#F5F5F7] text-gray-900 pb-24 font-sans selection:bg-gray-200">
 
-      {/* Main Content */}
-      <main className="flex-1 p-8 md:ml-64 overflow-y-auto">
-        <div className="max-w-6xl mx-auto">
-          <header className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold">{activeTab === 'news' ? 'News Management' : 'IR Management'}</h2>
-            <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg font-medium transition-colors">
-              <Plus className="w-4 h-4" />
-              Add New
-            </button>
-          </header>
-
-          <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-            {activeTab === 'news' ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-white/5 text-gray-400 text-xs uppercase tracking-wider">
-                    <tr>
-                      <th className="px-6 py-4">Date</th>
-                      <th className="px-6 py-4">Category</th>
-                      <th className="px-6 py-4">Title</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/10">
-                    {mockNews.map((item) => (
-                      <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-4 font-mono text-sm text-gray-300">{item.date}</td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/20">
-                            {item.category}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium">{item.title}</td>
-                        <td className="px-6 py-4 text-right space-x-2">
-                          <button className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-400 transition-colors">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-white/5 text-gray-400 text-xs uppercase tracking-wider">
-                    <tr>
-                      <th className="px-6 py-4">ID</th>
-                      <th className="px-6 py-4">Title</th>
-                      <th className="px-6 py-4">Value</th>
-                      <th className="px-6 py-4">Description</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/10">
-                    {mockIR.map((item) => (
-                      <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-4 font-mono text-sm text-gray-500">{item.id}</td>
-                        <td className="px-6 py-4 text-sm font-medium">{item.title}</td>
-                        <td className="px-6 py-4 text-sm">
-                          <span className="text-xl font-bold">{item.value.toLocaleString()}</span>
-                          <span className="text-xs text-gray-500 ml-1">{item.unit}</span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-400 max-w-xs truncate">{item.description}</td>
-                        <td className="px-6 py-4 text-right space-x-2">
-                          <button className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-400 transition-colors">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-[#F5F5F7]/80 backdrop-blur-md border-b border-gray-200/50 px-6 py-4 flex justify-between items-center">
+        <div>
+            <h1 className="text-lg font-bold text-gray-900 leading-none">統合管理システム</h1>
+            <p className="text-[10px] font-bold text-gray-400 tracking-widest mt-1 uppercase">Member Dashboard</p>
         </div>
+        <button onClick={handleLogout} className="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-red-500 transition-colors">
+            <LogOut size={18} />
+        </button>
+      </header>
+
+      <main className="max-w-xl mx-auto px-4 py-6 space-y-6">
+
+        {/* Profile Card */}
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-[1.5rem] p-6 shadow-sm border border-white/50 relative overflow-hidden"
+        >
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+                <LayoutDashboard size={120} />
+            </div>
+            <div className="relative z-10 flex items-center gap-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center text-gray-400 text-2xl font-bold border-2 border-white shadow-sm">
+                    {currentUser?.name.charAt(0)}
+                </div>
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <h2 className="text-xl font-bold text-gray-900">{currentUser?.name}</h2>
+                        <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border border-green-200">
+                            Verified
+                        </span>
+                    </div>
+                    <p className="text-sm text-gray-500 font-medium">{currentUser?.role} / {currentUser?.roleJa}</p>
+                </div>
+            </div>
+        </motion.div>
+
+        {/* Navigation Tabs */}
+        <div className="flex p-1 bg-gray-200/50 rounded-2xl">
+            {(['asset', 'log', 'inventory'] as const).map((tab) => (
+                <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex-1 flex flex-col items-center justify-center py-3 rounded-xl text-xs font-bold transition-all relative ${
+                        activeTab === tab ? 'text-gray-900 bg-white shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                >
+                    {tab === 'asset' && <Wrench className="w-5 h-5 mb-1" />}
+                    {tab === 'log' && <FileText className="w-5 h-5 mb-1" />}
+                    {tab === 'inventory' && <Package className="w-5 h-5 mb-1" />}
+
+                    <span className="uppercase tracking-tight text-[10px]">
+                        {tab === 'asset' && 'Asset'}
+                        {tab === 'log' && 'Log'}
+                        {tab === 'inventory' && 'Inventory'}
+                    </span>
+                </button>
+            ))}
+        </div>
+
+        {/* Content Area */}
+        <div className="min-h-[400px]">
+            <AnimatePresence mode='wait'>
+                {activeTab === 'asset' && currentUser && (
+                    <AssetManagement key="asset" user={currentUser} showToast={showToast} />
+                )}
+                {activeTab === 'log' && (
+                    <SubmitLog key="log" showToast={showToast} />
+                )}
+                {activeTab === 'inventory' && (
+                    <InventoryRequest key="inventory" showToast={showToast} />
+                )}
+            </AnimatePresence>
+        </div>
+
       </main>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast.show && (
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast({ ...toast, show: false })}
+            />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
