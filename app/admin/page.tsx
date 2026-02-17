@@ -7,6 +7,7 @@ import {
   CheckCircle2, AlertCircle, ChevronRight, Gauge,
   ClipboardList, Send, LogOut
 } from 'lucide-react';
+import EasterEggModal from '../../components/EasterEggModal';
 
 // --- Types ---
 
@@ -358,6 +359,31 @@ export default function AdminPage() {
   const [loginId, setLoginId] = useState('');
   const [loginPass, setLoginPass] = useState('');
 
+  // Easter Egg State
+  const [clickCount, setClickCount] = useState(0);
+  const [lastClickTime, setLastClickTime] = useState(0);
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
+
+  const handleTitleClick = (e: React.MouseEvent) => {
+    const now = Date.now();
+    // Reset if more than 1 second has passed since the last click
+    if (now - lastClickTime > 1000) {
+      setClickCount(1);
+    } else {
+      setClickCount((prev) => prev + 1);
+    }
+    setLastClickTime(now);
+
+    // Calculate current count including this click
+    const currentCount = now - lastClickTime > 1000 ? 1 : clickCount + 1;
+
+    if (currentCount >= 5) {
+      e.preventDefault();
+      setShowEasterEgg(true);
+      setClickCount(0);
+    }
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // Simple mock authentication
@@ -390,6 +416,7 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6 text-gray-900 font-sans">
+        <EasterEggModal isOpen={showEasterEgg} onClose={() => setShowEasterEgg(false)} />
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -399,13 +426,21 @@ export default function AdminPage() {
             <div className="w-16 h-16 bg-gray-900 rounded-2xl flex items-center justify-center shadow-lg mb-6">
               <Lock className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">MIENO CORP.</h1>
+            <h1
+              className="text-2xl font-bold text-gray-900 tracking-tight cursor-pointer select-none"
+              onClick={handleTitleClick}
+            >
+              MIENO CORP.
+            </h1>
             <p className="text-gray-400 text-xs font-bold tracking-[0.2em] mt-2 uppercase">Member Dashboard</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 ml-4 uppercase tracking-wider">Member ID</label>
+                <label className="ml-4 flex items-baseline gap-2">
+                  <span className="text-sm font-bold text-gray-700">メンバーID</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">MEMBER ID</span>
+                </label>
                 <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
@@ -420,7 +455,10 @@ export default function AdminPage() {
             </div>
 
             <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 ml-4 uppercase tracking-wider">Passcode</label>
+                <label className="ml-4 flex items-baseline gap-2">
+                  <span className="text-sm font-bold text-gray-700">パスコード</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">PASSCODE</span>
+                </label>
                 <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
@@ -435,14 +473,16 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-xl hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4"
+              className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-xl hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4 flex items-center justify-center gap-2"
             >
-              Authenticate
+              <span>システム認証</span>
+              <span className="text-xs opacity-70 tracking-wider">AUTHENTICATE</span>
             </button>
           </form>
 
-          <p className="text-center text-xs text-gray-400 mt-8 font-medium">
-             Authorized Personnel Only
+          <p className="text-center mt-8 font-medium text-gray-400">
+             <span className="block text-sm font-bold text-gray-500">※関係者以外アクセス禁止</span>
+             <span className="text-[10px] tracking-[0.2em] uppercase">Authorized Personnel Only</span>
           </p>
         </motion.div>
       </div>

@@ -2,21 +2,21 @@ import Link from "next/link";
 
 const footerNavigation = {
   solutions: [
-    { name: "Strategic Units", href: "/units" },
-    { name: "Logistics Operations", href: "/logistics" },
-    { name: "Mieno Ecosystem", href: "/services" },
+    { name: "機動戦力", href: "/units" },
+    { name: "広域兵站", href: "/logistics" },
+    { name: "事業領域", href: "/services" },
   ],
   support: [
-    { name: "Performance Report (IR)", href: "/ir" },
-    { name: "Documentation", href: "/history" },
+    { name: "運用実績 (IR)", href: "/ir" },
+    { name: "ドキュメント", href: "/history" },
   ],
   company: [
-    { name: "Corporate History", href: "/history" },
-    { name: "News", href: "/" },
+    { name: "組織沿革", href: "/history" },
+    { name: "ニュース", href: "/" },
   ],
   legal: [
-    { name: "Privacy Policy", href: "/" },
-    { name: "Terms of Service", href: "/" },
+    { name: "プライバシーポリシー", href: "/" },
+    { name: "利用規約", href: "/" },
   ],
 };
 
@@ -91,8 +91,8 @@ export default function Footer() {
           </div>
           <div className="mt-10 xl:mt-0">
              <p className="text-sm leading-6 text-gray-600">
-                Corporate Headquarters<br/>
-                Mieno Building, Tokyo, Japan
+                Strategic Headquarters<br/>
+                Miyagawachi Base, Oita, Japan
              </p>
           </div>
         </div>
