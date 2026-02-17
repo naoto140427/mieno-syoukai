@@ -72,7 +72,7 @@ export default function Contact() {
   };
 
   return (
-    <div className="relative min-h-screen py-24 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center overflow-hidden bg-gray-50">
+    <div className="relative min-h-screen py-24 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center overflow-hidden bg-mieno-gray">
 
       {/* Background Elements */}
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-5 pointer-events-none mix-blend-multiply" />
@@ -281,11 +281,6 @@ export default function Contact() {
               </motion.form>
             )}
           </AnimatePresence>
-        </motion.div>
-
-        {/* Footer Note */}
-        <motion.div variants={itemVariants} className="text-center mt-8 text-gray-500 text-xs">
-           &copy; 2025 MIENO CORP. STRATEGIC OPERATIONS.
         </motion.div>
 
       </motion.div>
