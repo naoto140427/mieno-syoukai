@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Lock, LayoutDashboard, Wrench, FileText, Package,
@@ -88,6 +88,7 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
 
 const AssetManagement = ({ user, showToast }: { user: UserProfile, showToast: (msg: string) => void }) => {
   const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +97,7 @@ const AssetManagement = ({ user, showToast }: { user: UserProfile, showToast: (m
     setTimeout(() => {
       setLoading(false);
       showToast('機体データを更新しました');
+      formRef.current?.reset();
     }, 1000);
   };
 
@@ -110,7 +112,7 @@ const AssetManagement = ({ user, showToast }: { user: UserProfile, showToast: (m
         <h3 className="text-lg font-bold text-gray-900 mb-1">機体ステータス更新</h3>
         <p className="text-xs text-gray-400 font-medium tracking-wide uppercase mb-6">Asset Status Update</p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-700 block">対象機体 <span className="text-gray-400 font-normal ml-2">Target Unit</span></label>
             <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-gray-800 font-medium flex items-center gap-3">
@@ -125,8 +127,9 @@ const AssetManagement = ({ user, showToast }: { user: UserProfile, showToast: (m
               <div className="relative">
                 <input
                   type="number"
+                  disabled={loading}
                   placeholder="Example: 12500"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono text-lg"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   required
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">km</span>
@@ -138,7 +141,8 @@ const AssetManagement = ({ user, showToast }: { user: UserProfile, showToast: (m
               <div className="relative">
                 <input
                   type="date"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  disabled={loading}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -148,8 +152,9 @@ const AssetManagement = ({ user, showToast }: { user: UserProfile, showToast: (m
             <label className="text-sm font-bold text-gray-700 block">カスタム・整備メモ <span className="text-gray-400 font-normal ml-2">Maintenance Note</span></label>
             <textarea
               rows={3}
+              disabled={loading}
               placeholder="タイヤ空気圧調整、チェーン清掃など"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -175,6 +180,7 @@ const AssetManagement = ({ user, showToast }: { user: UserProfile, showToast: (m
 
 const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
   const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,6 +189,7 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
     setTimeout(() => {
       setLoading(false);
       showToast('作戦記録を送信しました');
+      formRef.current?.reset();
     }, 1500);
   };
 
@@ -197,13 +204,14 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
         <h3 className="text-lg font-bold text-gray-900 mb-1">作戦記録の提出</h3>
         <p className="text-xs text-gray-400 font-medium tracking-wide uppercase mb-6">Submit Operation Log</p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-700 block">作戦名 <span className="text-gray-400 font-normal ml-2">Operation Title</span></label>
             <input
               type="text"
+              disabled={loading}
               placeholder="例: 富士五湖周遊作戦"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               required
             />
           </div>
@@ -213,7 +221,8 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
               <label className="text-sm font-bold text-gray-700 block">実施日 <span className="text-gray-400 font-normal ml-2">Date</span></label>
               <input
                 type="date"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                disabled={loading}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -222,8 +231,9 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
               <div className="relative">
                 <input
                   type="number"
+                  disabled={loading}
                   placeholder="0"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-right pr-12"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-right pr-12 disabled:opacity-50 disabled:cursor-not-allowed"
                   required
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">km</span>
@@ -235,8 +245,9 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
             <label className="text-sm font-bold text-gray-700 block">詳細レポート <span className="text-gray-400 font-normal ml-2">Mission Report</span></label>
             <textarea
               rows={5}
+              disabled={loading}
               placeholder="天候、路面状況、特記事項など..."
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               required
             />
           </div>
@@ -263,6 +274,7 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
 
 const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) => {
   const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,6 +283,7 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) =
     setTimeout(() => {
       setLoading(false);
       showToast('申請を受け付けました');
+      formRef.current?.reset();
     }, 1000);
   };
 
@@ -285,13 +298,14 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) =
         <h3 className="text-lg font-bold text-gray-900 mb-1">備品・資材の申請</h3>
         <p className="text-xs text-gray-400 font-medium tracking-wide uppercase mb-6">Inventory Request</p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-700 block">品名・名称 <span className="text-gray-400 font-normal ml-2">Item Name</span></label>
             <input
               type="text"
+              disabled={loading}
               placeholder="例: エンジンオイル 10W-40"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               required
             />
           </div>
@@ -300,7 +314,7 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) =
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 block">種別 <span className="text-gray-400 font-normal ml-2">Type</span></label>
               <div className="relative">
-                <select className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all appearance-none">
+                <select disabled={loading} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed">
                     <option>消耗品 (Consumable)</option>
                     <option>工具 (Tool)</option>
                     <option>その他 (Other)</option>
@@ -312,8 +326,9 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) =
               <label className="text-sm font-bold text-gray-700 block">必要数量 <span className="text-gray-400 font-normal ml-2">Qty</span></label>
               <input
                 type="number"
+                disabled={loading}
                 placeholder="1"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-right pr-4"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-right pr-4 disabled:opacity-50 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -323,8 +338,9 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) =
             <label className="text-sm font-bold text-gray-700 block">申請理由 <span className="text-gray-400 font-normal ml-2">Reason</span></label>
             <textarea
               rows={3}
+              disabled={loading}
               placeholder="在庫減少のため補充、破損による交換など"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               required
             />
           </div>

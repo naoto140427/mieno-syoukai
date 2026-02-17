@@ -15,8 +15,8 @@ const footerNavigation = {
     { name: "ニュース", href: "/" },
   ],
   legal: [
-    { name: "プライバシーポリシー", href: "/" },
-    { name: "利用規約", href: "/" },
+    { name: "プライバシーポリシー", href: "/legal/privacy" },
+    { name: "利用規約", href: "/legal/terms" },
   ],
 };
 

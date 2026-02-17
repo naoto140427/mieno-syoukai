@@ -26,7 +26,7 @@ export default function Contact() {
   const isValid = useMemo(() => {
     return (
       formData.name.trim().length > 0 &&
-      formData.email.trim().length > 0 &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) &&
       formData.subject !== '' &&
       formData.message.trim().length > 0
     );
