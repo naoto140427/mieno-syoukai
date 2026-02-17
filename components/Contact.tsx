@@ -1,42 +1,40 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { useState, useMemo } from 'react';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
+import {
+  Send,
+  User,
+  Mail,
+  MessageSquare,
+  List,
+  CheckCircle,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
 
-const Contact = () => {
+export default function Contact() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success'>('idle');
 
-  // State for form fields
   const [formData, setFormData] = useState({
     name: '',
-    asset: '',
-    type: '',
+    email: '',
+    subject: '',
     message: ''
   });
 
-  // Derived state for validation
   const isValid = useMemo(() => {
-    // 'asset' is optional in the original code (placeholder said "Current Asset (所有機材)"),
-    // but usually user wants "all required fields".
-    // The original code had 'required' on name and message, but not asset or type.
-    // However, the prompt says "すべての必須項目が埋まるまで".
-    // I will assume Name, Type, and Message are required. Asset is optional based on context ("required" attribute was missing on asset in original).
-    // Wait, looking at original code:
-    // name: required
-    // message: required
-    // type: defaultValue="" and option disabled "Select an option", so effectively required.
-    // asset: no required attribute.
-
     return (
       formData.name.trim().length > 0 &&
-      formData.type !== '' &&
+      formData.email.trim().length > 0 &&
+      formData.subject !== '' &&
       formData.message.trim().length > 0
     );
   }, [formData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -44,173 +42,253 @@ const Contact = () => {
     if (!isValid) return;
 
     setFormState('submitting');
+
     // Simulate network request
     setTimeout(() => {
       setFormState('success');
-      // Reset form (optional, but good UX)
-      setFormData({ name: '', asset: '', type: '', message: '' });
+      setFormData({ name: '', email: '', subject: '', message: '' });
     }, 1500);
   };
 
+  // Animation variants
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants: Variants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+    }
+  };
+
   return (
-    <section className="min-h-screen bg-white text-mieno-text pt-32 pb-24 px-6 overflow-hidden">
-      <div className="container mx-auto max-w-6xl">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="mb-24 text-center md:text-left"
-        >
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 text-mieno-navy">
-            Connect with Mieno Corp.
+    <div className="relative min-h-screen py-24 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center overflow-hidden bg-gray-50">
+
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-5 pointer-events-none mix-blend-multiply" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-blue-100/50 blur-[100px] rounded-full pointer-events-none" />
+
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 w-full max-w-2xl"
+      >
+        {/* Header */}
+        <motion.div variants={itemVariants} className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-mieno-navy text-xs font-bold tracking-widest uppercase mb-6 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            SECURE CHANNEL OPEN
+          </div>
+
+          <h1 className="text-4xl md:text-5xl font-black text-mieno-navy tracking-tight mb-4">
+            通信回線
           </h1>
-          <p className="text-xl md:text-2xl text-gray-500 font-light">
-            新たな機動戦力（ライダー）の参画を歓迎します。
+          <p className="text-mieno-navy/60 text-sm font-bold tracking-[0.2em] uppercase mb-6">
+            SECURE CONTACT
+          </p>
+
+          <p className="text-gray-600 text-lg leading-relaxed max-w-lg mx-auto">
+            株式会社三重野商会への各種お問い合わせ・作戦支援要請は<br className="hidden sm:block" />こちらから承ります。
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
-          {/* Left Column: Contact Info */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="space-y-12"
-          >
-            <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Headquarters</h3>
-              <p className="text-lg leading-relaxed font-medium">
-                Mieno Corp. Strategic HQ<br />
-                Oita, Japan
-              </p>
-              <p className="mt-4 text-gray-500">
-                Strategic Operations Division<br />
-                Logistics Support Unit
-              </p>
-            </div>
+        {/* Form Container */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white border border-gray-200 rounded-2xl p-6 md:p-10 shadow-xl relative overflow-hidden"
+        >
+          {/* Top Border Gradient */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-mieno-navy to-transparent opacity-80" />
 
-            <div>
-               <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Direct Comms</h3>
-               <p className="text-lg font-medium">contact@mieno.example.com</p>
-               <p className="mt-2 text-gray-500 text-sm">Response time: Within 24 hours (Standard Operational Procedure)</p>
-            </div>
-
-            <div className="pt-8 border-t border-gray-100">
-              <p className="text-sm text-gray-400 leading-relaxed">
-                当社のミッション、または作戦行動（ツーリング）に関するお問い合わせは、
-                こちらのセキュア回線（フォーム）をご利用ください。
-                機密保持契約（NDA）に基づき、通信内容は厳重に保護されます。
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Right Column: Input Form */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
+          <AnimatePresence mode="wait">
             {formState === 'success' ? (
               <motion.div
+                key="success"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-green-50 border border-green-100 rounded-3xl p-12 text-center"
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col items-center justify-center py-12 text-center"
               >
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                  </svg>
+                <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-6 border border-green-100 shadow-sm">
+                  <CheckCircle className="w-10 h-10 text-green-500" />
                 </div>
-                <h3 className="text-2xl font-bold text-mieno-navy mb-4">送信完了</h3>
-                <p className="text-gray-600">近日中に担当役員より通信を開きます。<br/>待機してください。</p>
+                <h3 className="text-2xl font-bold text-mieno-navy mb-2">送信完了</h3>
+                <p className="text-gray-400 font-mono text-sm tracking-wider uppercase mb-6">TRANSMISSION COMPLETE</p>
+                <p className="text-gray-600 max-w-md mx-auto mb-8 leading-relaxed">
+                  お問い合わせを受け付けました。<br />
+                  担当役員より暗号化通信にて返信いたしますので、<br />
+                  しばらくお待ちください。
+                </p>
                 <button
                   onClick={() => setFormState('idle')}
-                  className="mt-8 text-sm text-gray-400 hover:text-mieno-navy transition-colors underline"
+                  className="px-6 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-mieno-navy text-sm font-medium transition-colors border border-gray-200"
                 >
                   新しい通信を開始する
                 </button>
               </motion.div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <motion.form
+                key="form"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onSubmit={handleSubmit}
+                className="space-y-6"
+              >
+                {/* Name Field */}
                 <div className="space-y-2">
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    id="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-mieno-navy/30 focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg placeholder:text-gray-300"
-                    placeholder="T. Mieno"
-                  />
+                  <label htmlFor="name" className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-mieno-navy">お名前</span>
+                    <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">NAME</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-mieno-navy transition-colors">
+                      <User size={18} />
+                    </div>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      required
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="例: 渡辺 直人"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 text-mieno-text placeholder:text-gray-400 focus:outline-none focus:border-mieno-navy focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300"
+                    />
+                  </div>
                 </div>
 
+                {/* Email Field */}
                 <div className="space-y-2">
-                  <label htmlFor="asset" className="block text-sm font-medium text-gray-700">Current Asset (所有機材)</label>
-                  <input
-                    type="text"
-                    id="asset"
-                    value={formData.asset}
-                    onChange={handleChange}
-                    className="w-full px-4 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-mieno-navy/30 focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg placeholder:text-gray-300"
-                    placeholder="CBR400R, SERENA LUXION, etc."
-                  />
+                  <label htmlFor="email" className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-mieno-navy">メールアドレス</span>
+                    <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">EMAIL</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-mieno-navy transition-colors">
+                      <Mail size={18} />
+                    </div>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="例: info@mieno-corp.com"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 text-mieno-text placeholder:text-gray-400 focus:outline-none focus:border-mieno-navy focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300"
+                    />
+                  </div>
                 </div>
 
+                {/* Subject Field */}
                 <div className="space-y-2">
-                   <label htmlFor="type" className="block text-sm font-medium text-gray-700">Inquiry Type (要件) <span className="text-red-500">*</span></label>
-                   <div className="relative">
-                     <select
-                       id="type"
-                       required
-                       value={formData.type}
-                       onChange={handleChange}
-                       className="w-full px-4 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-mieno-navy/30 focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg appearance-none cursor-pointer"
-                     >
-                       <option value="" disabled>Select an option</option>
-                       <option value="touring">共同フィールドワーク（ツーリング）への参加申請</option>
-                       <option value="asset">アセット（車両）の調達・運用に関する相談</option>
-                       <option value="other">その他</option>
-                     </select>
-                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                     </div>
-                   </div>
+                  <label htmlFor="subject" className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-mieno-navy">お問い合わせ種別</span>
+                    <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">SUBJECT</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-mieno-navy transition-colors pointer-events-none">
+                      <List size={18} />
+                    </div>
+                    <select
+                      id="subject"
+                      name="subject"
+                      required
+                      value={formData.subject}
+                      onChange={handleChange}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-10 text-mieno-text focus:outline-none focus:border-mieno-navy focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300 appearance-none cursor-pointer"
+                    >
+                      <option value="" disabled className="text-gray-400">選択してください</option>
+                      <option value="business" className="text-mieno-text">業務提携・ご依頼</option>
+                      <option value="units" className="text-mieno-text">機動戦力に関するお問い合わせ</option>
+                      <option value="logistics" className="text-mieno-text">ロジスティクス・兵站支援</option>
+                      <option value="other" className="text-mieno-text">その他</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
                 </div>
 
+                {/* Message Field */}
                 <div className="space-y-2">
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700">Message <span className="text-red-500">*</span></label>
-                  <textarea
-                    id="message"
-                    rows={5}
-                    required
-                    value={formData.message}
-                    onChange={handleChange}
-                    className="w-full px-4 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-mieno-navy/30 focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300 outline-none text-lg resize-none placeholder:text-gray-300"
-                    placeholder="作戦の詳細を記入してください..."
-                  ></textarea>
+                  <label htmlFor="message" className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-mieno-navy">メッセージ内容</span>
+                    <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">MESSAGE</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-mieno-navy transition-colors">
+                      <MessageSquare size={18} />
+                    </div>
+                    <textarea
+                      id="message"
+                      name="message"
+                      required
+                      rows={6}
+                      value={formData.message}
+                      onChange={handleChange}
+                      placeholder="お問い合わせ内容をご記入ください..."
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 text-mieno-text placeholder:text-gray-400 focus:outline-none focus:border-mieno-navy focus:ring-4 focus:ring-mieno-navy/10 transition-all duration-300 resize-none"
+                    ></textarea>
+                  </div>
                 </div>
 
+                {/* Submit Button */}
                 <motion.button
                   type="submit"
                   disabled={!isValid || formState === 'submitting'}
                   whileHover={isValid && formState !== 'submitting' ? { scale: 1.02 } : {}}
                   whileTap={isValid && formState !== 'submitting' ? { scale: 0.98 } : {}}
-                  className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 ${
+                  className={`w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-3 transition-all duration-300 shadow-lg ${
                     !isValid || formState === 'submitting'
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-70'
-                      : 'bg-mieno-navy text-white hover:bg-opacity-90 shadow-lg hover:shadow-xl'
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                      : 'bg-mieno-navy text-white hover:bg-opacity-90 hover:shadow-mieno-navy/20 border border-transparent'
                   }`}
                 >
-                  {formState === 'submitting' ? 'Transmitting...' : 'Submit Request'}
+                  {formState === 'submitting' ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} />
+                      TRANSMITTING...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} className={isValid ? "animate-pulse" : ""} />
+                      <span>送信する</span>
+                      <span className="text-[10px] opacity-60 font-mono hidden sm:inline">SEND MESSAGE</span>
+                    </>
+                  )}
                 </motion.button>
-              </form>
-            )}
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-};
 
-export default Contact;
+                {/* Secure Notice */}
+                <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-500">
+                  <AlertCircle size={12} />
+                  <span>この通信はSSL/TLSにより暗号化されています。</span>
+                </div>
+
+              </motion.form>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Footer Note */}
+        <motion.div variants={itemVariants} className="text-center mt-8 text-gray-500 text-xs">
+           &copy; 2025 MIENO CORP. STRATEGIC OPERATIONS.
+        </motion.div>
+
+      </motion.div>
+    </div>
+  );
+}

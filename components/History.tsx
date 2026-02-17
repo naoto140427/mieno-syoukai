@@ -2,48 +2,48 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { Flag, Activity, Globe } from 'lucide-react';
 
 interface HistoryEvent {
   year: string;
   title: string;
+  sub: string;
   description: string;
+  icon: React.ReactNode;
 }
 
 const historyData: HistoryEvent[] = [
   {
-    year: '2020年以前',
-    title: 'インキュベーション（潜伏期）',
-    description: '「機動的プロトタイプの運用開始」: 現CMO 末森知輝により、マイクロ・モビリティ『Monkey 125』を用いた地域偵察業務が開始。\n「フラッグシップ・アセットへの一目惚れ」: 末森、究極の機能美『CBR600RR (2020)』を電撃調達。組織の高機動路線の礎を築く。',
+    year: 'Phase 01',
+    title: '組織結成',
+    sub: '主力機体の導入',
+    description: 'CMO末森によるCBR600RRの調達を皮切りに、渡辺(CTO)、三重野(CEO)が次々と戦略機体を投入。「三重野バイク同好会」としての活動が開始される。',
+    icon: <Flag className="w-6 h-6 text-white" />,
   },
   {
-    year: '2021年',
-    title: '人的資本の拡充とナレッジ共有',
-    description: '「専門知見の集積」: 末森と渡辺直人（現・課長）、専門教育機関にて合流。\n「初期資産のデプロイ」: 渡辺、国家資格を取得し即座に『CBR400R (2020)』を調達。共同フィールドワーク（非公式ツーリング）が常態化。',
+    year: 'Phase 02',
+    title: 'ロジスティクス網の拡大',
+    sub: '長距離ツーリングの成功',
+    description: '四国・九州を含む広域遠征（ロングツーリング）を成功させ、野営地での作戦遂行能力を実証。チームの連携と耐久性が飛躍的に向上。',
+    icon: <Activity className="w-6 h-6 text-white" />,
   },
   {
-    year: '2023年',
-    title: 'マーケットの拡大',
-    description: '「新規ステークホルダーの関心」: 圧倒的な実績（楽しさ）を目の当たりにし、三重野匠（現・CEO）が二輪事業への関心を示す。',
-  },
-  {
-    year: '2024年',
-    title: '組織化とブランド誕生',
-    description: '「伝統的資産の導入と同好会設立」: 三重野、ヘリテージ・アセット『GB350』を調達。「三重野バイク同好会」設立。\n「戦略的合併と有限会社化」: 渡辺の重要パートナー、坂井龍之介が『YZF-R3 (2025)』を携え電撃参画。「有限会社三重野商会」へと組織体制を刷新。',
-  },
-  {
-    year: '2026年2月',
-    title: 'DX推進と「株式会社」へ',
-    description: '「次世代ポータルサイト公開」: CTO/CIO 渡辺課長指揮のもと、公式Webサイトが完成。\n「株式会社への商号変更」: さらなるグローバル展開（広域ツーリング）を見据え、「株式会社三重野商会」へと進化。',
+    year: 'Phase 03',
+    title: 'デジタル・トランスフォーメーション',
+    sub: '現在のコーポレートサイト/ERP稼働',
+    description: '組織の拡大に伴い、情報共有基盤をデジタル化。自社開発のERPシステムと本コーポレートサイトの稼働により、作戦効率が最大化された。',
+    icon: <Globe className="w-6 h-6 text-white" />,
   },
 ];
 
 export default function History() {
   return (
-    <section className="py-24 bg-white overflow-hidden relative">
+    <section className="py-24 bg-white overflow-hidden relative min-h-screen">
       <div className="mx-auto max-w-7xl px-6 lg:px-8 relative">
         <div className="mx-auto max-w-2xl text-center mb-24">
-          <h2 className="text-3xl font-bold tracking-tight text-mieno-navy sm:text-4xl">
-            Our History
+          <h2 className="text-3xl font-bold tracking-tight text-mieno-navy sm:text-4xl uppercase">
+            組織沿革
+            <span className="block text-sm font-medium tracking-widest text-gray-400 mt-2">HISTORY</span>
           </h2>
           <p className="mt-4 text-lg leading-8 text-gray-600">
             進化の軌跡。
@@ -61,7 +61,7 @@ export default function History() {
           />
         </div>
 
-        <div className="space-y-16 md:space-y-24 mb-16">
+        <div className="space-y-24 mb-16">
           {historyData.map((event, index) => (
             <motion.div
               key={index}
@@ -69,27 +69,34 @@ export default function History() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.8, delay: index * 0.1 }}
-              className={`relative flex flex-col md:flex-row gap-8 md:gap-0 ${
+              className={`relative flex flex-col md:flex-row gap-8 md:gap-0 items-center ${
                 index % 2 === 0 ? 'md:flex-row-reverse' : ''
               }`}
             >
               {/* Content Side */}
-              <div className="flex-1 md:w-1/2 pl-12 md:pl-0 md:px-12">
-                <div className={`${index % 2 === 0 ? 'md:text-left' : 'md:text-right'}`}>
-                  <h3 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-mieno-navy to-blue-600 mb-2">
+              <div className="flex-1 md:w-1/2 pl-12 md:pl-0 md:px-16">
+                <div className={`bg-gray-50 p-8 rounded-2xl shadow-sm border border-gray-100 relative ${index % 2 === 0 ? 'md:text-left' : 'md:text-right'}`}>
+                  {/* Connector Line (Mobile only, Desktop handled by absolute positioning logic if needed but simpler to keep clean) */}
+
+                  <h3 className="text-sm font-bold tracking-widest text-blue-600 mb-1 uppercase">
                     {event.year}
                   </h3>
-                  <h4 className="text-xl font-semibold text-mieno-navy mb-4">
+                  <h4 className="text-2xl font-bold text-mieno-navy mb-2">
                     {event.title}
                   </h4>
-                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                  <p className="text-sm font-bold text-gray-400 mb-4 tracking-wide">
+                    {event.sub}
+                  </p>
+                  <p className="text-gray-600 leading-relaxed text-sm md:text-base">
                     {event.description}
                   </p>
                 </div>
               </div>
 
               {/* Timeline Dot */}
-              <div className="absolute left-6 md:left-1/2 w-4 h-4 bg-white border-4 border-mieno-navy rounded-full transform -translate-x-1/2 mt-2 md:mt-0 z-10 shadow-lg" />
+              <div className="absolute left-6 md:left-1/2 w-12 h-12 bg-mieno-navy rounded-full transform -translate-x-1/2 z-10 shadow-lg border-4 border-white flex items-center justify-center">
+                 {event.icon}
+              </div>
 
               {/* Empty Side for Desktop Balance */}
               <div className="hidden md:block md:w-1/2" />
@@ -98,7 +105,7 @@ export default function History() {
         </div>
 
         {/* CTA Button */}
-        <div className="text-center relative z-10">
+        <div className="text-center relative z-10 pt-12">
           <Link
             href="/contact"
             className="inline-block px-10 py-4 bg-mieno-navy text-white text-lg font-bold rounded-full shadow-lg hover:bg-blue-900 transition-transform hover:-translate-y-1"

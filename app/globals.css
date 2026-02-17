@@ -18,3 +18,11 @@ body {
   color: var(--color-mieno-text);
   margin: 0;
 }
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
