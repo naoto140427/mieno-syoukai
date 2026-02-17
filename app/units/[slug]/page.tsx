@@ -192,6 +192,53 @@ const UNITS: Record<string, UnitData> = {
       { date: '2025.02.15', title: 'コーティング施工', type: 'maintenance', details: 'CR-1ガラスコーティング施工。' },
     ]
   },
+  'cbr600rr': {
+    id: 'cbr600rr',
+    slug: 'cbr600rr',
+    name: { jp: 'CBR600RR (2020)', en: 'SPEED & AGILITY' },
+    role: { jp: '末森 知輝 CMO', en: 'CHIEF MARKETING OFFICER' },
+    description: '600ccの高回転型バリュー・エンジン。圧倒的なポテンシャルを誇るメイン機体。サーキットからワインディングまで、あらゆるステージでその真価を発揮する。',
+    themeColor: 'red',
+    specs: [
+      { label: 'Engine Type', value: 'Liquid-Cooled 4-Stroke DOHC Inline-4', progress: 95, icon: <Zap size={16} /> },
+      { label: 'Displacement', value: '599cc', progress: 60, icon: <Database size={16} /> },
+      { label: 'Max Power', value: '89kW (121PS) / 14,000rpm', progress: 95, icon: <Gauge size={16} /> },
+      { label: 'Max Torque', value: '64N・m / 11,500rpm', progress: 70, icon: <Activity size={16} /> },
+      { label: 'Weight', value: '194kg', progress: 60, icon: <Box size={16} /> },
+      { label: 'Fuel Tank', value: '18L', progress: 70, icon: <ShieldCheck size={16} /> },
+    ],
+    docs: [
+      { title: 'CBR600RR_Track_Manual.pdf', type: 'PDF', size: '18.4 MB', date: '2020.09.25' },
+      { title: 'HRC_Kit_Parts_List.pdf', type: 'PDF', size: '2.4 MB', date: '2021.02.10' },
+    ],
+    logs: [
+      { date: '2024.11.20', title: 'オイル交換 (G3)', type: 'maintenance', details: 'サーキット走行前メンテナンス。Honda Ultra G3使用。' },
+      { date: '2024.06.12', title: '12ヶ月点検', type: 'inspection', details: 'ドリーム店にて実施。消耗品チェック。' },
+    ]
+  },
+  'monkey125': {
+    id: 'monkey125',
+    slug: 'monkey125',
+    name: { jp: 'Monkey 125', en: 'THE LAST MILE PIONEER' },
+    role: { jp: '末森 知輝 CMO', en: 'CHIEF MARKETING OFFICER' },
+    description: '局地的な機動力を提供するマイクロ・モビリティ。Dual-Platform戦略の要として、大型機では到達不可能なエリアへのアクセスを可能にする。',
+    themeColor: 'red',
+    specs: [
+      { label: 'Engine Type', value: 'Air-Cooled 4-Stroke OHC Single', progress: 20, icon: <Zap size={16} /> },
+      { label: 'Displacement', value: '124cc', progress: 12, icon: <Database size={16} /> },
+      { label: 'Max Power', value: '6.9kW (9.4PS) / 6,750rpm', progress: 15, icon: <Gauge size={16} /> },
+      { label: 'Max Torque', value: '11N・m / 5,500rpm', progress: 20, icon: <Activity size={16} /> },
+      { label: 'Weight', value: '104kg', progress: 10, icon: <Box size={16} /> },
+      { label: 'Fuel Tank', value: '5.6L', progress: 20, icon: <ShieldCheck size={16} /> },
+    ],
+    docs: [
+      { title: 'Monkey125_Custom_Guide.pdf', type: 'PDF', size: '6.2 MB', date: '2021.05.10' },
+    ],
+    logs: [
+      { date: '2024.10.05', title: 'タイヤ交換', type: 'maintenance', details: 'オフロード走行を想定し、ブロックタイヤへ換装。' },
+      { date: '2024.05.15', title: 'キャリア増設', type: 'upgrade', details: '積載量増加のため、リアキャリアおよびサイドバッグサポートを装着。' },
+    ]
+  },
   'cbr600rr-monkey125': {
     id: 'cbr600rr-monkey125',
     slug: 'cbr600rr-monkey125',
