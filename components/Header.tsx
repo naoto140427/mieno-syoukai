@@ -7,14 +7,14 @@ import { Menu, X } from "lucide-react";
 import EasterEggModal from "./EasterEggModal";
 
 const navItems = [
-  { name: "Strategic Units", href: "/units" },
-  { name: "Services", href: "/services" },
-  { name: "Inventory", href: "/inventory" },
-  { name: "Logistics", href: "/logistics" },
-  { name: "Archives", href: "/archives" },
-  { name: "History", href: "/history" },
-  { name: "Support", href: "/ir" },
-  { name: "Contact", href: "/contact" },
+  { name: "機動戦力", en: "UNITS", href: "/units" },
+  { name: "事業領域", en: "SERVICES", href: "/services" },
+  { name: "備品管理", en: "INVENTORY", href: "/inventory" },
+  { name: "広域兵站", en: "LOGISTICS", href: "/logistics" },
+  { name: "作戦記録", en: "ARCHIVES", href: "/archives" },
+  { name: "沿革", en: "HISTORY", href: "/history" },
+  { name: "IR情報", en: "IR", href: "/ir" },
+  { name: "お問い合わせ", en: "CONTACT", href: "/contact" },
 ];
 
 export default function Header() {
@@ -69,9 +69,14 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-xs font-medium leading-6 text-mieno-text opacity-100 transition-opacity duration-300 hover:opacity-70"
+                className="group flex flex-col items-center justify-center text-center"
               >
-                {item.name}
+                <span className="text-sm font-bold text-mieno-text transition-colors duration-300 group-hover:text-mieno-navy">
+                  {item.name}
+                </span>
+                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider transition-colors duration-300 group-hover:text-mieno-navy/70">
+                  {item.en}
+                </span>
               </Link>
             ))}
           </div>
@@ -133,10 +138,15 @@ export default function Header() {
                   >
                     <Link
                       href={item.href}
-                      className="block text-2xl font-bold leading-7 text-mieno-text hover:text-mieno-navy/70 transition-colors"
+                      className="group flex items-baseline gap-3 py-1"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      {item.name}
+                      <span className="text-2xl font-bold leading-7 text-mieno-text group-hover:text-mieno-navy/70 transition-colors">
+                        {item.name}
+                      </span>
+                      <span className="text-sm font-medium text-gray-400 uppercase tracking-widest group-hover:text-mieno-navy/50 transition-colors">
+                        {item.en}
+                      </span>
                     </Link>
                   </motion.div>
                 ))}

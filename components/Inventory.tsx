@@ -72,7 +72,10 @@ export default function Inventory() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-mieno-navy tracking-tight">Resource & Inventory</h1>
+            <h1 className="text-3xl font-bold text-mieno-navy tracking-tight">
+              資材・備品管理
+              <span className="block text-sm text-gray-500 font-mono tracking-wider mt-1">INVENTORY</span>
+            </h1>
             <p className="text-gray-500 mt-1">Equipment status and supply levels dashboard.</p>
           </div>
           <button
@@ -80,7 +83,7 @@ export default function Inventory() {
             className="flex items-center gap-2 bg-mieno-navy text-white px-5 py-2.5 rounded-lg shadow-lg hover:bg-mieno-navy/90 transition-all active:scale-95"
           >
             <Plus className="w-5 h-5" />
-            <span>Add Resource</span>
+            <span>資材を追加</span>
           </button>
         </div>
 
@@ -88,7 +91,10 @@ export default function Inventory() {
         <section>
           <div className="flex items-center gap-2 mb-6">
             <Package className="w-6 h-6 text-mieno-navy" />
-            <h2 className="text-xl font-bold text-mieno-navy">Consumables Status</h2>
+            <h2 className="text-xl font-bold text-mieno-navy">
+              消耗品在庫
+              <span className="ml-2 text-xs text-gray-400 font-mono uppercase tracking-wider">CONSUMABLES</span>
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -132,7 +138,10 @@ export default function Inventory() {
         <section>
           <div className="flex items-center gap-2 mb-6">
             <Wrench className="w-6 h-6 text-mieno-navy" />
-            <h2 className="text-xl font-bold text-mieno-navy">Equipment & Tools</h2>
+            <h2 className="text-xl font-bold text-mieno-navy">
+              整備工具・機材
+              <span className="ml-2 text-xs text-gray-400 font-mono uppercase tracking-wider">TOOLS</span>
+            </h2>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -147,7 +156,7 @@ export default function Inventory() {
                         className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                       >
                         <div className="flex items-center gap-1">
-                          {key.charAt(0).toUpperCase() + key.slice(1)}
+                          {{ name: "品名", spec: "仕様/サイズ", qty: "数量", status: "状態", location: "保管場所" }[key]}
                           <div className="flex flex-col">
                             <ChevronUp className={`w-3 h-3 -mb-1 ${sortConfig?.key === key && sortConfig.direction === 'asc' ? 'text-mieno-navy' : 'text-gray-300'}`} />
                             <ChevronDown className={`w-3 h-3 ${sortConfig?.key === key && sortConfig.direction === 'desc' ? 'text-mieno-navy' : 'text-gray-300'}`} />
@@ -211,7 +220,7 @@ export default function Inventory() {
               className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg overflow-hidden"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-mieno-navy">Add Resource</h3>
+                <h3 className="text-xl font-bold text-mieno-navy">資材を追加</h3>
                 <button
                   onClick={() => setIsModalOpen(false)}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -222,21 +231,21 @@ export default function Inventory() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Resource Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">品名 / 名称</label>
                   <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all" placeholder="e.g. Engine Oil" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity / Level</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">数量 / 残量</label>
                     <input type="number" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all" placeholder="0" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">単位</label>
                     <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all" placeholder="L, kg, pcs" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">種別</label>
                   <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all">
                     <option>Consumable</option>
                     <option>Tool / Equipment</option>
@@ -249,13 +258,13 @@ export default function Inventory() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  Cancel
+                  キャンセル
                 </button>
                 <button
                   onClick={() => setIsModalOpen(false)}
                   className="px-6 py-2 bg-mieno-navy text-white font-medium rounded-lg shadow-md hover:bg-mieno-navy/90 transition-colors"
                 >
-                  Confirm Entry
+                  登録する
                 </button>
               </div>
             </motion.div>
