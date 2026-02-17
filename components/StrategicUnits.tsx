@@ -11,12 +11,14 @@ interface UnitData {
   copy: string;
   description: string;
   imageLabel: string;
+  slug: string;
   isSpecial?: boolean; // For Watanabe's toggle
   specialContent?: {
     secondaryName: string;
     secondaryCopy: string;
     secondaryDescription: string;
     secondaryImageLabel: string;
+    secondarySlug: string;
   };
 }
 
@@ -28,6 +30,7 @@ const units: UnitData[] = [
     copy: '本質は、飾らない。The Classic Authority.',
     description: '単気筒という名の、純粋な意志決定。伝統的な造形美と現代のテクノロジーが融合した、組織の揺るぎない基軸。',
     imageLabel: 'GB350 IMAGE',
+    slug: 'gb350',
   },
   {
     id: 'cmo',
@@ -36,6 +39,7 @@ const units: UnitData[] = [
     copy: '加速する情熱、緻密な機動力。Speed & Agility.',
     description: '600ccの高回転型バリュー・エンジンと、ラストワンマイルを開拓するマイクロ・モビリティ。Dual-Platform戦略による圧倒的ポテンシャル。',
     imageLabel: 'CBR600RR & Monkey 125 IMAGE',
+    slug: 'cbr600rr-monkey125',
   },
   {
     id: 'coo',
@@ -44,6 +48,7 @@ const units: UnitData[] = [
     copy: '未来を、追い越していく。Define the Next Standard.',
     description: '最新のR-DNAがもたらす、次世代のイノベーション。変化の激しい市場環境における、最も効率的な回答。',
     imageLabel: 'YZF-R3 IMAGE',
+    slug: 'yzf-r3',
   },
   {
     id: 'cto',
@@ -52,12 +57,14 @@ const units: UnitData[] = [
     copy: 'すべての道を、統治する。The Core of Operations.',
     description: '現場指揮官のための高機動二輪アセット。ロジスティクスの完全なる掌握。',
     imageLabel: 'CBR400R IMAGE',
+    slug: 'cbr400r',
     isSpecial: true,
     specialContent: {
       secondaryName: 'SERENA LUXION (2025)',
       secondaryCopy: 'すべての道を、統治する。The Core of Operations.',
       secondaryDescription: '組織全体を支える移動司令基地（ProPILOT 2.0搭載）。ロジスティクスの完全なる掌握。',
       secondaryImageLabel: 'SERENA LUXION IMAGE',
+      secondarySlug: 'serena-luxion',
     },
   },
 ];
@@ -80,6 +87,7 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
   const currentCopy = mode === 'bike' ? unit.copy : unit.specialContent?.secondaryCopy;
   const currentDesc = mode === 'bike' ? unit.description : unit.specialContent?.secondaryDescription;
   const currentImageLabel = mode === 'bike' ? unit.imageLabel : unit.specialContent?.secondaryImageLabel;
+  const currentSlug = mode === 'bike' ? unit.slug : unit.specialContent?.secondarySlug;
 
   return (
     <section
@@ -165,7 +173,7 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
             </motion.div>
           </AnimatePresence>
 
-          <Link href="/logistics" className="text-mieno-navy font-semibold hover:underline decoration-1 underline-offset-4 group flex items-center gap-2 w-fit">
+          <Link href={`/units/${currentSlug}`} className="text-mieno-navy font-semibold hover:underline decoration-1 underline-offset-4 group flex items-center gap-2 w-fit">
             View Details <span className="group-hover:translate-x-1 transition-transform">→</span>
           </Link>
         </motion.div>
