@@ -376,29 +376,7 @@ export default function AdminPage() {
   const [loginPass, setLoginPass] = useState('');
 
   // Easter Egg State
-  const [clickCount, setClickCount] = useState(0);
-  const [lastClickTime, setLastClickTime] = useState(0);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
-
-  const handleTitleClick = (e: React.MouseEvent) => {
-    const now = Date.now();
-    // Reset if more than 1 second has passed since the last click
-    if (now - lastClickTime > 1000) {
-      setClickCount(1);
-    } else {
-      setClickCount((prev) => prev + 1);
-    }
-    setLastClickTime(now);
-
-    // Calculate current count including this click
-    const currentCount = now - lastClickTime > 1000 ? 1 : clickCount + 1;
-
-    if (currentCount >= 5) {
-      e.preventDefault();
-      setShowEasterEgg(true);
-      setClickCount(0);
-    }
-  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -442,10 +420,7 @@ export default function AdminPage() {
             <div className="w-16 h-16 bg-gray-900 rounded-2xl flex items-center justify-center shadow-lg mb-6">
               <Lock className="w-8 h-8 text-white" />
             </div>
-            <h1
-              className="text-2xl font-bold text-gray-900 tracking-tight cursor-pointer select-none"
-              onClick={handleTitleClick}
-            >
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight select-none">
               MIENO CORP.
             </h1>
             <p className="text-gray-400 text-xs font-bold tracking-[0.2em] mt-2 uppercase">Member Dashboard</p>
@@ -500,6 +475,17 @@ export default function AdminPage() {
              <span className="block text-sm font-bold text-gray-500">※関係者以外アクセス禁止</span>
              <span className="text-[10px] tracking-[0.2em] uppercase">Authorized Personnel Only</span>
           </p>
+
+          <div className="mt-8 flex justify-center">
+            <motion.button
+              onClick={() => setShowEasterEgg(true)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="text-xs text-gray-400 hover:text-gray-900 font-mono tracking-widest border-b border-transparent hover:border-gray-900 transition-colors"
+            >
+              [ ROOT ACCESS ]
+            </motion.button>
+          </div>
         </motion.div>
       </div>
     );

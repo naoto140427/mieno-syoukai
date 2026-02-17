@@ -26,3 +26,6 @@ https://nextjs.org/telemetry
  GET /legal/privacy 200 in 865ms (compile: 647ms, render: 218ms)
  GET / 200 in 461ms (compile: 166ms, render: 296ms)
  GET /legal/privacy 200 in 64ms (compile: 13ms, render: 52ms)
+✓ Compiled in 3.3s
+ GET / 200 in 3.0s (compile: 1584ms, render: 1432ms)
+ GET /admin 200 in 1151ms (compile: 951ms, render: 200ms)

@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
-import EasterEggModal from "./EasterEggModal";
+import { Menu, X, ShieldCheck } from "lucide-react";
 
 const navItems = [
   { name: "機動戦力", en: "UNITS", href: "/units" },
@@ -19,33 +18,9 @@ const navItems = [
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [clickCount, setClickCount] = useState(0);
-  const [lastClickTime, setLastClickTime] = useState(0);
-  const [showEasterEgg, setShowEasterEgg] = useState(false);
-
-  const handleLogoClick = (e: React.MouseEvent) => {
-    const now = Date.now();
-    // Reset if more than 1 second has passed since the last click
-    if (now - lastClickTime > 1000) {
-      setClickCount(1);
-    } else {
-      setClickCount((prev) => prev + 1);
-    }
-    setLastClickTime(now);
-
-    // Calculate current count including this click
-    const currentCount = now - lastClickTime > 1000 ? 1 : clickCount + 1;
-
-    if (currentCount >= 5) {
-      e.preventDefault();
-      setShowEasterEgg(true);
-      setClickCount(0);
-    }
-  };
 
   return (
     <>
-      <EasterEggModal isOpen={showEasterEgg} onClose={() => setShowEasterEgg(false)} />
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -57,14 +32,13 @@ export default function Header() {
             <Link
               href="/"
               className="-m-1.5 p-1.5 text-mieno-navy font-bold tracking-tight text-lg z-50 relative"
-              onClick={handleLogoClick}
             >
               MIENO CORP.
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex lg:gap-x-8">
+          <div className="hidden lg:flex lg:gap-x-8 items-center">
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -79,6 +53,22 @@ export default function Header() {
                 </span>
               </Link>
             ))}
+
+            {/* Admin Link (Desktop) */}
+            <Link
+              href="/admin"
+              className="ml-4 group flex flex-col items-center justify-center text-center px-3 py-1 rounded-md border border-gray-200 bg-gray-50/50 hover:bg-gray-100 hover:border-gray-300 transition-all duration-300"
+            >
+              <div className="flex items-center gap-1">
+                <ShieldCheck size={14} className="text-gray-400 group-hover:text-mieno-navy transition-colors" />
+                <span className="text-sm font-bold text-gray-500 transition-colors duration-300 group-hover:text-mieno-navy">
+                  管理コンソール
+                </span>
+              </div>
+              <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider transition-colors duration-300 group-hover:text-mieno-navy/70">
+                ADMIN
+              </span>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -162,11 +152,11 @@ export default function Header() {
                     Contact Us
                   </Link>
                   <Link
-                     href="/login"
-                     className="flex items-center justify-center rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-mieno-text hover:bg-gray-200"
+                     href="/admin"
+                     className="flex items-center justify-center rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-mieno-text hover:bg-gray-200 border border-gray-200"
                      onClick={() => setIsMenuOpen(false)}
                   >
-                    Log in
+                    Admin Console
                   </Link>
                 </div>
               </div>
