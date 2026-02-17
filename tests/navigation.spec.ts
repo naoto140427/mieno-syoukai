@@ -13,9 +13,9 @@ test.describe('Navigation', () => {
     test.skip(isMobile, 'This test is for desktop only');
 
     const links = [
-      { name: 'Strategic Units', href: '/units' },
-      { name: 'Logistics', href: '/logistics' },
-      { name: 'Contact', href: '/contact' },
+      { name: '機動戦力', href: '/units' },
+      { name: '広域兵站', href: '/logistics' },
+      { name: 'お問い合わせ', href: '/contact' },
     ];
 
     for (const link of links) {
@@ -31,9 +31,9 @@ test.describe('Navigation', () => {
     test.skip(!isMobile, 'This test is for mobile only');
 
     const links = [
-      { name: 'Strategic Units', href: '/units' },
-      { name: 'Logistics', href: '/logistics' },
-      { name: 'Contact', href: '/contact' },
+      { name: '機動戦力', href: '/units' },
+      { name: '広域兵站', href: '/logistics' },
+      { name: 'お問い合わせ', href: '/contact' },
     ];
 
     for (const link of links) {

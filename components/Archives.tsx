@@ -100,7 +100,8 @@ export default function Archives() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/10 pb-6 gap-4">
           <div>
             <h1 className="text-4xl font-bold text-white tracking-tighter mb-2 glitch-text">
-              OPERATION ARCHIVES
+              作戦記録保管庫
+              <span className="block text-lg text-cyan-500 font-mono tracking-widest mt-1">ARCHIVES</span>
             </h1>
             <p className="text-cyan-500/80 text-sm tracking-widest uppercase">
               :: Secure Data Storage // Access Level: 3 ::
@@ -111,7 +112,7 @@ export default function Archives() {
             className="group flex items-center gap-2 px-5 py-2 bg-cyan-900/20 border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all duration-300 uppercase text-xs font-bold tracking-wider"
           >
             <Plus className={`w-4 h-4 transition-transform duration-300 ${showForm ? "rotate-45" : ""}`} />
-            {showForm ? "Cancel Entry" : "New Log Entry"}
+            {showForm ? "キャンセル" : "新規記録作成"}
           </button>
         </div>
 
@@ -127,7 +128,7 @@ export default function Archives() {
               <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs uppercase text-gray-500 mb-1">Operation Title</label>
+                    <label className="block text-xs uppercase text-gray-500 mb-1">作戦名</label>
                     <input
                       name="title"
                       value={newLog.title}
@@ -138,7 +139,7 @@ export default function Archives() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs uppercase text-gray-500 mb-1">Date</label>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">日時</label>
                       <input
                         type="date"
                         name="date"
@@ -148,14 +149,14 @@ export default function Archives() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs uppercase text-gray-500 mb-1">Status</label>
+                      <label className="block text-xs uppercase text-gray-500 mb-1">ステータス</label>
                       <div className="w-full bg-black/50 border border-white/10 text-gray-500 px-4 py-2 text-sm cursor-not-allowed">
                         AUTO-LOGGING
                       </div>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs uppercase text-gray-500 mb-1">Mission Details</label>
+                    <label className="block text-xs uppercase text-gray-500 mb-1">詳細レポート</label>
                     <textarea
                       name="details"
                       value={newLog.details}
@@ -171,7 +172,7 @@ export default function Archives() {
                   <div className="flex-1 flex flex-col">
                     <label className="block text-xs uppercase text-cyan-500 mb-1 flex items-center gap-2">
                       <FileJson className="w-3 h-3" />
-                      GPS Log Data (GeoJSON)
+                      GPSログデータ (GeoJSON)
                     </label>
                     <textarea
                       name="geojson"
@@ -186,7 +187,7 @@ export default function Archives() {
                     className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold tracking-widest uppercase text-sm transition-colors flex items-center justify-center gap-2"
                   >
                     <Save className="w-4 h-4" />
-                    Archive Data
+                    記録を保存
                   </button>
                 </div>
               </form>
@@ -210,7 +211,7 @@ export default function Archives() {
                 <div className="w-full lg:w-1/3 h-64 lg:h-auto bg-black/40 border-b lg:border-b-0 lg:border-r border-white/10 relative flex items-center justify-center group-hover:bg-black/60 transition-colors">
                    <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
                      <div className="border-2 border-dashed border-gray-700 w-3/4 h-3/4 flex items-center justify-center rounded-lg">
-                       <span className="text-xs uppercase tracking-widest font-bold">Map Rendering Area</span>
+                       <span className="text-xs uppercase tracking-widest font-bold">地図描画エリア</span>
                      </div>
                    </div>
                    {/* Cyberpunk Map Decor */}

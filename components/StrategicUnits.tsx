@@ -130,13 +130,13 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
                         onClick={() => setMode('bike')}
                         className={`px-4 py-1 rounded-full text-sm font-medium transition-colors duration-300 ${mode === 'bike' ? 'bg-mieno-navy text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        2-Wheel Mode
+                        二輪モード
                     </button>
                     <button
                         onClick={() => setMode('car')}
                         className={`px-4 py-1 rounded-full text-sm font-medium transition-colors duration-300 ${mode === 'car' ? 'bg-mieno-navy text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        Command Center
+                        指揮車両
                     </button>
                 </div>
             )}
@@ -174,7 +174,7 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
           </AnimatePresence>
 
           <Link href={`/units/${currentSlug}`} className="text-mieno-navy font-semibold hover:underline decoration-1 underline-offset-4 group flex items-center gap-2 w-fit">
-            View Details <span className="group-hover:translate-x-1 transition-transform">→</span>
+            詳細を見る <span className="group-hover:translate-x-1 transition-transform">→</span>
           </Link>
         </motion.div>
 
@@ -193,9 +193,10 @@ export default function StrategicUnits() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="text-sm font-bold tracking-[0.2em] text-mieno-navy uppercase mb-4"
+            className="text-2xl font-bold tracking-[0.2em] text-mieno-navy uppercase mb-4"
         >
-            Strategic Units
+            機動戦力
+            <span className="block text-sm font-medium tracking-widest text-gray-400 mt-1">UNITS</span>
         </motion.h2>
         <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -204,7 +205,7 @@ export default function StrategicUnits() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-4xl md:text-6xl font-bold tracking-tighter"
         >
-            Power. Precision. Prestige.
+            力・精度・威信
         </motion.p>
       </section>
 

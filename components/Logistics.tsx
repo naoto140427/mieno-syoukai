@@ -91,8 +91,9 @@ const Logistics = () => {
               </h3>
             </div>
 
-            <h2 className="text-5xl md:text-6xl font-bold tracking-tight mb-8 bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">
-              Logistics Operations
+            <h2 className="text-5xl md:text-6xl font-bold tracking-tight mb-8">
+              <span className="bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">広域展開作戦</span>
+              <span className="block text-xl md:text-2xl mt-2 font-mono text-gray-600 tracking-widest">LOGISTICS</span>
             </h2>
 
             <div className="space-y-6 text-gray-300 font-light">
@@ -104,23 +105,35 @@ const Logistics = () => {
 
                 <div className="space-y-4 relative z-10">
                   <div>
-                    <h4 className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Operation Code</h4>
+                    <h4 className="flex items-baseline gap-2 mb-1">
+                      <span className="text-sm font-bold text-gray-400">作戦名</span>
+                      <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">CODE</span>
+                    </h4>
                     <p className="text-xl text-white font-medium tracking-wide">Yuru-Camp (Mar 2026)</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Schedule</h4>
+                      <h4 className="flex items-baseline gap-2 mb-1">
+                        <span className="text-sm font-bold text-gray-400">予定日程</span>
+                        <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">SCHEDULE</span>
+                      </h4>
                       <p className="text-sm text-cyan-100 font-mono">2026.03.02 - 03.04</p>
                     </div>
                     <div>
-                      <h4 className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Asset</h4>
+                      <h4 className="flex items-baseline gap-2 mb-1">
+                        <span className="text-sm font-bold text-gray-400">投入機体</span>
+                        <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">ASSET</span>
+                      </h4>
                       <p className="text-sm text-cyan-100 font-mono">SERENA LUXION (2025)</p>
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">Route</h4>
+                    <h4 className="flex items-baseline gap-2 mb-1">
+                      <span className="text-sm font-bold text-gray-400">ルート</span>
+                      <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">ROUTE</span>
+                    </h4>
                     <p className="text-sm leading-relaxed text-gray-300">
                       大分（宮河内ベース） 〜 山梨・長野エリア<br/>
                       <span className="text-xs text-gray-500">（ほったらかし温泉周辺・富士五湖エリア）</span>
@@ -128,7 +141,10 @@ const Logistics = () => {
                   </div>
 
                   <div className="pt-4 border-t border-gray-800">
-                     <h4 className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-2">Mission Objective</h4>
+                     <h4 className="flex items-baseline gap-2 mb-2">
+                       <span className="text-sm font-bold text-gray-400">作戦目的</span>
+                       <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">OBJECTIVE</span>
+                     </h4>
                      <ul className="list-disc list-inside text-sm space-y-1 text-gray-400 marker:text-cyan-500">
                        <li>単独長距離機動におけるProPILOT 2.0のデータ収集および兵站（ロジスティクス）の最適化テスト。</li>
                        <li>聖地巡礼フィールドワークおよび野営（キャンプ）適性の検証。</li>
@@ -140,7 +156,8 @@ const Logistics = () => {
               {/* Added Button */}
               <div className="mt-8">
                 <Link href="/units" className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-900/20 border border-cyan-500/30 text-cyan-400 font-mono text-sm tracking-wider rounded-lg hover:bg-cyan-900/40 hover:border-cyan-500/60 transition-all duration-300 group">
-                  ACCESS ASSET DATABASE
+                  <span className="font-bold">機体データベースへアクセス</span>
+                  <span className="text-[10px] opacity-70">ACCESS DATABASE</span>
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </Link>
               </div>
