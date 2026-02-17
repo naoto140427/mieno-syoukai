@@ -7,6 +7,7 @@ import {
   CheckCircle2, AlertCircle, ChevronRight, Gauge,
   ClipboardList, Send, LogOut
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import EasterEggModal from '../../components/EasterEggModal';
 
 // --- Types ---
@@ -178,19 +179,40 @@ const AssetManagement = ({ user, showToast }: { user: UserProfile, showToast: (m
   );
 };
 
-const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
+const SubmitLog = ({ showToast }: { showToast: (msg: string, type?: 'success' | 'error') => void }) => {
   const [loading, setLoading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Mock API call
-    setTimeout(() => {
-      setLoading(false);
+
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const title = formData.get('title') as string;
+    const date = formData.get('date') as string;
+    const distanceVal = formData.get('distance') as string;
+    const details = formData.get('details') as string;
+
+    try {
+      const { error } = await supabase.from('archives').insert({
+        title,
+        date,
+        distance: `${distanceVal}km`,
+        details,
+        members: 1, // Default
+        weather: 'Clear', // Default
+      });
+
+      if (error) throw error;
+
       showToast('作戦記録を送信しました');
       formRef.current?.reset();
-    }, 1500);
+    } catch (err: any) {
+      console.error(err);
+      showToast('送信に失敗しました: ' + err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -209,6 +231,7 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
             <label className="text-sm font-bold text-gray-700 block">作戦名 <span className="text-gray-400 font-normal ml-2">Operation Title</span></label>
             <input
               type="text"
+              name="title"
               disabled={loading}
               placeholder="例: 富士五湖周遊作戦"
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -221,6 +244,7 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
               <label className="text-sm font-bold text-gray-700 block">実施日 <span className="text-gray-400 font-normal ml-2">Date</span></label>
               <input
                 type="date"
+                name="date"
                 disabled={loading}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 required
@@ -231,6 +255,7 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
               <div className="relative">
                 <input
                   type="number"
+                  name="distance"
                   disabled={loading}
                   placeholder="0"
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-right pr-12 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -245,6 +270,7 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
             <label className="text-sm font-bold text-gray-700 block">詳細レポート <span className="text-gray-400 font-normal ml-2">Mission Report</span></label>
             <textarea
               rows={5}
+              name="details"
               disabled={loading}
               placeholder="天候、路面状況、特記事項など..."
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
@@ -272,19 +298,58 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string) => void }) => {
   );
 };
 
-const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) => {
+const InventoryRequest = ({ showToast }: { showToast: (msg: string, type?: 'success' | 'error') => void }) => {
   const [loading, setLoading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Mock API call
-    setTimeout(() => {
-      setLoading(false);
-      showToast('申請を受け付けました');
-      formRef.current?.reset();
-    }, 1000);
+
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const name = formData.get('name') as string;
+    const type = formData.get('type') as string;
+    const qty = parseInt(formData.get('qty') as string) || 0;
+
+    let table = '';
+    let data = {};
+
+    if (type.includes('Consumable')) {
+        table = 'consumables';
+        data = {
+            name,
+            level: 100, // Default full
+            max_capacity: qty,
+            unit: 'pcs',
+            color: 'bg-blue-500'
+        };
+    } else if (type.includes('Tool')) {
+        table = 'tools';
+        data = {
+            name,
+            qty,
+            spec: 'Standard',
+            status: 'Available',
+            location: 'Storage'
+        };
+    } else {
+        // Fallback for Other
+        table = 'consumables';
+        data = { name, level: 100, max_capacity: qty, unit: 'pcs', color: 'bg-gray-500' };
+    }
+
+    try {
+        const { error } = await supabase.from(table).insert(data);
+        if (error) throw error;
+
+        showToast('申請を受け付けました');
+        formRef.current?.reset();
+    } catch (err: any) {
+        console.error(err);
+        showToast('申請エラー: ' + err.message, 'error');
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -303,6 +368,7 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) =
             <label className="text-sm font-bold text-gray-700 block">品名・名称 <span className="text-gray-400 font-normal ml-2">Item Name</span></label>
             <input
               type="text"
+              name="name"
               disabled={loading}
               placeholder="例: エンジンオイル 10W-40"
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -314,7 +380,11 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) =
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 block">種別 <span className="text-gray-400 font-normal ml-2">Type</span></label>
               <div className="relative">
-                <select disabled={loading} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed">
+                <select
+                    name="type"
+                    disabled={loading}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                     <option>消耗品 (Consumable)</option>
                     <option>工具 (Tool)</option>
                     <option>その他 (Other)</option>
@@ -326,6 +396,7 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) =
               <label className="text-sm font-bold text-gray-700 block">必要数量 <span className="text-gray-400 font-normal ml-2">Qty</span></label>
               <input
                 type="number"
+                name="qty"
                 disabled={loading}
                 placeholder="1"
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-right pr-4 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -338,6 +409,7 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string) => void }) =
             <label className="text-sm font-bold text-gray-700 block">申請理由 <span className="text-gray-400 font-normal ml-2">Reason</span></label>
             <textarea
               rows={3}
+              name="reason"
               disabled={loading}
               placeholder="在庫減少のため補充、破損による交換など"
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
