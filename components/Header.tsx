@@ -9,10 +9,10 @@ import EasterEggModal from "./EasterEggModal";
 const navItems = [
   { name: "Strategic Units", href: "/units" },
   { name: "Services", href: "/services" },
-  { name: "Projects", href: "#" },
+  { name: "Inventory", href: "/inventory" },
   { name: "Logistics", href: "/logistics" },
+  { name: "Archives", href: "/archives" },
   { name: "History", href: "/history" },
-  { name: "Store", href: "#" },
   { name: "Support", href: "/ir" },
   { name: "Contact", href: "/contact" },
 ];
