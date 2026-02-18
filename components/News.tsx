@@ -126,15 +126,27 @@ export default function News({ isAdmin = false }: NewsProps) {
                     className="group relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-md border border-white/10 p-6 hover:bg-white/10 transition-colors duration-300"
                     >
                     <Link href={getLinkForCategory(item.category)} className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
-                        <div className="flex items-center gap-4 min-w-fit">
-                        <time className="font-mono text-sm text-gray-400">{item.date.replace(/-/g, '.')}</time>
-                        <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/20">
-                            {item.category}
-                        </span>
+                        {item.image_url && (
+                          <div className="w-full md:w-48 h-32 md:h-28 flex-shrink-0 relative overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={item.image_url}
+                                alt={item.title}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              />
+                          </div>
+                        )}
+                        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 flex-1">
+                          <div className="flex items-center gap-4 min-w-fit">
+                          <time className="font-mono text-sm text-gray-400">{item.date.replace(/-/g, '.')}</time>
+                          <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/20">
+                              {item.category}
+                          </span>
+                          </div>
+                          <h3 className="text-lg font-medium leading-6 text-white group-hover:text-blue-400 transition-colors flex-1">
+                          {item.title}
+                          </h3>
                         </div>
-                        <h3 className="text-lg font-medium leading-6 text-white group-hover:text-blue-400 transition-colors flex-1">
-                        {item.title}
-                        </h3>
                         <div className="hidden md:flex items-center gap-4">
                             {isAdmin && (
                               <button

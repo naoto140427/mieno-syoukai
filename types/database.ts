@@ -42,5 +42,6 @@ export interface News {
   category: 'PRESS' | 'UPDATE' | 'REPORT' | 'OTHER';
   title: string;
   content: string;
+  image_url?: string;
   created_at?: string;
 }

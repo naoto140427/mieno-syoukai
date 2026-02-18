@@ -1,0 +1,113 @@
+
+> temp-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Ready in 1135ms
+○ Compiling /admin ...
+ GET /admin 200 in 5.4s (compile: 4.7s, proxy.ts: 142ms, render: 595ms)
+ GET /admin 200 in 113ms (compile: 9ms, proxy.ts: 11ms, render: 94ms)
+ GET /admin 200 in 105ms (compile: 5ms, proxy.ts: 7ms, render: 93ms)
+ GET /admin 200 in 113ms (compile: 8ms, proxy.ts: 8ms, render: 96ms)
+Error: fetch failed
+    at context.fetch (/app/node_modules/next/dist/server/web/sandbox/context.js:321:60)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4174:225
+    at SupabaseAuthClient._useSession (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4043:26)
+    at async SupabaseAuthClient._getUser (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4159:20)
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4143:20
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:3991:28 {
+
+}
+ GET /admin 200 in 94ms (compile: 6ms, proxy.ts: 44ms, render: 43ms)
+Error: fetch failed
+    at context.fetch (/app/node_modules/next/dist/server/web/sandbox/context.js:321:60)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4174:225
+    at SupabaseAuthClient._useSession (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4043:26)
+    at async SupabaseAuthClient._getUser (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4159:20)
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4143:20
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:3991:28 {
+
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: Error: getaddrinfo ENOTFOUND example.supabase.co
+      at ignore-listed frames {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'example.supabase.co'
+  }
+}
+ GET / 200 in 1798ms (compile: 1362ms, proxy.ts: 14ms, render: 423ms)
+Error: fetch failed
+    at context.fetch (/app/node_modules/next/dist/server/web/sandbox/context.js:321:60)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4174:225
+    at SupabaseAuthClient._useSession (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4043:26)
+    at async SupabaseAuthClient._getUser (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4159:20)
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4143:20
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:3991:28 {
+
+}
+ GET /admin 200 in 128ms (compile: 8ms, proxy.ts: 8ms, render: 112ms)
+Error: fetch failed
+    at context.fetch (/app/node_modules/next/dist/server/web/sandbox/context.js:321:60)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4174:225
+    at SupabaseAuthClient._useSession (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4043:26)
+    at async SupabaseAuthClient._getUser (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4159:20)
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4143:20
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:3991:28 {
+
+}
+ GET /admin 200 in 80ms (compile: 6ms, proxy.ts: 34ms, render: 40ms)
+Error: fetch failed
+    at context.fetch (/app/node_modules/next/dist/server/web/sandbox/context.js:321:60)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4174:225
+    at SupabaseAuthClient._useSession (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4043:26)
+    at async SupabaseAuthClient._getUser (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4159:20)
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4143:20
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:3991:28 {
+
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: Error: getaddrinfo ENOTFOUND example.supabase.co
+      at ignore-listed frames {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'example.supabase.co'
+  }
+}
+ GET / 200 in 190ms (compile: 7ms, proxy.ts: 12ms, render: 172ms)
+Error: fetch failed
+    at context.fetch (/app/node_modules/next/dist/server/web/sandbox/context.js:321:60)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4174:225
+    at SupabaseAuthClient._useSession (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4043:26)
+    at async SupabaseAuthClient._getUser (/app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4159:20)
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4143:20
+    at async /app/.next/dev/server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js:3991:28 {
+
+}
