@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Plus, Edit2 } from 'lucide-react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { News as NewsType } from '@/types/database';
+
+const supabase = createClient();
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -31,7 +33,11 @@ const itemVariants: Variants = {
   },
 };
 
-export default function News() {
+interface NewsProps {
+  isAdmin?: boolean;
+}
+
+export default function News({ isAdmin = false }: NewsProps) {
   const [newsItems, setNewsItems] = useState<NewsType[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,9 +71,21 @@ export default function News() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Latest Updates
-            </h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                Latest Updates
+              </h2>
+              {isAdmin && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors shadow-lg shadow-blue-900/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>NEW ENTRY</span>
+                </motion.button>
+              )}
+            </div>
             <p className="mt-2 text-gray-400">
               組織からの最新通達事項
             </p>
@@ -117,7 +135,15 @@ export default function News() {
                         <h3 className="text-lg font-medium leading-6 text-white group-hover:text-blue-400 transition-colors flex-1">
                         {item.title}
                         </h3>
-                        <div className="hidden md:block">
+                        <div className="hidden md:flex items-center gap-4">
+                            {isAdmin && (
+                              <button
+                                onClick={(e) => { e.preventDefault(); /* Edit logic */ }}
+                                className="p-2 bg-white/10 rounded-full hover:bg-blue-600 hover:text-white transition-colors z-20"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            )}
                             <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-white transition-colors transform group-hover:translate-x-1" />
                         </div>
                     </Link>

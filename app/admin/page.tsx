@@ -7,8 +7,11 @@ import {
   CheckCircle2, AlertCircle, ChevronRight, Gauge,
   ClipboardList, Send, LogOut, Megaphone
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 import EasterEggModal from '../../components/EasterEggModal';
+
+const supabase = createClient();
 
 // --- Types ---
 
@@ -562,39 +565,74 @@ const NewsPost = ({ showToast }: { showToast: (msg: string, type?: 'success' | '
 // --- Main Page Component ---
 
 export default function AdminPage() {
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<'asset' | 'log' | 'inventory' | 'news'>('asset');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
   const [loginId, setLoginId] = useState('');
   const [loginPass, setLoginPass] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Easter Egg State
   const [showEasterEgg, setShowEasterEgg] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Simple mock authentication
-    // Accepts any password for demo, but checks ID for user role
-    const user = USERS[loginId.toLowerCase()];
-    if (user && loginPass.length > 0) {
-        setCurrentUser(user);
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
         setIsAuthenticated(true);
-    } else {
-        // Fallback or error
-        // For ease of use, if ID is unknown, default to CTO
-        if (loginPass.length > 0) {
-            setCurrentUser(USERS['cto']);
-            setIsAuthenticated(true);
-        }
+        // Map user to mock profile based on email prefix, default to CTO
+        const emailPrefix = user.email?.split('@')[0].toLowerCase() || 'cto';
+        const profile = USERS[emailPrefix] || USERS['cto'];
+        setCurrentUser(profile);
+      }
+    };
+    checkSession();
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+
+    try {
+      // Use email and password for auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginId.includes('@') ? loginId : `${loginId}@mieno.dev`, // Fallback for simple IDs
+        password: loginPass,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      showToast('認証成功', 'success');
+      router.refresh();
+
+      if (data.user) {
+         setIsAuthenticated(true);
+         const emailPrefix = data.user.email?.split('@')[0].toLowerCase() || 'cto';
+         const profile = USERS[emailPrefix] || USERS['cto'];
+         setCurrentUser(profile);
+      }
+
+    } catch (err: unknown) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : 'Authentication failed';
+      showToast(message, 'error');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+      await supabase.auth.signOut();
       setIsAuthenticated(false);
       setCurrentUser(null);
       setLoginId('');
       setLoginPass('');
+      router.refresh();
+      showToast('ログアウトしました', 'success');
   };
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -623,8 +661,8 @@ export default function AdminPage() {
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-1">
                 <label className="ml-4 flex items-baseline gap-2">
-                  <span className="text-sm font-bold text-gray-700">メンバーID</span>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">MEMBER ID</span>
+                  <span className="text-sm font-bold text-gray-700">メールアドレス</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">EMAIL / ID</span>
                 </label>
                 <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -633,7 +671,7 @@ export default function AdminPage() {
                         value={loginId}
                         onChange={(e) => setLoginId(e.target.value)}
                         className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl py-4 pl-12 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-100 transition-all font-medium"
-                        placeholder="ID (e.g. cto)"
+                        placeholder="email@mieno.dev"
                         autoCapitalize='none'
                     />
                 </div>
@@ -641,8 +679,8 @@ export default function AdminPage() {
 
             <div className="space-y-1">
                 <label className="ml-4 flex items-baseline gap-2">
-                  <span className="text-sm font-bold text-gray-700">パスコード</span>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">PASSCODE</span>
+                  <span className="text-sm font-bold text-gray-700">パスワード</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">PASSWORD</span>
                 </label>
                 <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -658,10 +696,17 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-xl hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4 flex items-center justify-center gap-2"
+              disabled={isLoggingIn}
+              className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-xl hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait"
             >
-              <span>システム認証</span>
-              <span className="text-xs opacity-70 tracking-wider">AUTHENTICATE</span>
+              {isLoggingIn ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>システム認証</span>
+                  <span className="text-xs opacity-70 tracking-wider">AUTHENTICATE</span>
+                </>
+              )}
             </button>
           </form>
 
@@ -681,6 +726,17 @@ export default function AdminPage() {
             </motion.button>
           </div>
         </motion.div>
+
+        {/* Toast Notification for Login Screen */}
+        <AnimatePresence>
+            {toast.show && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast({ ...toast, show: false })}
+                />
+            )}
+        </AnimatePresence>
       </div>
     );
   }
