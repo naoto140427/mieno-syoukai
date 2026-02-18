@@ -35,3 +35,12 @@ export interface Inquiry {
   message: string;
   created_at: string;
 }
+
+export interface News {
+  id: number;
+  date: string;
+  category: 'PRESS' | 'UPDATE' | 'REPORT' | 'OTHER';
+  title: string;
+  content: string;
+  created_at?: string;
+}

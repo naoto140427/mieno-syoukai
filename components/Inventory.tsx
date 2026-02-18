@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wrench, Package, AlertCircle, Plus, X, Search, ChevronUp, ChevronDown, RefreshCw } from "lucide-react";
+import { Wrench, Package, AlertCircle, Plus, X, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Consumable, Tool } from "@/types/database";
 
@@ -39,9 +39,10 @@ export default function Inventory() {
 
       setConsumables(consumablesRes.data as Consumable[]);
       setTools(toolsRes.data as Tool[]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching inventory:', err);
-      setError(err.message || 'Failed to fetch inventory data');
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message || 'Failed to fetch inventory data');
     } finally {
       setLoading(false);
     }

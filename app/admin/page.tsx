@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Lock, LayoutDashboard, Wrench, FileText, Package,
   CheckCircle2, AlertCircle, ChevronRight, Gauge,
-  ClipboardList, Send, LogOut
+  ClipboardList, Send, LogOut, Megaphone
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import EasterEggModal from '../../components/EasterEggModal';
@@ -207,9 +207,10 @@ const SubmitLog = ({ showToast }: { showToast: (msg: string, type?: 'success' | 
 
       showToast('作戦記録を送信しました');
       formRef.current?.reset();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      showToast('送信に失敗しました: ' + err.message, 'error');
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      showToast('送信に失敗しました: ' + message, 'error');
     } finally {
       setLoading(false);
     }
@@ -344,9 +345,10 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string, type?: 'succ
 
         showToast('申請を受け付けました');
         formRef.current?.reset();
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error(err);
-        showToast('申請エラー: ' + err.message, 'error');
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        showToast('申請エラー: ' + message, 'error');
     } finally {
         setLoading(false);
     }
@@ -437,11 +439,131 @@ const InventoryRequest = ({ showToast }: { showToast: (msg: string, type?: 'succ
   );
 };
 
+const NewsPost = ({ showToast }: { showToast: (msg: string, type?: 'success' | 'error') => void }) => {
+  const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const date = formData.get('date') as string;
+    const category = formData.get('category') as string;
+    const title = formData.get('title') as string;
+    const content = formData.get('content') as string;
+
+    try {
+      const { error } = await supabase.from('news').insert({
+        date,
+        category,
+        title,
+        content
+      });
+
+      if (error) throw error;
+
+      showToast('ニュースを配信しました');
+      formRef.current?.reset();
+    } catch (err: unknown) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      showToast('配信に失敗しました: ' + message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-bold text-gray-900 mb-1">ニュース配信</h3>
+        <p className="text-xs text-gray-400 font-medium tracking-wide uppercase mb-6">News Broadcast</p>
+
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 block">配信日 <span className="text-gray-400 font-normal ml-2">Date</span></label>
+                <input
+                  type="date"
+                  name="date"
+                  disabled={loading}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  required
+                />
+             </div>
+             <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 block">カテゴリ <span className="text-gray-400 font-normal ml-2">Category</span></label>
+                <div className="relative">
+                    <select
+                        name="category"
+                        disabled={loading}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <option value="PRESS">PRESS</option>
+                        <option value="UPDATE">UPDATE</option>
+                        <option value="REPORT">REPORT</option>
+                        <option value="OTHER">OTHER</option>
+                    </select>
+                    <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 w-5 h-5 pointer-events-none" />
+                </div>
+             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 block">タイトル <span className="text-gray-400 font-normal ml-2">Title</span></label>
+            <input
+              type="text"
+              name="title"
+              disabled={loading}
+              placeholder="例: 第1四半期 山梨・長野エリア先行偵察"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 block">詳細テキスト <span className="text-gray-400 font-normal ml-2">Content</span></label>
+            <textarea
+              rows={5}
+              name="content"
+              disabled={loading}
+              placeholder="ニュースの詳細内容を入力..."
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-red-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 hover:shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+             {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <Megaphone size={20} />
+                <span>ニュース配信</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  );
+};
+
 // --- Main Page Component ---
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'asset' | 'log' | 'inventory'>('asset');
+  const [activeTab, setActiveTab] = useState<'asset' | 'log' | 'inventory' | 'news'>('asset');
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
   const [loginId, setLoginId] = useState('');
@@ -606,7 +728,7 @@ export default function AdminPage() {
 
         {/* Navigation Tabs */}
         <div className="flex p-1 bg-gray-200/50 rounded-2xl">
-            {(['asset', 'log', 'inventory'] as const).map((tab) => (
+            {(['asset', 'log', 'inventory', 'news'] as const).map((tab) => (
                 <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -617,11 +739,13 @@ export default function AdminPage() {
                     {tab === 'asset' && <Wrench className="w-5 h-5 mb-1" />}
                     {tab === 'log' && <FileText className="w-5 h-5 mb-1" />}
                     {tab === 'inventory' && <Package className="w-5 h-5 mb-1" />}
+                    {tab === 'news' && <Megaphone className="w-5 h-5 mb-1" />}
 
                     <span className="uppercase tracking-tight text-[10px]">
                         {tab === 'asset' && 'Asset'}
                         {tab === 'log' && 'Log'}
                         {tab === 'inventory' && 'Inventory'}
+                        {tab === 'news' && 'News'}
                     </span>
                 </button>
             ))}
@@ -638,6 +762,9 @@ export default function AdminPage() {
                 )}
                 {activeTab === 'inventory' && (
                     <InventoryRequest key="inventory" showToast={showToast} />
+                )}
+                {activeTab === 'news' && (
+                    <NewsPost key="news" showToast={showToast} />
                 )}
             </AnimatePresence>
         </div>

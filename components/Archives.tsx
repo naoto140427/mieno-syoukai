@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, AlertCircle } from "lucide-react";
+import { Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Archive } from "@/types/database";
 
@@ -45,9 +45,10 @@ export default function Archives() {
 
       if (error) throw error;
       setArchives(data as Archive[]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching archives:', err);
-      setError(err.message || 'Failed to fetch archives');
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message || 'Failed to fetch archives');
     } finally {
       setLoading(false);
     }
@@ -85,9 +86,10 @@ export default function Archives() {
 
         setShowForm(false);
         setNewLog({ title: "", date: "", details: "", geojson: "" });
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error('Error submitting log:', err);
-        alert('Failed to save log: ' + err.message);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        alert('Failed to save log: ' + message);
     } finally {
         setSubmitting(false);
     }

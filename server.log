@@ -7,13 +7,4 @@
 - Network:       http://192.168.0.2:3000
 
 ✓ Starting...
-✓ Ready in 830ms
-⨯ Error: Missing API key. Pass it to the constructor `new Resend("re_123")`
-    at new az (.next/server/chunks/ssr/[root-of-the-server]__3bb7f8f8._.js:7:28251)
-    at module evaluation (.next/server/chunks/ssr/[root-of-the-server]__3bb7f8f8._.js:43:48193)
-    at instantiateModule (.next/server/chunks/ssr/[turbopack]_runtime.js:740:9)
-    at getOrInstantiateModuleFromParent (.next/server/chunks/ssr/[turbopack]_runtime.js:763:12)
-    at Context.commonJsRequire [as r] (.next/server/chunks/ssr/[turbopack]_runtime.js:249:12)
-    at async m (.next/server/chunks/ssr/_05c88131._.js:1:7085) {
-  digest: '1598308757'
-}
+✓ Ready in 870ms
