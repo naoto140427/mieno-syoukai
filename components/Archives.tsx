@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, AlertCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { Archive } from "@/types/database";
+
+const supabase = createClient();
 
 const WeatherIcon = ({ condition }: { condition: string }) => {
   switch (condition) {

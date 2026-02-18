@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wrench, Package, AlertCircle, Plus, X, ChevronUp, ChevronDown } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { Consumable, Tool } from "@/types/database";
+
+const supabase = createClient();
 
 export default function Inventory() {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
