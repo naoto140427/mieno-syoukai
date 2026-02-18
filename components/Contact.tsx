@@ -12,9 +12,11 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
+import { submitInquiry } from '@/app/actions/contact';
 
 export default function Contact() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -35,19 +37,31 @@ export default function Contact() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (errorMessage) setErrorMessage(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
 
     setFormState('submitting');
+    setErrorMessage(null);
 
-    // Simulate network request
-    setTimeout(() => {
-      setFormState('success');
-      setFormData({ name: '', email: '', subject: '', message: '' });
-    }, 1500);
+    try {
+      const result = await submitInquiry(formData);
+
+      if (result.success) {
+        setFormState('success');
+        setFormData({ name: '', email: '', subject: '', message: '' });
+      } else {
+        setFormState('idle');
+        setErrorMessage(result.error || '送信に失敗しました。時間をおいて再度お試しください。');
+      }
+    } catch (error) {
+      console.error(error);
+      setFormState('idle');
+      setErrorMessage('予期せぬエラーが発生しました。');
+    }
   };
 
   // Animation variants
@@ -245,6 +259,18 @@ export default function Contact() {
                     ></textarea>
                   </div>
                 </div>
+
+                {/* Error Message */}
+                {errorMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 rounded-lg bg-red-50 text-red-600 text-sm flex items-center gap-2 border border-red-100"
+                  >
+                    <AlertCircle size={16} />
+                    <span>{errorMessage}</span>
+                  </motion.div>
+                )}
 
                 {/* Submit Button */}
                 <motion.button
