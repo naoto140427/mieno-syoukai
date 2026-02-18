@@ -26,3 +26,21 @@ export interface Archive {
   details: string;
   geojson?: string | null;
 }
+
+export interface Inquiry {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  created_at: string;
+}
+
+export interface News {
+  id: number;
+  date: string;
+  category: 'PRESS' | 'UPDATE' | 'REPORT' | 'OTHER';
+  title: string;
+  content: string;
+  created_at?: string;
+}
