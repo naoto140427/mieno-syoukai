@@ -455,13 +455,32 @@ const NewsPost = ({ showToast }: { showToast: (msg: string, type?: 'success' | '
     const category = formData.get('category') as string;
     const title = formData.get('title') as string;
     const content = formData.get('content') as string;
+    const imageFile = formData.get('image') as File;
 
     try {
+      let image_url = null;
+
+      if (imageFile && imageFile.size > 0) {
+        const fileName = `${Date.now()}_${imageFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('mieno-images')
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('mieno-images')
+          .getPublicUrl(fileName);
+
+        image_url = publicUrl;
+      }
+
       const { error } = await supabase.from('news').insert({
         date,
         category,
         title,
-        content
+        content,
+        image_url
       });
 
       if (error) throw error;
@@ -527,6 +546,17 @@ const NewsPost = ({ showToast }: { showToast: (msg: string, type?: 'success' | '
               placeholder="例: 第1四半期 山梨・長野エリア先行偵察"
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 block">サムネイル画像 <span className="text-gray-400 font-normal ml-2">Image</span></label>
+            <input
+              type="file"
+              name="image"
+              accept="image/*"
+              disabled={loading}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
