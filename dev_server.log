@@ -12,20 +12,7 @@ This information is used to shape Next.js' roadmap and prioritize features.
 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
 https://nextjs.org/telemetry
 
-✓ Ready in 1147ms
-○ Compiling / ...
- GET / 200 in 7.4s (compile: 6.6s, render: 877ms)
- GET /admin 200 in 1993ms (compile: 1759ms, render: 234ms)
- GET / 200 in 161ms (compile: 13ms, render: 148ms)
- GET /admin 200 in 232ms (compile: 13ms, render: 219ms)
-✓ Compiled in 109ms
- GET /admin 200 in 738ms (compile: 359ms, render: 379ms)
- GET /admin 200 in 120ms (compile: 6ms, render: 114ms)
- GET /contact 200 in 1962ms (compile: 1853ms, render: 109ms)
- GET /legal/terms 200 in 1388ms (compile: 1119ms, render: 268ms)
- GET /legal/privacy 200 in 865ms (compile: 647ms, render: 218ms)
- GET / 200 in 461ms (compile: 166ms, render: 296ms)
- GET /legal/privacy 200 in 64ms (compile: 13ms, render: 52ms)
-✓ Compiled in 3.3s
- GET / 200 in 3.0s (compile: 1584ms, render: 1432ms)
- GET /admin 200 in 1151ms (compile: 951ms, render: 200ms)
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Ready in 1653ms
+○ Compiling /inventory ...
+ GET /inventory 200 in 7.5s (compile: 6.4s, proxy.ts: 198ms, render: 878ms)
