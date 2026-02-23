@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, AlertCircle } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, AlertCircle, Edit2, Trash2, X } from "lucide-react";
 import { Archive } from "@/types/database";
-
-const supabase = createClient();
+import { addArchive, updateArchive, deleteArchive } from "@/app/actions/archives";
 
 const WeatherIcon = ({ condition }: { condition: string }) => {
   switch (condition) {
@@ -17,47 +15,61 @@ const WeatherIcon = ({ condition }: { condition: string }) => {
   }
 };
 
-export default function Archives() {
-  const [archives, setArchives] = useState<Archive[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface ArchivesProps {
+    archives?: Archive[];
+    isAdmin?: boolean;
+}
+
+export default function Archives({ archives = [], isAdmin = false }: ArchivesProps) {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
-  // New Log State
-  const [newLog, setNewLog] = useState({
+  // Form State
+  const [formData, setFormData] = useState<Partial<Archive>>({
     title: "",
-    date: "",
+    date: new Date().toISOString().split('T')[0],
+    distance: "0km",
+    members: 1,
+    weather: "Clear",
     details: "",
     geojson: "",
   });
 
-  useEffect(() => {
-    fetchArchives();
-  }, []);
-
-  const fetchArchives = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error } = await supabase
-        .from('archives')
-        .select('*')
-        .order('date', { ascending: false });
-
-      if (error) throw error;
-      setArchives(data as Archive[]);
-    } catch (err: unknown) {
-      console.error('Error fetching archives:', err);
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setError(message || 'Failed to fetch archives');
-    } finally {
-      setLoading(false);
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setNewLog({ ...newLog, [e.target.name]: e.target.value });
+  const resetForm = () => {
+    setFormData({
+        title: "",
+        date: new Date().toISOString().split('T')[0],
+        distance: "0km",
+        members: 1,
+        weather: "Clear",
+        details: "",
+        geojson: "",
+    });
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  const handleEditClick = (archive: Archive) => {
+      setFormData(archive);
+      setEditingId(archive.id);
+      setShowForm(true);
+      // Scroll to top or form
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteClick = async (id: number) => {
+      if (!confirm("Are you sure you want to delete this mission log?")) return;
+      try {
+          await deleteArchive(id);
+      } catch (e) {
+          console.error(e);
+          alert("Failed to delete archive");
+      }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,29 +77,23 @@ export default function Archives() {
     setSubmitting(true);
 
     try {
-        const logData = {
-            title: newLog.title || "New Operation",
-            date: newLog.date || new Date().toISOString().split('T')[0],
-            distance: "0km", // Default/Mock as form doesn't have it
-            members: 1, // Default/Mock
-            weather: "Clear" as const, // Default/Mock
-            details: newLog.details,
-            geojson: newLog.geojson || null
+        const payload = {
+            title: formData.title || "Untitled Operation",
+            date: formData.date || new Date().toISOString().split('T')[0],
+            distance: formData.distance || "0km",
+            members: Number(formData.members) || 1,
+            weather: (formData.weather as "Clear" | "Rainy" | "Cloudy" | "Snow") || "Clear",
+            details: formData.details || "",
+            geojson: formData.geojson || null
         };
 
-        const { data, error } = await supabase.from('archives').insert([logData]).select();
-
-        if (error) throw error;
-
-        // Optimistic update or refetch
-        if (data) {
-            setArchives([data[0] as Archive, ...archives]);
+        if (editingId) {
+            await updateArchive(editingId, payload);
         } else {
-            fetchArchives();
+            await addArchive(payload);
         }
 
-        setShowForm(false);
-        setNewLog({ title: "", date: "", details: "", geojson: "" });
+        resetForm();
     } catch (err: unknown) {
         console.error('Error submitting log:', err);
         const message = err instanceof Error ? err.message : 'Unknown error';
@@ -96,14 +102,6 @@ export default function Archives() {
         setSubmitting(false);
     }
   };
-
-  if (loading && archives.length === 0) {
-      return (
-        <div className="min-h-screen bg-black flex items-center justify-center">
-            <div className="w-10 h-10 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-        </div>
-      );
-  }
 
   return (
     <div className="min-h-screen bg-black text-gray-300 font-mono p-6 lg:p-12 relative overflow-hidden">
@@ -124,44 +122,51 @@ export default function Archives() {
               :: Secure Data Storage // Access Level: 3 ::
             </p>
           </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="group flex items-center gap-2 px-5 py-2 bg-cyan-900/20 border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all duration-300 uppercase text-xs font-bold tracking-wider"
-          >
-            <Plus className={`w-4 h-4 transition-transform duration-300 ${showForm ? "rotate-45" : ""}`} />
-            {showForm ? "キャンセル" : "新規記録作成"}
-          </button>
+          {isAdmin && (
+            <button
+                onClick={() => {
+                    if (showForm && editingId) {
+                        resetForm(); // If cancelling edit
+                    } else {
+                        setShowForm(!showForm);
+                        if (!showForm) resetForm(); // Ensure clean state when opening
+                    }
+                }}
+                className="group flex items-center gap-2 px-5 py-2 bg-cyan-900/20 border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all duration-300 uppercase text-xs font-bold tracking-wider"
+            >
+                <Plus className={`w-4 h-4 transition-transform duration-300 ${showForm && !editingId ? "rotate-45" : ""}`} />
+                {showForm ? "キャンセル" : "新規記録作成"}
+            </button>
+          )}
         </div>
 
-        {/* Error Display */}
-        {error && (
-            <div className="bg-red-900/20 border border-red-500/50 p-4 rounded-lg flex items-center gap-3 text-red-400 mb-6">
-                <AlertCircle className="w-5 h-5" />
-                <span>{error}</span>
-                <button onClick={fetchArchives} className="ml-auto hover:text-white underline text-xs">RETRY</button>
-            </div>
-        )}
-
-        {/* New Log Form Area */}
+        {/* Form Area (Add/Edit) */}
         <AnimatePresence>
-          {showForm && (
+          {showForm && isAdmin && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-md border border-cyan-500/30 p-6 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 relative">
+                {editingId && (
+                    <div className="absolute top-2 right-2 text-xs text-amber-500 font-bold border border-amber-500/50 px-2 py-0.5 rounded bg-amber-900/20">
+                        EDITING MODE
+                    </div>
+                )}
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs uppercase text-gray-500 mb-1">作戦名</label>
                     <input
                       name="title"
-                      value={newLog.title}
+                      value={formData.title}
                       onChange={handleInputChange}
                       className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-cyan-500 focus:outline-none transition-colors"
                       placeholder="e.g. Operation: Dawnbreaker"
                       disabled={submitting}
+                      required
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -170,24 +175,59 @@ export default function Archives() {
                       <input
                         type="date"
                         name="date"
-                        value={newLog.date}
+                        value={formData.date}
                         onChange={handleInputChange}
                         className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-cyan-500 focus:outline-none transition-colors"
                         disabled={submitting}
+                        required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs uppercase text-gray-500 mb-1">ステータス</label>
-                      <div className="w-full bg-black/50 border border-white/10 text-gray-500 px-4 py-2 text-sm cursor-not-allowed">
-                        AUTO-LOGGING
-                      </div>
+                        <label className="block text-xs uppercase text-gray-500 mb-1">天候</label>
+                        <select
+                            name="weather"
+                            value={formData.weather}
+                            onChange={handleInputChange}
+                            className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-cyan-500 focus:outline-none transition-colors"
+                            disabled={submitting}
+                        >
+                            <option value="Clear">Clear (晴れ)</option>
+                            <option value="Cloudy">Cloudy (曇り)</option>
+                            <option value="Rainy">Rainy (雨)</option>
+                            <option value="Snow">Snow (雪)</option>
+                        </select>
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs uppercase text-gray-500 mb-1">走行距離</label>
+                        <input
+                            name="distance"
+                            value={formData.distance}
+                            onChange={handleInputChange}
+                            className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-cyan-500 focus:outline-none transition-colors"
+                            placeholder="e.g. 120km"
+                            disabled={submitting}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs uppercase text-gray-500 mb-1">参加人数</label>
+                        <input
+                            type="number"
+                            name="members"
+                            value={formData.members}
+                            onChange={handleInputChange}
+                            className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-cyan-500 focus:outline-none transition-colors"
+                            min={1}
+                            disabled={submitting}
+                        />
+                      </div>
                   </div>
                   <div>
                     <label className="block text-xs uppercase text-gray-500 mb-1">詳細レポート</label>
                     <textarea
                       name="details"
-                      value={newLog.details}
+                      value={formData.details}
                       onChange={handleInputChange}
                       rows={3}
                       className="w-full bg-black/50 border border-white/10 text-white px-4 py-2 text-sm focus:border-cyan-500 focus:outline-none transition-colors"
@@ -205,7 +245,7 @@ export default function Archives() {
                     </label>
                     <textarea
                       name="geojson"
-                      value={newLog.geojson}
+                      value={formData.geojson || ''}
                       onChange={handleInputChange}
                       className="flex-1 w-full bg-black/50 border border-cyan-900/30 text-cyan-300/70 font-mono text-xs px-4 py-2 focus:border-cyan-500 focus:outline-none transition-colors resize-none"
                       placeholder='{ "type": "FeatureCollection", "features": [...] }'
@@ -222,7 +262,7 @@ export default function Archives() {
                     ) : (
                         <>
                             <Save className="w-4 h-4" />
-                            記録を保存
+                            {editingId ? "変更を保存" : "記録を保存"}
                         </>
                     )}
                   </button>
@@ -234,7 +274,7 @@ export default function Archives() {
 
         {/* Archives List */}
         <div className="grid grid-cols-1 gap-8">
-            {archives.length === 0 && !loading ? (
+            {archives.length === 0 ? (
                 <div className="text-center py-12 border border-white/10 rounded-lg text-gray-500 bg-white/5">
                     No mission logs found.
                 </div>
@@ -258,46 +298,66 @@ export default function Archives() {
                         </div>
                         {/* Cyberpunk Map Decor */}
                         <div className="absolute bottom-2 right-2 text-[10px] text-cyan-900 font-mono">
-                            LAT: 35.6895 N / LNG: 139.6917 E
+                            LOG_ID: {archive.id}
                         </div>
                         </div>
 
                         {/* Content Area */}
-                        <div className="flex-1 p-6 md:p-8 flex flex-col justify-between">
-                        <div>
-                            <div className="flex items-center gap-3 mb-4">
-                            <span className="text-xs font-bold text-cyan-500 border border-cyan-900/50 px-2 py-0.5 rounded bg-cyan-950/30">
-                                LOG_ID: {typeof archive.id === 'string' ? (archive.id as string).toUpperCase() : `OP-${archive.id}`}
-                            </span>
-                            <span className="text-xs text-gray-500 flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {archive.date}
-                            </span>
+                        <div className="flex-1 p-6 md:p-8 flex flex-col justify-between relative">
+                            {/* Admin Actions */}
+                            {isAdmin && (
+                                <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={() => handleEditClick(archive)}
+                                        className="p-2 bg-blue-900/30 text-blue-400 hover:bg-blue-500 hover:text-white rounded transition-colors"
+                                        title="Edit"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteClick(archive.id)}
+                                        className="p-2 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded transition-colors"
+                                        title="Delete"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            )}
+
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                <span className="text-xs font-bold text-cyan-500 border border-cyan-900/50 px-2 py-0.5 rounded bg-cyan-950/30">
+                                    LOG_ID: {String(archive.id).padStart(4, '0')}
+                                </span>
+                                <span className="text-xs text-gray-500 flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {archive.date}
+                                </span>
+                                </div>
+
+                                <h2 className="text-2xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">
+                                {archive.title}
+                                </h2>
+                                <p className="text-gray-400 text-sm leading-relaxed mb-6 whitespace-pre-wrap">
+                                {archive.details}
+                                </p>
                             </div>
 
-                            <h2 className="text-2xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">
-                            {archive.title}
-                            </h2>
-                            <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                            {archive.details}
-                            </p>
-                        </div>
-
-                        {/* Telemetry Badges */}
-                        <div className="flex flex-wrap gap-3 mt-auto pt-6 border-t border-white/5">
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-full">
-                            <Gauge className="w-3 h-3 text-cyan-400" />
-                            <span className="text-xs text-gray-300 font-mono">{archive.distance}</span>
+                            {/* Telemetry Badges */}
+                            <div className="flex flex-wrap gap-3 mt-auto pt-6 border-t border-white/5">
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-full">
+                                <Gauge className="w-3 h-3 text-cyan-400" />
+                                <span className="text-xs text-gray-300 font-mono">{archive.distance}</span>
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-full">
+                                <Users className="w-3 h-3 text-purple-400" />
+                                <span className="text-xs text-gray-300 font-mono">{archive.members} operatives</span>
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-full">
+                                <WeatherIcon condition={archive.weather} />
+                                <span className="text-xs text-gray-300 font-mono">{archive.weather}</span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-full">
-                            <Users className="w-3 h-3 text-purple-400" />
-                            <span className="text-xs text-gray-300 font-mono">{archive.members} operatives</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-full">
-                            <WeatherIcon condition={archive.weather} />
-                            <span className="text-xs text-gray-300 font-mono">{archive.weather}</span>
-                            </div>
-                        </div>
                         </div>
                     </div>
                     </motion.div>

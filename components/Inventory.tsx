@@ -1,54 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wrench, Package, AlertCircle, Plus, X, ChevronUp, ChevronDown } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { Wrench, Package, AlertCircle, Plus, X, ChevronUp, ChevronDown, Minus, RefreshCw } from "lucide-react";
 import { Consumable, Tool } from "@/types/database";
+import { updateConsumableLevel, toggleToolStatus, addConsumable, addTool } from "@/app/actions/inventory";
 
-const supabase = createClient();
+interface InventoryProps {
+    consumables?: Consumable[];
+    tools?: Tool[];
+    isAdmin?: boolean;
+}
 
-export default function Inventory() {
-  const [consumables, setConsumables] = useState<Consumable[]>([]);
-  const [tools, setTools] = useState<Tool[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+export default function Inventory({ consumables = [], tools = [], isAdmin = false }: InventoryProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Tool; direction: "asc" | "desc" } | null>(null);
-
-  // Data Fetching
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [consumablesRes, toolsRes] = await Promise.all([
-        supabase.from('consumables').select('*').order('id', { ascending: true }),
-        supabase.from('tools').select('*').order('id', { ascending: true })
-      ]);
-
-      if (consumablesRes.error) throw consumablesRes.error;
-      if (toolsRes.error) throw toolsRes.error;
-
-      // Ensure types match what component expects
-      // Note: DB returns id as number, component handles it.
-      // We assume 'level' in DB is percentage 0-100 as per mock data convention
-      // We map 'max_capacity' to match usage if needed, but we'll update usage to 'max_capacity'
-
-      setConsumables(consumablesRes.data as Consumable[]);
-      setTools(toolsRes.data as Tool[]);
-    } catch (err: unknown) {
-      console.error('Error fetching inventory:', err);
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setError(message || 'Failed to fetch inventory data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [loadingAction, setLoadingAction] = useState<number | null>(null);
 
   // Sorting Logic
   const sortedTools = [...tools].sort((a, b) => {
@@ -67,46 +34,45 @@ export default function Inventory() {
     setSortConfig({ key, direction });
   };
 
-  // Admin Modal Submit Handler (Optional, keeping consistent with replacing mocks)
-  const handleAddItem = async (e: React.FormEvent) => {
-      // Logic for adding items could go here if implemented,
-      // but primary requirement is Admin page integration.
-      // For now, we'll just close modal or implement a basic insert if needed.
-      e.preventDefault();
-      setIsModalOpen(false);
-      // Implementation of this specific modal is not the primary task (Admin page is),
-      // but to avoid broken UI, we could implement it.
-      // Given scope, I'll leave it as a UI placeholder or basic close.
+  // Admin Actions
+  const handleUpdateLevel = async (id: number, delta: number) => {
+      if (!isAdmin) return;
+      setLoadingAction(id);
+      try {
+          // Optimistic update could go here, but relying on server revalidation for now
+          await updateConsumableLevel(id, delta);
+      } catch (e) {
+          console.error(e);
+          alert("Failed to update level");
+      } finally {
+          setLoadingAction(null);
+      }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-mieno-gray flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-mieno-navy/30 border-t-mieno-navy rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const handleToggleStatus = async (id: number, currentStatus: string) => {
+      if (!isAdmin) return;
+      setLoadingAction(id);
+      try {
+          await toggleToolStatus(id, currentStatus);
+      } catch (e) {
+          console.error(e);
+          alert("Failed to update status");
+      } finally {
+          setLoadingAction(null);
+      }
+  };
 
-  if (error) {
-    return (
-        <div className="min-h-screen bg-mieno-gray flex items-center justify-center p-6">
-            <div className="bg-white p-8 rounded-2xl shadow-xl border border-red-100 text-center max-w-md">
-                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Data Retrieval Failed</h3>
-                <p className="text-gray-500 mb-6">{error}</p>
-                <button
-                    onClick={fetchData}
-                    className="bg-mieno-navy text-white px-6 py-3 rounded-xl font-bold hover:bg-mieno-navy/90 transition-all"
-                >
-                    Retry Connection
-                </button>
-            </div>
-        </div>
-    );
-  }
+  const handleAddItem = async (e: React.FormEvent) => {
+      e.preventDefault();
+      // Basic implementation for adding items would go here
+      // For now, we'll just close modal as it requires more complex form logic for type switching
+      // But let's support adding a basic consumable for demonstration if needed
+      setIsModalOpen(false);
+      alert("New Item Added (Mock)");
+  };
 
   return (
-    <div className="min-h-screen bg-mieno-gray p-6 lg:p-12 font-sans text-mieno-text">
+    <div className="bg-mieno-gray p-6 lg:p-12 font-sans text-mieno-text rounded-3xl">
       <div className="max-w-7xl mx-auto space-y-12">
 
         {/* Header */}
@@ -118,13 +84,15 @@ export default function Inventory() {
             </h1>
             <p className="text-gray-500 mt-1">Equipment status and supply levels dashboard.</p>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-mieno-navy text-white px-5 py-2.5 rounded-lg shadow-lg hover:bg-mieno-navy/90 transition-all active:scale-95"
-          >
-            <Plus className="w-5 h-5" />
-            <span>資材を追加</span>
-          </button>
+          {isAdmin && (
+            <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-mieno-navy text-white px-5 py-2.5 rounded-lg shadow-lg hover:bg-mieno-navy/90 transition-all active:scale-95"
+            >
+                <Plus className="w-5 h-5" />
+                <span>資材を追加</span>
+            </button>
+          )}
         </div>
 
         {/* Consumables Section */}
@@ -149,9 +117,9 @@ export default function Inventory() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group"
                 >
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex justify-between items-start mb-4 relative z-10">
                     <div>
                         <h3 className="font-bold text-lg text-gray-800">{item.name}</h3>
                         <p className="text-sm text-gray-400">Max Capacity: {item.max_capacity}{item.unit}</p>
@@ -159,21 +127,41 @@ export default function Inventory() {
                     <div className={`w-3 h-3 rounded-full ${item.level < 20 ? "bg-red-500 animate-pulse" : "bg-green-500"}`} />
                     </div>
 
-                    <div className="relative h-4 bg-gray-100 rounded-full overflow-hidden mb-2">
+                    <div className="relative h-4 bg-gray-100 rounded-full overflow-hidden mb-2 relative z-10">
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${item.level}%` }}
                         transition={{ duration: 1, delay: 0.2 + index * 0.1, ease: "easeOut" }}
-                        className={`absolute top-0 left-0 h-full ${item.color} rounded-full`}
+                        className={`absolute top-0 left-0 h-full ${item.color || 'bg-blue-500'} rounded-full`}
                     />
                     </div>
 
-                    <div className="flex justify-between text-sm font-medium">
+                    <div className="flex justify-between text-sm font-medium relative z-10">
                     <span className="text-gray-500">{item.level}% Remaining</span>
                     <span className="text-mieno-navy font-bold">
                         {Math.round((item.max_capacity * item.level) / 100)}{item.unit}
                     </span>
                     </div>
+
+                    {/* Admin Magic Buttons */}
+                    {isAdmin && (
+                        <div className="absolute top-0 right-0 h-full flex flex-col justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm z-20 shadow-[-10px_0_20px_rgba(255,255,255,1)]">
+                            <button
+                                onClick={() => handleUpdateLevel(item.id, 10)}
+                                disabled={loadingAction === item.id}
+                                className="p-2 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition-colors disabled:opacity-50"
+                            >
+                                <Plus size={16} />
+                            </button>
+                            <button
+                                onClick={() => handleUpdateLevel(item.id, -10)}
+                                disabled={loadingAction === item.id}
+                                className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors disabled:opacity-50"
+                            >
+                                <Minus size={16} />
+                            </button>
+                        </div>
+                    )}
                 </motion.div>
                 ))
             )}
@@ -202,7 +190,7 @@ export default function Inventory() {
                         className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                       >
                         <div className="flex items-center gap-1">
-                          {{ name: "品名", spec: "仕様/サイズ", qty: "数量", status: "状態", location: "保管場所" }[key]}
+                          {{ name: "品名", spec: "仕様/サイズ", qty: "数量", status: "状態", location: "保管場所" }[key as keyof Tool]}
                           <div className="flex flex-col">
                             <ChevronUp className={`w-3 h-3 -mb-1 ${sortConfig?.key === key && sortConfig.direction === 'asc' ? 'text-mieno-navy' : 'text-gray-300'}`} />
                             <ChevronDown className={`w-3 h-3 ${sortConfig?.key === key && sortConfig.direction === 'desc' ? 'text-mieno-navy' : 'text-gray-300'}`} />
@@ -210,12 +198,13 @@ export default function Inventory() {
                         </div>
                       </th>
                     ))}
+                    {isAdmin && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ACTION</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {tools.length === 0 ? (
                       <tr>
-                          <td colSpan={5} className="px-6 py-8 text-center text-gray-400">No tools data available.</td>
+                          <td colSpan={isAdmin ? 6 : 5} className="px-6 py-8 text-center text-gray-400">No tools data available.</td>
                       </tr>
                   ) : (
                     sortedTools.map((tool, index) => (
@@ -224,7 +213,7 @@ export default function Inventory() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: index * 0.05 }}
-                        className="hover:bg-gray-50/50 transition-colors"
+                        className="hover:bg-gray-50/50 transition-colors group"
                         >
                         <td className="px-6 py-4 font-medium text-gray-900">{tool.name}</td>
                         <td className="px-6 py-4 text-gray-600 font-mono text-sm">{tool.spec}</td>
@@ -243,6 +232,18 @@ export default function Inventory() {
                         <td className="px-6 py-4 text-gray-500 text-sm flex items-center gap-2">
                             {tool.location}
                         </td>
+                        {isAdmin && (
+                            <td className="px-6 py-4">
+                                <button
+                                    onClick={() => handleToggleStatus(tool.id, tool.status)}
+                                    disabled={loadingAction === tool.id}
+                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+                                    title="Toggle Status (Available/In Use)"
+                                >
+                                    <RefreshCw size={16} className={loadingAction === tool.id ? 'animate-spin' : ''} />
+                                </button>
+                            </td>
+                        )}
                         </motion.tr>
                     ))
                   )}

@@ -1,5 +1,7 @@
 import StrategicUnits from "@/components/StrategicUnits";
 import { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { Unit } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Strategic Units (機動戦力)",
@@ -11,6 +13,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function UnitsPage() {
-  return <StrategicUnits />;
+export default async function UnitsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isAdmin = !!user;
+
+  const { data: units } = await supabase.from('units').select('*');
+
+  return <StrategicUnits units={(units as Unit[]) || []} isAdmin={isAdmin} />;
 }

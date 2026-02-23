@@ -45,3 +45,14 @@ export interface News {
   image_url?: string;
   created_at?: string;
 }
+
+export interface Unit {
+  id: number;
+  slug: string;
+  unit_name: string;
+  owner_id: string;
+  odometer: number;
+  next_oil_change: string;
+  maintenance_note: string;
+  created_at?: string;
+}
