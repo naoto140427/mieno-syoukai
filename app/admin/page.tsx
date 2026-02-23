@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Lock, LayoutDashboard, Wrench, FileText, Package,
   CheckCircle2, AlertCircle, ChevronRight, Gauge,
-  ClipboardList, Send, LogOut, Megaphone
+  ClipboardList, Send, LogOut, Megaphone, Fingerprint, ScanFace
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -603,6 +603,7 @@ export default function AdminPage() {
   const [loginId, setLoginId] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
   // Easter Egg State
   const [showEasterEgg, setShowEasterEgg] = useState(false);
@@ -652,6 +653,56 @@ export default function AdminPage() {
       showToast(message, 'error');
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  const handlePasskeyLogin = async () => {
+    if (!loginId) {
+      showToast('メールアドレスを入力してください', 'error');
+      return;
+    }
+    setIsPasskeyLoading(true);
+    try {
+      // Cast to any to avoid TS errors if types are outdated
+      const { data, error } = await (supabase.auth as any).signInWithWebAuthn({
+        email: loginId.includes('@') ? loginId : `${loginId}@mieno.dev`
+      });
+
+      if (error) throw error;
+
+      if (data.session) {
+        showToast('生体認証成功', 'success');
+        router.refresh();
+        const { user } = data.session;
+        if (user) {
+          setIsAuthenticated(true);
+          const emailPrefix = user.email?.split('@')[0].toLowerCase() || 'cto';
+          const profile = USERS[emailPrefix] || USERS['cto'];
+          setCurrentUser(profile);
+        }
+      }
+    } catch (err: unknown) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : 'Passkey login failed';
+      showToast(message, 'error');
+    } finally {
+      setIsPasskeyLoading(false);
+    }
+  };
+
+  const handleRegisterDevice = async () => {
+    try {
+      const { error } = await supabase.auth.mfa.enroll({
+        factorType: 'webauthn',
+      });
+
+      if (error) throw error;
+
+      showToast('このデバイスを認証キーとして登録しました', 'success');
+    } catch (err: unknown) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : 'Registration failed';
+      showToast('登録エラー: ' + message, 'error');
     }
   };
 
@@ -726,7 +777,7 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              disabled={isLoggingIn}
+              disabled={isLoggingIn || isPasskeyLoading}
               className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-xl hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait"
             >
               {isLoggingIn ? (
@@ -735,6 +786,34 @@ export default function AdminPage() {
                 <>
                   <span>システム認証</span>
                   <span className="text-xs opacity-70 tracking-wider">AUTHENTICATE</span>
+                </>
+              )}
+            </button>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white/80 text-gray-400 font-medium text-xs">OR</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handlePasskeyLogin}
+              disabled={isLoggingIn || isPasskeyLoading}
+              className="w-full bg-white/50 border border-gray-200 text-gray-900 font-bold py-4 rounded-2xl hover:bg-white hover:shadow-lg transition-all flex items-center justify-center gap-3 group"
+            >
+              {isPasskeyLoading ? (
+                <div className="w-5 h-5 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin" />
+              ) : (
+                <>
+                  <ScanFace className="w-5 h-5 text-gray-500 group-hover:text-blue-600 transition-colors" />
+                  <div className="flex flex-col items-start leading-none">
+                    <span className="text-sm">パスキーでログイン</span>
+                    <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider mt-0.5">Passwordless / Biometric</span>
+                  </div>
                 </>
               )}
             </button>
@@ -811,6 +890,25 @@ export default function AdminPage() {
                 </div>
             </div>
         </motion.div>
+
+        {/* Passkey Registration Button */}
+        <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={handleRegisterDevice}
+            className="w-full bg-white rounded-xl p-4 shadow-sm border border-blue-100 flex items-center justify-between group hover:shadow-md transition-all active:scale-[0.99]"
+        >
+            <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
+                    <Fingerprint size={20} />
+                </div>
+                <div className="text-left">
+                    <p className="text-sm font-bold text-gray-900">このデバイスを認証キーとして登録</p>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Register Passkey</p>
+                </div>
+            </div>
+            <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
+        </motion.button>
 
         {/* Navigation Tabs */}
         <div className="flex p-1 bg-gray-200/50 rounded-2xl">
