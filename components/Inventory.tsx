@@ -71,6 +71,15 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
       alert("New Item Added (Mock)");
   };
 
+  const toolColumns = ["name", "spec", "qty", "status", "location"] as const;
+  const toolHeaders: Record<typeof toolColumns[number], string> = {
+    name: "品名",
+    spec: "仕様/サイズ",
+    qty: "数量",
+    status: "状態",
+    location: "保管場所",
+  };
+
   return (
     <div className="bg-mieno-gray p-6 lg:p-12 font-sans text-mieno-text rounded-3xl">
       <div className="max-w-7xl mx-auto space-y-12">
@@ -183,14 +192,14 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    {["name", "spec", "qty", "status", "location"].map((key) => (
+                    {toolColumns.map((key) => (
                       <th
                         key={key}
-                        onClick={() => requestSort(key as keyof Tool)}
+                        onClick={() => requestSort(key)}
                         className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
                       >
                         <div className="flex items-center gap-1">
-                          {{ name: "品名", spec: "仕様/サイズ", qty: "数量", status: "状態", location: "保管場所" }[key as keyof Tool]}
+                          {toolHeaders[key]}
                           <div className="flex flex-col">
                             <ChevronUp className={`w-3 h-3 -mb-1 ${sortConfig?.key === key && sortConfig.direction === 'asc' ? 'text-mieno-navy' : 'text-gray-300'}`} />
                             <ChevronDown className={`w-3 h-3 ${sortConfig?.key === key && sortConfig.direction === 'desc' ? 'text-mieno-navy' : 'text-gray-300'}`} />
