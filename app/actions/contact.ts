@@ -39,7 +39,7 @@ export async function submitInquiry(formData: {
   // 3. Send Email via Resend
   try {
     const { error: emailError } = await resend.emails.send({
-      from: 'Acme <onboarding@resend.dev>',
+      from: 'info@mieno-shokai.com',
       to: [ADMIN_EMAIL],
       subject: `[三重野商会] 新規お問い合わせ: ${formData.subject}`,
       text: `
