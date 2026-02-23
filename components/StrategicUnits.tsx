@@ -1,9 +1,12 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Gauge, Calendar, Wrench, Edit2, X, Save, User } from 'lucide-react';
+import { Unit } from '@/types/database';
+import { updateUnit } from '@/app/actions/units';
 
 interface UnitData {
   id: string;
@@ -90,7 +93,7 @@ const units: UnitData[] = [
   },
 ];
 
-const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
+const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData; index: number; dbUnits: Unit[]; isAdmin: boolean; onEdit: (u: Unit) => void }) => {
   const isEven = index % 2 === 0;
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -104,16 +107,20 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
   // State for toggle
   const [mode, setMode] = useState<'primary' | 'secondary'>('primary');
 
+  const currentSlug = mode === 'primary' ? unit.slug : unit.specialContent?.secondarySlug;
   const currentName = mode === 'primary' ? unit.name : unit.specialContent?.secondaryName;
   const currentCopy = mode === 'primary' ? unit.copy : unit.specialContent?.secondaryCopy;
   const currentDesc = mode === 'primary' ? unit.description : unit.specialContent?.secondaryDescription;
   const currentImageLabel = mode === 'primary' ? unit.imageLabel : unit.specialContent?.secondaryImageLabel;
-  const currentSlug = mode === 'primary' ? unit.slug : unit.specialContent?.secondarySlug;
+
+  // Find matching DB unit
+  const dbUnit = dbUnits.find(u => u.slug === currentSlug);
+  const displayName = dbUnit?.unit_name || currentName;
 
   return (
     <section
       ref={ref}
-      className="min-h-screen flex items-center justify-center py-24 overflow-hidden"
+      className="min-h-screen flex items-center justify-center py-24 overflow-hidden relative"
     >
       <div className={`container mx-auto px-6 flex flex-col md:flex-row items-center gap-16 ${isEven ? '' : 'md:flex-row-reverse'}`}>
 
@@ -187,7 +194,7 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
                         transition={{ duration: 0.4 }}
                         className="text-3xl md:text-5xl font-bold tracking-tight text-mieno-text leading-tight"
                     >
-                        {currentName}
+                        {displayName}
                     </motion.h2>
                 </AnimatePresence>
             </div>
@@ -209,6 +216,46 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
                     <p className="text-gray-600 leading-relaxed text-base md:text-lg">
                         {currentDesc}
                     </p>
+
+                    {/* DB Info Card */}
+                    {dbUnit && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="relative p-4 bg-gray-50 rounded-xl border border-gray-100 shadow-sm group/card"
+                        >
+                            {/* Edit Button */}
+                            {isAdmin && (
+                                <button
+                                    onClick={() => onEdit(dbUnit)}
+                                    className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors opacity-0 group-hover/card:opacity-100"
+                                >
+                                    <Edit2 size={16} />
+                                </button>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                                <div className="flex items-center gap-2 text-gray-700 font-medium">
+                                    <Gauge size={18} className="text-mieno-navy" />
+                                    <span>{dbUnit.odometer.toLocaleString()} km</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-700 font-medium">
+                                    <Calendar size={18} className="text-mieno-navy" />
+                                    <span>Next: {dbUnit.next_oil_change || 'N/A'}</span>
+                                </div>
+                                <div className="col-span-2 flex items-center gap-2 text-gray-600 text-xs border-t border-gray-100 pt-2 mt-1">
+                                   <User size={14} className="text-mieno-navy" />
+                                   <span>Owner ID: {dbUnit.owner_id}</span>
+                               </div>
+                            </div>
+                            {dbUnit.maintenance_note && (
+                                <div className="flex items-start gap-2 text-xs text-gray-500 border-t border-gray-200 pt-3">
+                                    <Wrench size={14} className="mt-0.5 text-orange-500 shrink-0" />
+                                    <span>{dbUnit.maintenance_note}</span>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
                 </motion.div>
               </AnimatePresence>
           </div>
@@ -227,7 +274,39 @@ const UnitSection = ({ unit, index }: { unit: UnitData; index: number }) => {
   );
 };
 
-export default function StrategicUnits() {
+export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }: { units?: Unit[], isAdmin?: boolean }) {
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Unit>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleEdit = (unit: Unit) => {
+    setEditingUnit(unit);
+    setEditForm({
+      odometer: unit.odometer,
+      next_oil_change: unit.next_oil_change,
+      maintenance_note: unit.maintenance_note
+    });
+  };
+
+  const handleSave = async () => {
+    if (!editingUnit) return;
+    setIsSaving(true);
+    try {
+        await updateUnit(editingUnit.id, editForm);
+        setEditingUnit(null);
+    } catch (e) {
+        console.error(e);
+        alert('Failed to update');
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
   return (
     <div className="bg-white text-mieno-text">
       {/* Title Section */}
@@ -253,8 +332,102 @@ export default function StrategicUnits() {
 
       {/* Units */}
       {units.map((unit, index) => (
-        <UnitSection key={unit.id} unit={unit} index={index} />
+        <UnitSection
+            key={unit.id}
+            unit={unit}
+            index={index}
+            dbUnits={dbUnits}
+            isAdmin={isAdmin}
+            onEdit={handleEdit}
+        />
       ))}
+
+      {/* Edit Modal Portal */}
+      {mounted && createPortal(
+        <AnimatePresence>
+            {editingUnit && (
+                <motion.div
+                    key="edit-modal"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                    onClick={() => setEditingUnit(null)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl overflow-hidden"
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold text-gray-900">
+                                Update {editingUnit.unit_name}
+                            </h3>
+                            <button onClick={() => setEditingUnit(null)} className="text-gray-400 hover:text-gray-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Form Fields */}
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Odometer (km)</label>
+                                <input
+                                    type="number"
+                                    value={editForm.odometer ?? ''}
+                                    onChange={(e) => setEditForm({...editForm, odometer: Number(e.target.value)})}
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-mono"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Next Oil Change</label>
+                                <input
+                                    type="date"
+                                    value={editForm.next_oil_change || ''}
+                                    onChange={(e) => setEditForm({...editForm, next_oil_change: e.target.value})}
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-mono"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Maintenance Note</label>
+                                <textarea
+                                    value={editForm.maintenance_note || ''}
+                                    onChange={(e) => setEditForm({...editForm, maintenance_note: e.target.value})}
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 h-24 resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                onClick={() => setEditingUnit(null)}
+                                className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            >
+                                {isSaving ? 'Saving...' : (
+                                    <>
+                                        <Save size={16} />
+                                        Save Changes
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
