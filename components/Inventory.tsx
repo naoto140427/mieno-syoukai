@@ -17,6 +17,22 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
   const [sortConfig, setSortConfig] = useState<{ key: keyof Tool; direction: "asc" | "desc" } | null>(null);
   const [loadingAction, setLoadingAction] = useState<number | null>(null);
 
+  // Form State
+  const [newItemType, setNewItemType] = useState<'consumable' | 'tool'>('consumable');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+      name: '',
+      level: 100,
+      max_capacity: 0,
+      unit: '',
+      color: 'bg-blue-500',
+      spec: '',
+      qty: 1,
+      status: 'Available' as Tool['status'],
+      location: ''
+  });
+
   // Sorting Logic
   const sortedTools = [...tools].sort((a, b) => {
     if (!sortConfig) return 0;
@@ -64,11 +80,46 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
 
   const handleAddItem = async (e: React.FormEvent) => {
       e.preventDefault();
-      // Basic implementation for adding items would go here
-      // For now, we'll just close modal as it requires more complex form logic for type switching
-      // But let's support adding a basic consumable for demonstration if needed
-      setIsModalOpen(false);
-      alert("New Item Added (Mock)");
+      setIsSubmitting(true);
+      setError(null);
+
+      try {
+          if (newItemType === 'consumable') {
+              await addConsumable({
+                  name: formData.name,
+                  level: Number(formData.level),
+                  max_capacity: Number(formData.max_capacity),
+                  unit: formData.unit,
+                  color: formData.color
+              });
+          } else {
+              await addTool({
+                  name: formData.name,
+                  spec: formData.spec,
+                  qty: Number(formData.qty),
+                  status: formData.status,
+                  location: formData.location
+              });
+          }
+          setIsModalOpen(false);
+          // Reset form
+          setFormData({
+              name: '',
+              level: 100,
+              max_capacity: 0,
+              unit: '',
+              color: 'bg-blue-500',
+              spec: '',
+              qty: 1,
+              status: 'Available',
+              location: ''
+          });
+      } catch (err: unknown) {
+          console.error(err);
+          setError("Failed to add item. Please try again.");
+      } finally {
+          setIsSubmitting(false);
+      }
   };
 
   const toolColumns = ["name", "spec", "qty", "status", "location"] as const;
@@ -291,43 +342,177 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
                 </button>
               </div>
 
-              {/* Note: This form is currently illustrative/mock as per scope focus on Admin page integration. */}
               <form onSubmit={handleAddItem} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">品名 / 名称</label>
-                  <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all" placeholder="e.g. Engine Oil" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">数量 / 残量</label>
-                    <input type="number" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all" placeholder="0" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">単位</label>
-                    <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all" placeholder="L, kg, pcs" />
-                  </div>
-                </div>
+                {error && (
+                    <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
+                        <AlertCircle size={16} />
+                        {error}
+                    </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">種別</label>
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all">
-                    <option>Consumable</option>
-                    <option>Tool / Equipment</option>
-                  </select>
+                  <div className="flex bg-gray-100 p-1 rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => setNewItemType('consumable')}
+                        className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${newItemType === 'consumable' ? 'bg-white text-mieno-navy shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        Consumable
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewItemType('tool')}
+                        className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${newItemType === 'tool' ? 'bg-white text-mieno-navy shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        Tool
+                      </button>
+                  </div>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">品名 / 名称</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
+                    placeholder={newItemType === 'consumable' ? "e.g. Engine Oil" : "e.g. Torque Wrench"}
+                  />
+                </div>
+
+                {newItemType === 'consumable' ? (
+                    <>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">最大容量</label>
+                                <input
+                                    type="number"
+                                    required
+                                    value={formData.max_capacity}
+                                    onChange={(e) => setFormData({...formData, max_capacity: Number(e.target.value)})}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
+                                    placeholder="100"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">単位</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.unit}
+                                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
+                                    placeholder="L, kg, pcs"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">現在レベル (%)</label>
+                                <input
+                                    type="number"
+                                    required
+                                    min="0"
+                                    max="100"
+                                    value={formData.level}
+                                    onChange={(e) => setFormData({...formData, level: Number(e.target.value)})}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">カラー</label>
+                                <select
+                                    value={formData.color}
+                                    onChange={(e) => setFormData({...formData, color: e.target.value})}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
+                                >
+                                    <option value="bg-blue-500">Blue</option>
+                                    <option value="bg-red-500">Red</option>
+                                    <option value="bg-green-500">Green</option>
+                                    <option value="bg-yellow-500">Yellow</option>
+                                    <option value="bg-purple-500">Purple</option>
+                                    <option value="bg-gray-500">Gray</option>
+                                </select>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">仕様 / サイズ</label>
+                            <input
+                                type="text"
+                                required
+                                value={formData.spec}
+                                onChange={(e) => setFormData({...formData, spec: e.target.value})}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
+                                placeholder="e.g. 10mm-24mm"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">数量</label>
+                                <input
+                                    type="number"
+                                    required
+                                    min="1"
+                                    value={formData.qty}
+                                    onChange={(e) => setFormData({...formData, qty: Number(e.target.value)})}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">状態</label>
+                                <select
+                                    value={formData.status}
+                                    onChange={(e) => setFormData({...formData, status: e.target.value as Tool['status']})}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
+                                >
+                                    <option value="Available">Available</option>
+                                    <option value="In Use">In Use</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Missing">Missing</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">保管場所</label>
+                            <input
+                                type="text"
+                                required
+                                value={formData.location}
+                                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
+                                placeholder="e.g. Cabinet A-2"
+                            />
+                        </div>
+                    </>
+                )}
 
                 <div className="mt-8 flex justify-end gap-3">
                     <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
                     className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+                    disabled={isSubmitting}
                     >
                     キャンセル
                     </button>
                     <button
                     type="submit"
-                    className="px-6 py-2 bg-mieno-navy text-white font-medium rounded-lg shadow-md hover:bg-mieno-navy/90 transition-colors"
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-mieno-navy text-white font-medium rounded-lg shadow-md hover:bg-mieno-navy/90 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
-                    登録する
+                    {isSubmitting ? (
+                        <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            Saving...
+                        </>
+                    ) : (
+                        "登録する"
+                    )}
                     </button>
                 </div>
               </form>
