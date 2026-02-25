@@ -630,7 +630,7 @@ export default function AdminPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: loginId,
         options: {
-          emailRedirectTo: `${window.location.origin}/admin`,
+         emailRedirectTo: `${location.origin}/auth/callback?next=/admin` // 🟢 受付（callback）を通ってから /admin に行く
         },
       });
 
