@@ -55,4 +55,27 @@ export interface Unit {
   next_oil_change: string;
   maintenance_note: string;
   created_at?: string;
+  // New fields
+  specs?: Record<string, any>;
+  description?: string;
+}
+
+export interface UnitDocument {
+  id: number;
+  unit_id: number;
+  title: string;
+  url: string;
+  file_type: string;
+  file_size: string;
+  created_at: string;
+}
+
+export interface MaintenanceLog {
+  id: number;
+  unit_id: number;
+  date: string;
+  title: string;
+  type: 'maintenance' | 'inspection' | 'upgrade' | 'incident' | string;
+  details: string;
+  created_at: string;
 }
