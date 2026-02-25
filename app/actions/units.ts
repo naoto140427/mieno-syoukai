@@ -9,10 +9,13 @@ import { revalidatePath } from 'next/cache';
 export async function getUnitBySlug(slug: string) {
   const supabase = await createClient();
 
+  const safeSlug = slug.trim();
+
+  // Use .ilike for case-insensitive search to handle URL capitalization variances
   const { data: unit, error: unitError } = await supabase
     .from('units')
     .select('*')
-    .eq('slug', slug)
+    .ilike('slug', safeSlug)
     .single();
 
   if (unitError || !unit) {
