@@ -55,4 +55,6 @@ export interface Unit {
   next_oil_change: string;
   maintenance_note: string;
   created_at?: string;
+  description?: string;
+  specs?: any;
 }
