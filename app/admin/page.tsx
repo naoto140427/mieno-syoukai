@@ -657,16 +657,14 @@ export default function AdminPage() {
   };
 
   const handlePasskeyLogin = async () => {
-    if (!loginId) {
-      showToast('メールアドレスを入力してください', 'error');
-      return;
-    }
     setIsPasskeyLoading(true);
     try {
-      // Cast to any to avoid TS errors if types are outdated
-      const { data, error } = await (supabase.auth as any).signInWithWebAuthn({
-        email: loginId.includes('@') ? loginId : `${loginId}@mieno.dev`
-      });
+      const options = loginId
+        ? { email: loginId.includes('@') ? loginId : `${loginId}@mieno.dev` }
+        : undefined;
+
+      // Cast to any because the current type definitions might be outdated or missing this method
+      const { data, error } = await (supabase.auth as any).signInWithWebAuthn(options);
 
       if (error) throw error;
 
@@ -740,6 +738,39 @@ export default function AdminPage() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
+            {/* Primary Action: Passkey */}
+            <motion.button
+              type="button"
+              onClick={handlePasskeyLogin}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={isLoggingIn || isPasskeyLoading}
+              className="w-full bg-gradient-to-r from-gray-900 to-gray-800 text-white border border-gray-700/50 font-bold py-5 rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-3 group relative overflow-hidden"
+            >
+              {isPasskeyLoading ? (
+                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <div className="p-2 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors">
+                    <ScanFace className="w-6 h-6 text-blue-400 group-hover:text-blue-300 transition-colors" />
+                  </div>
+                  <div className="flex flex-col items-start leading-none">
+                    <span className="text-lg">生体認証でアクセス</span>
+                    <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest mt-1">Passkeys / Biometric</span>
+                  </div>
+                </>
+              )}
+            </motion.button>
+
+            <div className="relative my-8">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white/80 text-gray-400 font-bold text-[10px] tracking-widest uppercase backdrop-blur-sm rounded-full">Or verify with credentials</span>
+              </div>
+            </div>
+
             <div className="space-y-1">
                 <label className="ml-4 flex items-baseline gap-2">
                   <span className="text-sm font-bold text-gray-700">メールアドレス</span>
@@ -778,42 +809,14 @@ export default function AdminPage() {
             <button
               type="submit"
               disabled={isLoggingIn || isPasskeyLoading}
-              className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-xl hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all mt-4 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait"
+              className="w-full bg-gray-100 text-gray-600 font-bold py-4 rounded-2xl hover:bg-gray-200 hover:text-gray-900 transition-all mt-4 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait"
             >
               {isLoggingIn ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-gray-400 border-t-gray-600 rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>システム認証</span>
-                  <span className="text-xs opacity-70 tracking-wider">AUTHENTICATE</span>
-                </>
-              )}
-            </button>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white/80 text-gray-400 font-medium text-xs">OR</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handlePasskeyLogin}
-              disabled={isLoggingIn || isPasskeyLoading}
-              className="w-full bg-white/50 border border-gray-200 text-gray-900 font-bold py-4 rounded-2xl hover:bg-white hover:shadow-lg transition-all flex items-center justify-center gap-3 group"
-            >
-              {isPasskeyLoading ? (
-                <div className="w-5 h-5 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin" />
-              ) : (
-                <>
-                  <ScanFace className="w-5 h-5 text-gray-500 group-hover:text-blue-600 transition-colors" />
-                  <div className="flex flex-col items-start leading-none">
-                    <span className="text-sm">パスキーでログイン</span>
-                    <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider mt-0.5">Passwordless / Biometric</span>
-                  </div>
+                  <span>パスワードで認証</span>
+                  <span className="text-[10px] opacity-70 tracking-wider uppercase">Password Auth</span>
                 </>
               )}
             </button>
@@ -859,9 +862,18 @@ export default function AdminPage() {
             <h1 className="text-lg font-bold text-gray-900 leading-none">統合管理システム</h1>
             <p className="text-[10px] font-bold text-gray-400 tracking-widest mt-1 uppercase">Member Dashboard</p>
         </div>
-        <button onClick={handleLogout} className="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-red-500 transition-colors">
-            <LogOut size={18} />
-        </button>
+        <div className="flex items-center gap-3">
+            <button
+                onClick={handleRegisterDevice}
+                className="p-2 bg-white rounded-full shadow-sm text-blue-500 hover:text-blue-600 hover:shadow-md transition-all active:scale-95"
+                title="このデバイスをPasskeyとして登録"
+            >
+                <Fingerprint size={18} />
+            </button>
+            <button onClick={handleLogout} className="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-red-500 hover:shadow-md transition-all active:scale-95">
+                <LogOut size={18} />
+            </button>
+        </div>
       </header>
 
       <main className="max-w-xl mx-auto px-4 py-6 space-y-6">
@@ -890,25 +902,6 @@ export default function AdminPage() {
                 </div>
             </div>
         </motion.div>
-
-        {/* Passkey Registration Button */}
-        <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={handleRegisterDevice}
-            className="w-full bg-white rounded-xl p-4 shadow-sm border border-blue-100 flex items-center justify-between group hover:shadow-md transition-all active:scale-[0.99]"
-        >
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
-                    <Fingerprint size={20} />
-                </div>
-                <div className="text-left">
-                    <p className="text-sm font-bold text-gray-900">このデバイスを認証キーとして登録</p>
-                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Register Passkey</p>
-                </div>
-            </div>
-            <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
-        </motion.button>
 
         {/* Navigation Tabs */}
         <div className="flex p-1 bg-gray-200/50 rounded-2xl">
