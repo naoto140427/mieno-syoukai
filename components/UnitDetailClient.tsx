@@ -20,7 +20,8 @@ import {
   Plus,
   Trash2,
   UploadCloud,
-  Loader2
+  Loader2,
+  DollarSign
 } from 'lucide-react';
 import {
   Radar,
@@ -149,17 +150,16 @@ function DocCard({ doc, isAdmin, onDelete }: DocCardProps) {
             {doc.title}
           </h4>
           <p className="text-xs text-gray-500 mt-1 flex gap-2">
-            <span>{doc.file_type}</span>
+            <span>{doc.document_type}</span>
             <span>•</span>
-            <span>{doc.file_size}</span>
-            <span>•</span>
+            {/* file_size removed as it's not in DB */}
             <span>{new Date(doc.created_at).toLocaleDateString()}</span>
           </p>
         </div>
       </div>
       <div className="flex items-center gap-3">
         <a
-          href={doc.url}
+          href={doc.file_url}
           target="_blank"
           rel="noopener noreferrer"
           className="text-gray-400 group-hover:text-mieno-navy dark:group-hover:text-white transition-colors"
@@ -214,8 +214,8 @@ function LogItemView({ log, isLast, isAdmin, onEdit, onDelete }: LogItemViewProp
       )}
 
       {/* Timeline Dot */}
-      <div className={`absolute left-0 top-3 w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center border-2 border-white dark:border-black shadow-sm ${getColor(log.type)}`}>
-        {getIcon(log.type)}
+      <div className={`absolute left-0 top-3 w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center border-2 border-white dark:border-black shadow-sm ${getColor(log.log_type)}`}>
+        {getIcon(log.log_type)}
       </div>
 
       {/* Content */}
@@ -232,9 +232,16 @@ function LogItemView({ log, isLast, isAdmin, onEdit, onDelete }: LogItemViewProp
             <Calendar size={12} />
             {new Date(log.date).toLocaleDateString()}
           </span>
-          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full w-fit ${getColor(log.type)}`}>
-            {log.type}
-          </span>
+          <div className="flex gap-2">
+             {log.cost !== undefined && log.cost > 0 && (
+                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                   <DollarSign size={10} /> {log.cost.toLocaleString()}
+                </span>
+             )}
+             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full w-fit ${getColor(log.log_type)}`}>
+               {log.log_type}
+             </span>
+          </div>
         </div>
         <h4 className="font-bold text-mieno-navy dark:text-white mb-1">
           {log.title}
@@ -260,10 +267,18 @@ type Props = {
 export default function UnitDetailClient({ unit, isAdmin }: Props) {
   const [activeTab, setActiveTab] = useState<'specs' | 'docs' | 'logs'>('specs');
 
+  // Safe parsing of specs
+  const parseSpecs = (specsData: any): SpecItem[] => {
+     if (Array.isArray(specsData)) return specsData;
+     // If it's an object/map, potentially convert it or just return empty
+     // For now, assuming if it's not an array, we start fresh or show nothing
+     return [];
+  };
+
   // Edit Specs/Description State
   const [isEditing, setIsEditing] = useState(false);
   const [description, setDescription] = useState(unit.description || '');
-  const [specs, setSpecs] = useState<SpecItem[]>((unit.specs as unknown as SpecItem[]) || []);
+  const [specs, setSpecs] = useState<SpecItem[]>(parseSpecs(unit.specs));
 
   // Maintenance Log State
   const [isLogFormOpen, setIsLogFormOpen] = useState(false);
@@ -271,8 +286,9 @@ export default function UnitDetailClient({ unit, isAdmin }: Props) {
   const [logForm, setLogForm] = useState({
     date: new Date().toISOString().split('T')[0],
     title: '',
-    type: 'maintenance',
-    details: ''
+    log_type: 'maintenance',
+    details: '',
+    cost: 0
   });
 
   // Document Upload State
@@ -295,7 +311,7 @@ export default function UnitDetailClient({ unit, isAdmin }: Props) {
     try {
        await updateUnit(unit.id, {
          description,
-         specs: specs as unknown as Record<string, any>,
+         specs: specs as any, // Send as array, Postgres JSONB will handle it
          slug: unit.slug
        });
        setIsEditing(false);
@@ -349,8 +365,9 @@ export default function UnitDetailClient({ unit, isAdmin }: Props) {
     setLogForm({
       date: log.date,
       title: log.title,
-      type: log.type,
-      details: log.details
+      log_type: log.log_type,
+      details: log.details,
+      cost: log.cost || 0
     });
     setEditingLogId(log.id);
     setIsLogFormOpen(true);
@@ -360,8 +377,9 @@ export default function UnitDetailClient({ unit, isAdmin }: Props) {
     setLogForm({
       date: new Date().toISOString().split('T')[0],
       title: '',
-      type: 'maintenance',
-      details: ''
+      log_type: 'maintenance',
+      details: '',
+      cost: 0
     });
     setEditingLogId(null);
   };
@@ -387,19 +405,14 @@ export default function UnitDetailClient({ unit, isAdmin }: Props) {
         // 1. Upload to Storage
         const filePath = `units/${unit.slug}/${Date.now()}_${file.name}`;
         // Using 'mieno-images' bucket for now as it's known, but ideally should be 'documents'
-        // If it fails, user might need to create bucket.
-        // Assuming 'mieno-images' allows non-image files if public.
-        // Or if I can't guess, I'll try 'documents' first.
         let bucket = 'documents';
 
         // Try uploading to 'documents'
-        const { error: uploadError, data } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from(bucket)
           .upload(filePath, file);
 
         if (uploadError) {
-           // Fallback or error handling.
-           // If bucket doesn't exist, we might try 'mieno-images' or just fail.
            console.error('Upload failed to documents bucket, trying mieno-images', uploadError);
            bucket = 'mieno-images';
            const { error: uploadError2 } = await supabase.storage
@@ -418,9 +431,8 @@ export default function UnitDetailClient({ unit, isAdmin }: Props) {
         await addUnitDocument({
           unit_id: unit.id,
           title: file.name,
-          url: publicUrl,
-          file_type: file.name.split('.').pop()?.toUpperCase() || 'FILE',
-          file_size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
+          file_url: publicUrl,
+          document_type: file.name.split('.').pop()?.toUpperCase() || 'FILE',
         });
       }
     } catch (err) {
@@ -736,18 +748,30 @@ export default function UnitDetailClient({ unit, isAdmin }: Props) {
                                />
                             </div>
                          </div>
-                         <div>
-                            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Type</label>
-                            <select
-                               value={logForm.type}
-                               onChange={e => setLogForm({...logForm, type: e.target.value})}
-                               className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
-                            >
-                               <option value="maintenance">Maintenance</option>
-                               <option value="inspection">Inspection</option>
-                               <option value="upgrade">Upgrade</option>
-                               <option value="incident">Incident</option>
-                            </select>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Type</label>
+                                <select
+                                value={logForm.log_type}
+                                onChange={e => setLogForm({...logForm, log_type: e.target.value})}
+                                className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                >
+                                <option value="maintenance">Maintenance</option>
+                                <option value="inspection">Inspection</option>
+                                <option value="upgrade">Upgrade</option>
+                                <option value="incident">Incident</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Cost (Optional)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={logForm.cost}
+                                    onChange={e => setLogForm({...logForm, cost: parseInt(e.target.value) || 0})}
+                                    className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                />
+                            </div>
                          </div>
                          <div>
                             <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Details</label>

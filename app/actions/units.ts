@@ -57,10 +57,14 @@ export async function updateUnit(id: number, data: Partial<Unit>) {
     throw new Error('Unauthorized');
   }
 
+  // Remove keys not present in DB schema if they exist in partial
+  // (e.g., if UI sends 'docs' or 'logs' accidentally)
+  const { docs, logs, ...dbData } = data as any;
+
   // Perform update
   const { error } = await supabase
     .from('units')
-    .update(data)
+    .update(dbData)
     .eq('id', id);
 
   if (error) {
@@ -86,7 +90,14 @@ export async function addMaintenanceLog(log: Omit<MaintenanceLog, 'id' | 'create
 
   const { error } = await supabase
     .from('maintenance_logs')
-    .insert([log]);
+    .insert([{
+      unit_id: log.unit_id,
+      date: log.date,
+      title: log.title,
+      log_type: log.log_type, // Correct column name
+      details: log.details,
+      cost: log.cost || 0 // Correct column name
+    }]);
 
   if (error) {
     console.error('Error adding log:', error);
@@ -103,9 +114,17 @@ export async function updateMaintenanceLog(id: number, log: Partial<MaintenanceL
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) throw new Error('Unauthorized');
 
+  // Filter only valid columns
+  const updatePayload: any = {};
+  if (log.date) updatePayload.date = log.date;
+  if (log.title) updatePayload.title = log.title;
+  if (log.log_type) updatePayload.log_type = log.log_type;
+  if (log.details) updatePayload.details = log.details;
+  if (log.cost !== undefined) updatePayload.cost = log.cost;
+
   const { error } = await supabase
     .from('maintenance_logs')
-    .update(log)
+    .update(updatePayload)
     .eq('id', id);
 
   if (error) {
@@ -147,7 +166,12 @@ export async function addUnitDocument(doc: Omit<UnitDocument, 'id' | 'created_at
 
   const { error } = await supabase
     .from('unit_documents')
-    .insert([doc]);
+    .insert([{
+      unit_id: doc.unit_id,
+      title: doc.title,
+      file_url: doc.file_url, // Correct column name
+      document_type: doc.document_type // Correct column name
+    }]);
 
   if (error) {
     console.error('Error adding document:', error);

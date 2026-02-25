@@ -56,17 +56,18 @@ export interface Unit {
   maintenance_note: string;
   created_at?: string;
   // New fields
-  specs?: Record<string, any>;
+  specs?: any; // JSONB can be anything, default is {}
   description?: string;
+  image_url?: string; // Restored
 }
 
 export interface UnitDocument {
   id: number;
   unit_id: number;
   title: string;
-  url: string;
-  file_type: string;
-  file_size: string;
+  file_url: string; // Changed from url
+  document_type: string; // Changed from file_type
+  // file_size: string; // Removed as per schema
   created_at: string;
 }
 
@@ -75,7 +76,8 @@ export interface MaintenanceLog {
   unit_id: number;
   date: string;
   title: string;
-  type: 'maintenance' | 'inspection' | 'upgrade' | 'incident' | string;
+  log_type: string; // Changed from type
   details: string;
+  cost?: number; // Added
   created_at: string;
 }
