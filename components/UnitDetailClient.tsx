@@ -21,7 +21,8 @@ import {
   Trash2,
   UploadCloud,
   Loader2,
-  DollarSign
+  DollarSign,
+  Lock
 } from 'lucide-react';
 import {
   Radar,
@@ -704,110 +705,130 @@ export default function UnitDetailClient({ unit, isAdmin }: Props) {
 
             {activeTab === 'logs' && (
               <div className="space-y-6">
-                {isAdmin && (
-                   <div className="flex justify-end">
-                      <button
-                        onClick={() => { resetLogForm(); setIsLogFormOpen(true); }}
-                        className="flex items-center gap-2 px-4 py-2 bg-mieno-navy text-white rounded-lg shadow hover:bg-black transition-colors"
+                {!isAdmin ? (
+                   <div className="bg-white dark:bg-[#0a0a0a] rounded-2xl p-12 flex flex-col items-center justify-center text-center border border-gray-100 dark:border-white/10 shadow-sm">
+                      <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-6 text-gray-400">
+                         <Lock size={32} />
+                      </div>
+                      <h3 className="text-lg font-bold text-mieno-navy dark:text-white mb-2 max-w-md leading-relaxed">
+                         詳細な運用履歴・整備記録は、MIENO CORP. 役員（オーナー）のみ閲覧可能です。
+                      </h3>
+                      <p className="text-sm text-gray-500 mb-8">
+                         Restricted Access: Authorized Personnel Only
+                      </p>
+                      <Link
+                        href="/admin"
+                        className="px-6 py-2 bg-mieno-navy text-white rounded-lg text-sm font-bold shadow hover:bg-black transition-colors"
                       >
-                         <Plus size={16} /> Add Log Entry
-                      </button>
+                         Login to Console
+                      </Link>
                    </div>
-                )}
+                ) : (
+                  <>
+                    <div className="flex justify-end">
+                        <button
+                          onClick={() => { resetLogForm(); setIsLogFormOpen(true); }}
+                          className="flex items-center gap-2 px-4 py-2 bg-mieno-navy text-white rounded-lg shadow hover:bg-black transition-colors"
+                        >
+                          <Plus size={16} /> Add Log Entry
+                        </button>
+                    </div>
 
-                {/* Log Form Modal/Inline */}
-                {isLogFormOpen && (
-                   <motion.div
-                     initial={{ opacity: 0, y: -20 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     className="bg-white dark:bg-[#0a0a0a] p-6 rounded-2xl border border-gray-200 dark:border-white/20 shadow-xl mb-6"
-                   >
-                      <h4 className="font-bold text-lg mb-4 text-mieno-navy dark:text-white">
-                         {editingLogId ? 'Edit Log Entry' : 'New Log Entry'}
-                      </h4>
-                      <form onSubmit={handleLogSubmit} className="space-y-4">
-                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                               <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Date</label>
-                               <input
-                                 type="date"
-                                 value={logForm.date}
-                                 onChange={e => setLogForm({...logForm, date: e.target.value})}
-                                 className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
-                                 required
-                               />
-                            </div>
-                            <div className="md:col-span-2">
-                               <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Title</label>
-                               <input
-                                 type="text"
-                                 value={logForm.title}
-                                 onChange={e => setLogForm({...logForm, title: e.target.value})}
-                                 className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
-                                 required
-                               />
-                            </div>
-                         </div>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Type</label>
-                                <select
-                                value={logForm.log_type}
-                                onChange={e => setLogForm({...logForm, log_type: e.target.value})}
-                                className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
-                                >
-                                <option value="maintenance">Maintenance</option>
-                                <option value="inspection">Inspection</option>
-                                <option value="upgrade">Upgrade</option>
-                                <option value="incident">Incident</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Cost (Optional)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={logForm.cost}
-                                    onChange={e => setLogForm({...logForm, cost: parseInt(e.target.value) || 0})}
+                    {/* Log Form Modal/Inline */}
+                    {isLogFormOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white dark:bg-[#0a0a0a] p-6 rounded-2xl border border-gray-200 dark:border-white/20 shadow-xl mb-6"
+                      >
+                          <h4 className="font-bold text-lg mb-4 text-mieno-navy dark:text-white">
+                            {editingLogId ? 'Edit Log Entry' : 'New Log Entry'}
+                          </h4>
+                          <form onSubmit={handleLogSubmit} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                  <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Date</label>
+                                  <input
+                                    type="date"
+                                    value={logForm.date}
+                                    onChange={e => setLogForm({...logForm, date: e.target.value})}
                                     className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                    required
+                                  />
+                                </div>
+                                <div className="md:col-span-2">
+                                  <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Title</label>
+                                  <input
+                                    type="text"
+                                    value={logForm.title}
+                                    onChange={e => setLogForm({...logForm, title: e.target.value})}
+                                    className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                    required
+                                  />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Type</label>
+                                    <select
+                                    value={logForm.log_type}
+                                    onChange={e => setLogForm({...logForm, log_type: e.target.value})}
+                                    className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                    >
+                                    <option value="maintenance">Maintenance</option>
+                                    <option value="inspection">Inspection</option>
+                                    <option value="upgrade">Upgrade</option>
+                                    <option value="incident">Incident</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Cost (Optional)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={logForm.cost}
+                                        onChange={e => setLogForm({...logForm, cost: parseInt(e.target.value) || 0})}
+                                        className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Details</label>
+                                <textarea
+                                  value={logForm.details}
+                                  onChange={e => setLogForm({...logForm, details: e.target.value})}
+                                  className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 h-24"
+                                  required
                                 />
                             </div>
-                         </div>
-                         <div>
-                            <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Details</label>
-                            <textarea
-                               value={logForm.details}
-                               onChange={e => setLogForm({...logForm, details: e.target.value})}
-                               className="w-full p-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 h-24"
-                               required
-                            />
-                         </div>
-                         <div className="flex justify-end gap-2 pt-2">
-                            <button type="button" onClick={() => setIsLogFormOpen(false)} className="px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
-                            <button type="submit" className="px-6 py-2 bg-mieno-navy text-white rounded-lg hover:bg-black">Save Log</button>
-                         </div>
-                      </form>
-                   </motion.div>
-                )}
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button type="button" onClick={() => setIsLogFormOpen(false)} className="px-4 py-2 text-gray-500 hover:text-gray-700">Cancel</button>
+                                <button type="submit" className="px-6 py-2 bg-mieno-navy text-white rounded-lg hover:bg-black">Save Log</button>
+                            </div>
+                          </form>
+                      </motion.div>
+                    )}
 
-                <div className="bg-white dark:bg-[#0a0a0a] rounded-2xl p-6 md:p-8 border border-gray-100 dark:border-white/10">
-                  {unit.logs.map((log, index) => (
-                    <LogItemView
-                      key={index}
-                      log={log}
-                      isLast={index === unit.logs.length - 1}
-                      isAdmin={isAdmin}
-                      onEdit={handleEditLogClick}
-                      onDelete={handleDeleteLog}
-                    />
-                  ))}
-                  {unit.logs.length === 0 && (
-                    <div className="text-center py-12 text-gray-400">
-                      <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-                      <p>No maintenance logs recorded.</p>
+                    <div className="bg-white dark:bg-[#0a0a0a] rounded-2xl p-6 md:p-8 border border-gray-100 dark:border-white/10">
+                      {unit.logs.map((log, index) => (
+                        <LogItemView
+                          key={index}
+                          log={log}
+                          isLast={index === unit.logs.length - 1}
+                          isAdmin={isAdmin}
+                          onEdit={handleEditLogClick}
+                          onDelete={handleDeleteLog}
+                        />
+                      ))}
+                      {unit.logs.length === 0 && (
+                        <div className="text-center py-12 text-gray-400">
+                          <Calendar size={48} className="mx-auto mb-4 opacity-50" />
+                          <p>No maintenance logs recorded.</p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
             )}
           </motion.div>

@@ -30,20 +30,29 @@ export async function getUnitBySlug(slug: string) {
     console.error('Error fetching docs:', docsError);
   }
 
-  const { data: logs, error: logsError } = await supabase
-    .from('maintenance_logs')
-    .select('*')
-    .eq('unit_id', unit.id)
-    .order('date', { ascending: false });
+  // Fetch Logs safely (handle RLS errors gracefully)
+  let logs: MaintenanceLog[] = [];
+  try {
+    const { data, error: logsError } = await supabase
+      .from('maintenance_logs')
+      .select('*')
+      .eq('unit_id', unit.id)
+      .order('date', { ascending: false });
 
-  if (logsError) {
-    console.error('Error fetching logs:', logsError);
+    if (logsError) {
+      // Intentionally warn instead of error, as this is expected for guests via RLS
+      console.warn('Maintenance logs fetch failed (likely RLS restricted):', logsError.message);
+    } else if (data) {
+      logs = data;
+    }
+  } catch (err) {
+    console.error('Unexpected error fetching logs:', err);
   }
 
   return {
     ...unit,
     docs: docs || [],
-    logs: logs || [],
+    logs: logs,
   };
 }
 
