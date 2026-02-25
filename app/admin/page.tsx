@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Lock, LayoutDashboard, Wrench, FileText, Package,
   CheckCircle2, AlertCircle, ChevronRight, Gauge,
-  ClipboardList, Send, LogOut, Megaphone, Fingerprint, ScanFace
+  ClipboardList, Send, LogOut, Megaphone, Mail
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -601,9 +601,8 @@ export default function AdminPage() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
   const [loginId, setLoginId] = useState('');
-  const [loginPass, setLoginPass] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   // Easter Egg State
   const [showEasterEgg, setShowEasterEgg] = useState(false);
@@ -622,30 +621,25 @@ export default function AdminPage() {
     checkSession();
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleMagicLinkLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoggingIn(true);
+    if (!loginId) return;
 
+    setIsLoggingIn(true);
     try {
-      // Use email and password for auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginId.includes('@') ? loginId : `${loginId}@mieno.dev`, // Fallback for simple IDs
-        password: loginPass,
+      const { error } = await supabase.auth.signInWithOtp({
+        email: loginId,
+        options: {
+          emailRedirectTo: `${window.location.origin}/admin`,
+        },
       });
 
       if (error) {
         throw error;
       }
 
-      showToast('認証成功', 'success');
-      router.refresh();
-
-      if (data.user) {
-         setIsAuthenticated(true);
-         const emailPrefix = data.user.email?.split('@')[0].toLowerCase() || 'cto';
-         const profile = USERS[emailPrefix] || USERS['cto'];
-         setCurrentUser(profile);
-      }
+      setMagicLinkSent(true);
+      showToast('認証メールを送信しました。メールを確認してください。', 'success');
 
     } catch (err: unknown) {
       console.error(err);
@@ -656,60 +650,12 @@ export default function AdminPage() {
     }
   };
 
-  const handlePasskeyLogin = async () => {
-    setIsPasskeyLoading(true);
-    try {
-      const options = loginId
-        ? { email: loginId.includes('@') ? loginId : `${loginId}@mieno.dev` }
-        : undefined;
-
-      // Cast to any because the current type definitions might be outdated or missing this method
-      const { data, error } = await (supabase.auth as any).signInWithWebAuthn(options);
-
-      if (error) throw error;
-
-      if (data.session) {
-        showToast('生体認証成功', 'success');
-        router.refresh();
-        const { user } = data.session;
-        if (user) {
-          setIsAuthenticated(true);
-          const emailPrefix = user.email?.split('@')[0].toLowerCase() || 'cto';
-          const profile = USERS[emailPrefix] || USERS['cto'];
-          setCurrentUser(profile);
-        }
-      }
-    } catch (err: unknown) {
-      console.error(err);
-      const message = err instanceof Error ? err.message : 'Passkey login failed';
-      showToast(message, 'error');
-    } finally {
-      setIsPasskeyLoading(false);
-    }
-  };
-
-  const handleRegisterDevice = async () => {
-    try {
-      const { error } = await supabase.auth.mfa.enroll({
-        factorType: 'webauthn',
-      });
-
-      if (error) throw error;
-
-      showToast('このデバイスを認証キーとして登録しました', 'success');
-    } catch (err: unknown) {
-      console.error(err);
-      const message = err instanceof Error ? err.message : 'Registration failed';
-      showToast('登録エラー: ' + message, 'error');
-    }
-  };
-
   const handleLogout = async () => {
       await supabase.auth.signOut();
       setIsAuthenticated(false);
       setCurrentUser(null);
       setLoginId('');
-      setLoginPass('');
+      setMagicLinkSent(false);
       router.refresh();
       showToast('ログアウトしました', 'success');
   };
@@ -737,89 +683,69 @@ export default function AdminPage() {
             <p className="text-gray-400 text-xs font-bold tracking-[0.2em] mt-2 uppercase">Member Dashboard</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            {/* Primary Action: Passkey */}
-            <motion.button
-              type="button"
-              onClick={handlePasskeyLogin}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              disabled={isLoggingIn || isPasskeyLoading}
-              className="w-full bg-gradient-to-r from-gray-900 to-gray-800 text-white border border-gray-700/50 font-bold py-5 rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-3 group relative overflow-hidden"
-            >
-              {isPasskeyLoading ? (
-                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <div className="p-2 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors">
-                    <ScanFace className="w-6 h-6 text-blue-400 group-hover:text-blue-300 transition-colors" />
-                  </div>
-                  <div className="flex flex-col items-start leading-none">
-                    <span className="text-lg">生体認証でアクセス</span>
-                    <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest mt-1">Passkeys / Biometric</span>
-                  </div>
-                </>
-              )}
-            </motion.button>
+          <form onSubmit={handleMagicLinkLogin} className="space-y-5">
 
-            <div className="relative my-8">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white/80 text-gray-400 font-bold text-[10px] tracking-widest uppercase backdrop-blur-sm rounded-full">Or verify with credentials</span>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-                <label className="ml-4 flex items-baseline gap-2">
-                  <span className="text-sm font-bold text-gray-700">メールアドレス</span>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">EMAIL / ID</span>
-                </label>
-                <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        type="text"
-                        value={loginId}
-                        onChange={(e) => setLoginId(e.target.value)}
-                        className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl py-4 pl-12 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-100 transition-all font-medium"
-                        placeholder="email@mieno.dev"
-                        autoCapitalize='none'
-                    />
+            {magicLinkSent ? (
+                <div className="text-center py-8">
+                    <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                        <Mail className="w-6 h-6 text-green-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">メールを確認してください</h3>
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                        認証用のリンクを送信しました。<br />
+                        メール内のリンクをクリックして<br />ログインを完了してください。
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => setMagicLinkSent(false)}
+                        className="mt-6 text-sm text-blue-500 font-bold hover:underline"
+                    >
+                        メールアドレスを再入力する
+                    </button>
                 </div>
-            </div>
-
-            <div className="space-y-1">
-                <label className="ml-4 flex items-baseline gap-2">
-                  <span className="text-sm font-bold text-gray-700">パスワード</span>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">PASSWORD</span>
-                </label>
-                <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        type="password"
-                        value={loginPass}
-                        onChange={(e) => setLoginPass(e.target.value)}
-                        className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl py-4 pl-12 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-100 transition-all font-medium"
-                        placeholder="••••••••"
-                    />
-                </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoggingIn || isPasskeyLoading}
-              className="w-full bg-gray-100 text-gray-600 font-bold py-4 rounded-2xl hover:bg-gray-200 hover:text-gray-900 transition-all mt-4 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait"
-            >
-              {isLoggingIn ? (
-                <div className="w-5 h-5 border-2 border-gray-400 border-t-gray-600 rounded-full animate-spin" />
-              ) : (
+            ) : (
                 <>
-                  <span>パスワードで認証</span>
-                  <span className="text-[10px] opacity-70 tracking-wider uppercase">Password Auth</span>
+                    <div className="space-y-1">
+                        <label className="ml-4 flex items-baseline gap-2">
+                        <span className="text-sm font-bold text-gray-700">メールアドレス</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">EMAIL</span>
+                        </label>
+                        <div className="relative">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input
+                                type="text"
+                                value={loginId}
+                                onChange={(e) => setLoginId(e.target.value)}
+                                className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl py-4 pl-12 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-100 transition-all font-medium"
+                                placeholder="email@mieno.dev"
+                                autoCapitalize='none'
+                                disabled={isLoggingIn}
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isLoggingIn || !loginId}
+                        className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-black transition-all mt-4 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
+                    >
+                    {isLoggingIn ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                        <>
+                        <div className="p-1 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors">
+                            <Send className="w-5 h-5" />
+                        </div>
+                        <div className="flex flex-col items-start leading-none">
+                            <span className="text-base">マジックリンクを送信</span>
+                            <span className="text-[9px] font-medium text-gray-400 uppercase tracking-widest mt-0.5">Send Magic Link</span>
+                        </div>
+                        </>
+                    )}
+                    </button>
                 </>
-              )}
-            </button>
+            )}
+
           </form>
 
           <p className="text-center mt-8 font-medium text-gray-400">
@@ -863,13 +789,6 @@ export default function AdminPage() {
             <p className="text-[10px] font-bold text-gray-400 tracking-widest mt-1 uppercase">Member Dashboard</p>
         </div>
         <div className="flex items-center gap-3">
-            <button
-                onClick={handleRegisterDevice}
-                className="p-2 bg-white rounded-full shadow-sm text-blue-500 hover:text-blue-600 hover:shadow-md transition-all active:scale-95"
-                title="このデバイスをPasskeyとして登録"
-            >
-                <Fingerprint size={18} />
-            </button>
             <button onClick={handleLogout} className="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-red-500 hover:shadow-md transition-all active:scale-95">
                 <LogOut size={18} />
             </button>
