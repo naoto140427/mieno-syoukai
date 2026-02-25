@@ -1,0 +1,22 @@
+{
+  "name": "MIENO CORP. 統合戦略システム",
+  "short_name": "MIENO",
+  "description": "株式会社三重野商会 役員用モビリティ＆兵站管理システム",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
