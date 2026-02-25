@@ -31,6 +31,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "株式会社三重野商会 | MIENO CORP.",
     description: "変革の風を、二輪で切り裂く。戦略的モビリティ・カンパニー。",
+    manifest: '/manifest.json',
     images: ["https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=1200&h=630&auto=format&fit=crop"],
   },
 };
