@@ -5,6 +5,11 @@ export interface Consumable {
   max_capacity: number;
   unit: string;
   color: string;
+  // New fields
+  type?: string;
+  quantity?: number;
+  threshold?: number;
+  updated_at?: string;
 }
 
 export interface Tool {
@@ -14,6 +19,9 @@ export interface Tool {
   qty: number;
   status: "Available" | "In Use" | "Maintenance" | "Missing";
   location: string;
+  // New fields
+  assigned_to?: string | null;
+  updated_at?: string;
 }
 
 export interface Archive {
