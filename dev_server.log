@@ -15,9 +15,10 @@ You can learn more, including how to opt-out if you'd not like to participate in
 https://nextjs.org/telemetry
 
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 6.2s
+✓ Ready in 6s
 ○ Compiling /units/[slug] ...
- GET /units/serena-luxion 200 in 14.2s (compile: 12.3s, proxy.ts: 406ms, render: 1501ms)
-(node:3290) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+ GET /units/cbr600rr 200 in 12.6s (compile: 10.8s, proxy.ts: 224ms, render: 1495ms)
+(node:11661) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
- GET /units/serena-luxion 200 in 302ms (compile: 89ms, proxy.ts: 14ms, render: 199ms)
+ GET /units/cbr600rr 200 in 686ms (compile: 245ms, proxy.ts: 15ms, render: 427ms)
+✓ Compiled in 68ms

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useOptimistic, startTransition } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -18,10 +18,15 @@ import {
   Database,
   Edit2,
   Save,
-  X
+  X,
+  Loader2,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Unit } from '@/types/database';
-import { updateUnit } from '@/app/actions/units';
+import { updateUnit, addMaintenanceLog, deleteMaintenanceLog } from '@/app/actions/units';
 import { notFound } from 'next/navigation';
 
 // --- Types ---
@@ -45,6 +50,8 @@ type LogItem = {
   title: string;
   type: 'maintenance' | 'inspection' | 'upgrade' | 'incident';
   details: string;
+  cost?: number;
+  id?: number;
 };
 
 type UnitData = {
@@ -217,7 +224,7 @@ const UNITS: Record<string, UnitData> = {
       { title: 'HRC_Kit_Parts_List.pdf', type: 'PDF', size: '2.4 MB', date: '2021.02.10' },
     ],
     logs: [
-      { date: '2024.11.20', title: 'オイル交換 (G3)', type: 'maintenance', details: 'サーキット走行前メンテナンス。Honda Ultra G3使用。' },
+      { date: '2024.11.20', id: 1, title: 'オイル交換 (G3)', type: 'maintenance', details: 'サーキット走行前メンテナンス。Honda Ultra G3使用。' },
       { date: '2024.06.12', title: '12ヶ月点検', type: 'inspection', details: 'ドリーム店にて実施。消耗品チェック。' },
     ]
   },
@@ -339,7 +346,7 @@ function DocCard({ doc }: { doc: DocItem }) {
   );
 }
 
-function LogItemView({ log, isLast }: { log: LogItem; isLast: boolean }) {
+function LogItemView({ log, isLast, isAdmin, onDelete }: { log: LogItem; isLast: boolean; isAdmin: boolean; onDelete: (log: LogItem) => void }) {
   const getIcon = (type: LogItem['type']) => {
     switch(type) {
       case 'maintenance': return <Wrench size={16} />;
@@ -359,15 +366,24 @@ function LogItemView({ log, isLast }: { log: LogItem; isLast: boolean }) {
   };
 
   return (
-    <div className="relative pl-8 md:pl-10 py-2">
+    <div className="relative pl-8 md:pl-10 py-2 group">
       {!isLast && (
         <div className="absolute left-[11px] md:left-[13px] top-8 bottom-0 w-[2px] bg-gray-200 dark:bg-white/10" />
       )}
       <div className={`absolute left-0 top-3 w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center border-2 border-white dark:border-black shadow-sm ${getColor(log.type)}`}>
         {getIcon(log.type)}
       </div>
-      <div className="bg-white dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/10 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-1">
+      <div className="bg-white dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/10 shadow-sm relative">
+        {isAdmin && log.id && (
+          <button
+            onClick={() => onDelete(log)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 z-10"
+            title="Delete Log"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-1 pr-8">
           <span className="text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1">
             <Calendar size={12} />
             {log.date}
@@ -382,6 +398,11 @@ function LogItemView({ log, isLast }: { log: LogItem; isLast: boolean }) {
         <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
           {log.details}
         </p>
+        {log.cost !== undefined && log.cost > 0 && (
+          <div className="mt-2 flex items-center gap-1 text-xs font-mono text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-white/5 pt-2">
+            <span className="font-bold">COST:</span> ¥{Number(log.cost).toLocaleString()}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -422,6 +443,14 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
   const [activeTab, setActiveTab] = useState<'specs' | 'docs' | 'logs'>('specs');
   const [isEditing, setIsEditing] = useState(false);
   const [description, setDescription] = useState(unit.description);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    type: 'maintenance',
+    description: '',
+    cost: ''
+  });
 
   const themeClasses = getThemeClasses(unit.themeColor);
 
@@ -447,6 +476,46 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
   const handleCancel = () => {
     setDescription(unit.description);
     setIsEditing(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!unit.id || typeof unit.id !== 'number') return;
+
+    startTransition(async () => {
+      try {
+        await addMaintenanceLog(unit.id as number, {
+          date: formData.date,
+          type: formData.type,
+          description: formData.description,
+          cost: Number(formData.cost) || 0
+        });
+        setIsFormOpen(false);
+        setFormData({
+          date: new Date().toISOString().split('T')[0],
+          type: 'maintenance',
+          description: '',
+          cost: ''
+        });
+      } catch (error) {
+        console.error(error);
+        alert('Failed to add log');
+      }
+    });
+  };
+
+  const handleDeleteLog = (log: LogItem) => {
+    if (!log.id || !isAdmin) return;
+    if (!confirm('Are you sure you want to delete this log?')) return;
+
+    startTransition(async () => {
+      try {
+        await deleteMaintenanceLog(log.id as number);
+      } catch (error) {
+        console.error(error);
+        alert('Failed to delete log');
+      }
+    });
   };
 
   return (
@@ -614,13 +683,106 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
               </div>
             )}
 
-            {activeTab === 'logs' && (
+            {activeTab === 'logs' && (<>
+            {isAdmin && (
+              <div className="mb-6">
+                <button
+                  onClick={() => setIsFormOpen(!isFormOpen)}
+                  className="flex items-center gap-2 px-4 py-2 bg-mieno-navy text-white rounded-lg text-sm font-bold tracking-wider uppercase hover:bg-opacity-90 transition-colors"
+                >
+                  <Plus size={16} />
+                  Add Record
+                  {isFormOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                <AnimatePresence>
+                  {isFormOpen && (
+                    <motion.form
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      onSubmit={handleSubmit}
+                      className="overflow-hidden mt-4 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-xl p-6"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                            日付 DATE
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            value={formData.date}
+                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                            className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                            タイプ TYPE
+                          </label>
+                          <select
+                            required
+                            value={formData.type}
+                            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                            className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-sm"
+                          >
+                            <option value="maintenance">Maintenance</option>
+                            <option value="inspection">Inspection</option>
+                            <option value="upgrade">Upgrade</option>
+                            <option value="incident">Incident</option>
+                          </select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                            内容 DESCRIPTION
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-sm"
+                            placeholder="Details of the operation..."
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                            費用 COST (¥)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.cost}
+                            onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                            className="w-full p-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-sm"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          disabled={isPending}
+                          className="flex items-center gap-2 px-6 py-2 bg-mieno-navy text-white rounded-lg text-sm font-bold tracking-wider uppercase hover:bg-opacity-90 transition-colors disabled:opacity-50"
+                        >
+                          {isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                          Save Record
+                        </button>
+                      </div>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
               <div className="bg-white dark:bg-[#0a0a0a] rounded-2xl p-6 md:p-8 border border-gray-100 dark:border-white/10">
                 {unit.logs.map((log, index) => (
                   <LogItemView
                     key={index}
                     log={log}
                     isLast={index === unit.logs.length - 1}
+                    isAdmin={isAdmin}
+                    onDelete={handleDeleteLog}
                   />
                 ))}
                 {unit.logs.length === 0 && (
@@ -630,7 +792,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
                   </div>
                 )}
               </div>
-            )}
+            </>)}
           </motion.div>
         </AnimatePresence>
 
