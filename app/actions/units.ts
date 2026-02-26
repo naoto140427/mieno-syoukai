@@ -24,10 +24,9 @@ export async function getUnitBySlug(slug: string): Promise<Unit | null> {
     }
 
     // Process the data to ensure arrays and default values
-    // Note: data.docs and data.logs come from the query aliases
     const processedUnit: Unit = {
       ...data,
-      specs: data.specs || {},
+      specs: Array.isArray(data.specs) ? data.specs : [], // Ensure specs is an array
       docs: Array.isArray(data.docs)
         ? data.docs.map((doc: any) => ({
             ...doc,

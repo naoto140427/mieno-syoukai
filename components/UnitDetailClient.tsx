@@ -202,7 +202,7 @@ const UNITS: Record<string, UnitData> = {
     slug: 'cbr600rr',
     name: { jp: 'CBR600RR (2020)', en: 'SPEED & AGILITY' },
     role: { jp: '末森 知輝 CMO', en: 'CHIEF MARKETING OFFICER' },
-    description: '600ccの高回転型バリュー・エンジン。圧倒的なポテンシャルを誇るメイン機体。サーキットからワインディングまで、あらゆるステージでその真価を発揮する。',
+    description: '600ccの高回転型バリュー・エンジン。圧倒的なポテンシャルを誇るメイン機体。サーキットからワインディングまで、あらゆるフィールドを制圧する。',
     themeColor: 'red',
     specs: [
       { label: 'Engine Type', value: 'Liquid-Cooled 4-Stroke DOHC Inline-4', progress: 95, icon: <Zap size={16} /> },
@@ -404,7 +404,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
     ...initialUnit,
     // Ensure nested objects are handled if DB has them, otherwise fallback to mock
     // Note: 'specs' in DB is JSONB, which matches UnitData.specs structure if valid
-    specs: (initialUnit?.specs as SpecItem[]) || mockUnit?.specs || [],
+    specs: (Array.isArray(initialUnit?.specs) ? initialUnit?.specs : []) as SpecItem[],
     // Description: DB takes precedence
     description: initialUnit?.description || mockUnit?.description || '',
     // ID: Use DB ID if available (number), else Mock ID (string)
@@ -416,11 +416,12 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
     return null;
   }
 
+  // Ensure specs is an array before using
+  const safeSpecs = Array.isArray(unit.specs) ? unit.specs : [];
+
   const [activeTab, setActiveTab] = useState<'specs' | 'docs' | 'logs'>('specs');
   const [isEditing, setIsEditing] = useState(false);
   const [description, setDescription] = useState(unit.description);
-
-  // Optimistic update logic could go here, but local state + revalidation is sufficient for single field
 
   const themeClasses = getThemeClasses(unit.themeColor);
 
@@ -593,7 +594,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
           >
             {activeTab === 'specs' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {unit.specs.map((spec, index) => (
+                {safeSpecs.map((spec, index) => (
                   <SpecCard key={index} spec={spec} color={unit.themeColor} />
                 ))}
               </div>
