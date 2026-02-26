@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, Edit2, Trash2, Upload, Activity, Loader2, MapPin } from "lucide-react";
+import { Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, Edit2, Trash2, Upload, Activity, Loader2, MapPin, Zap, Mountain } from "lucide-react";
 import { Archive } from "@/types/database";
 import { addArchive, updateArchive, deleteArchive } from "@/app/actions/archives";
 import { parseGPX } from "@/lib/gpx/parser";
 import { getLocationName } from "@/lib/gpx/geocoding";
+// @ts-expect-error react-map-gl/mapbox types mismatch in v8
+import Map, { Source, Layer, LineLayer } from 'react-map-gl/mapbox';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 const WeatherIcon = ({ condition }: { condition: string }) => {
   switch (condition) {
@@ -16,6 +19,20 @@ const WeatherIcon = ({ condition }: { condition: string }) => {
     case "Snow": return <Cloud className="w-4 h-4 text-sky-300" />;
     default: return <Sun className="w-4 h-4 text-amber-500" />;
   }
+};
+
+const routeLayerStyle: LineLayer = {
+    id: 'route-line',
+    type: 'line',
+    layout: {
+      'line-join': 'round',
+      'line-cap': 'round'
+    },
+    paint: {
+      'line-color': '#06b6d4', // cyan-500
+      'line-width': 3,
+      'line-opacity': 0.8
+    }
 };
 
 interface ArchivesProps {
@@ -29,6 +46,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisStatus, setAnalysisStatus] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   // Form State
   const [formData, setFormData] = useState<Partial<Archive>>({
@@ -104,10 +122,9 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
 
           // 2. Geocode
           let locationName = "Unknown Territory";
-          const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-          if (token) {
+          if (mapboxToken) {
              try {
-                 const name = await getLocationName(parsed.centerPoint[0], parsed.centerPoint[1], token);
+                 const name = await getLocationName(parsed.centerPoint[0], parsed.centerPoint[1], mapboxToken);
                  if (name) locationName = name;
              } catch (geoError) {
                  console.warn("Geocoding failed", geoError);
@@ -144,7 +161,6 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
 
           setAnalysisStatus("Tactical data uplink complete.");
 
-          // Clear status after delay
           setTimeout(() => {
               setAnalyzing(false);
               setAnalysisStatus("");
@@ -244,7 +260,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                     </div>
                 )}
 
-                {/* GPX Upload Area (Full Width) */}
+                {/* GPX Upload Area */}
                 <div className="col-span-1 md:col-span-2">
                     <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-300 flex flex-col items-center justify-center gap-3 ${analyzing ? 'border-blue-400 bg-blue-50/50' : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
                         <input
@@ -340,7 +356,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                       </div>
                   </div>
 
-                  {/* Tactical Data Read-only Display (if available) */}
+                  {/* Tactical Data Read-only Display */}
                   {(formData.max_speed || 0) > 0 && (
                       <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
                           <div>
@@ -410,7 +426,20 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                     <p className="text-sm font-medium">No archives found.</p>
                 </div>
             ) : (
-                archives.map((archive, index) => (
+                archives.map((archive, index) => {
+                    // Check if we have valid route data for Mapbox
+                    const hasRoute = archive.route_data && Array.isArray(archive.route_data) && archive.route_data.length > 0;
+
+                    // Create GeoJSON structure from route_data (which is just coordinate array)
+                    const geoJsonData: any = hasRoute ? {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: archive.route_data
+                        }
+                    } : null;
+
+                    return (
                     <motion.div
                     key={archive.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -420,27 +449,52 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                     >
                     <div className="flex flex-col lg:flex-row h-full">
 
-                        {/* Map Placeholder Area */}
-                        <div className="w-full lg:w-1/3 h-64 lg:h-auto bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-100 relative flex items-center justify-center group-hover:bg-gray-50 transition-colors">
-                            <div className="text-gray-300 flex flex-col items-center gap-2">
-                                <div className="w-12 h-12 rounded-full bg-gray-200/50 flex items-center justify-center">
-                                    <Cloud className="w-6 h-6 text-gray-400" />
+                        {/* Map Visualization Area */}
+                        <div className="w-full lg:w-1/3 h-64 lg:h-auto bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-100 relative overflow-hidden">
+                            {mapboxToken && hasRoute ? (
+                                <div className="absolute inset-0 grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700">
+                                    <Map
+                                        mapboxAccessToken={mapboxToken}
+                                        initialViewState={{
+                                            longitude: archive.route_data[0][0],
+                                            latitude: archive.route_data[0][1],
+                                            zoom: 11
+                                        }}
+                                        style={{width: '100%', height: '100%'}}
+                                        mapStyle="mapbox://styles/mapbox/dark-v11"
+                                        scrollZoom={false}
+                                        attributionControl={false}
+                                        reuseMaps
+                                    >
+                                        <Source id={`route-${archive.id}`} type="geojson" data={geoJsonData}>
+                                            <Layer {...routeLayerStyle} />
+                                        </Source>
+                                    </Map>
                                 </div>
-                                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Map View</span>
-                                {archive.location_name && (
-                                    <div className="mt-2 flex items-center gap-1 text-gray-400 px-3 py-1 bg-white border border-gray-100 rounded-full shadow-sm">
-                                        <MapPin className="w-3 h-3" />
-                                        <span className="text-[10px] font-bold uppercase">{archive.location_name}</span>
+                            ) : (
+                                // Fallback / No Token / No Route
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 gap-2">
+                                    <div className="w-12 h-12 rounded-full bg-gray-200/50 flex items-center justify-center">
+                                        <Cloud className="w-6 h-6 text-gray-400" />
                                     </div>
-                                )}
-                            </div>
+                                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Map View</span>
+                                </div>
+                            )}
+
+                            {/* Location Badge Overlay */}
+                            {archive.location_name && (
+                                <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-full shadow-sm">
+                                    <MapPin className="w-3 h-3 text-red-500" />
+                                    <span className="text-[10px] font-bold uppercase text-gray-700 tracking-wide">{archive.location_name}</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Content Area */}
                         <div className="flex-1 p-6 md:p-8 flex flex-col justify-between relative bg-white">
                             {/* Admin Actions */}
                             {isAdmin && (
-                                <div className="absolute top-6 right-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute top-6 right-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                                     <button
                                         onClick={() => handleEditClick(archive)}
                                         className="p-2 bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
@@ -483,6 +537,21 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                                 <Gauge className="w-3.5 h-3.5 text-gray-400" />
                                 <span className="text-xs text-gray-600 font-medium">{archive.distance}</span>
                                 </div>
+
+                                {(archive.max_speed || 0) > 0 && (
+                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
+                                        <Zap className="w-3.5 h-3.5 text-amber-500" />
+                                        <span className="text-xs text-gray-600 font-medium">{archive.max_speed?.toFixed(0)} km/h</span>
+                                    </div>
+                                )}
+
+                                {(archive.max_elevation || 0) > 0 && (
+                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
+                                        <Mountain className="w-3.5 h-3.5 text-blue-400" />
+                                        <span className="text-xs text-gray-600 font-medium">{archive.max_elevation?.toFixed(0)} m</span>
+                                    </div>
+                                )}
+
                                 <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
                                 <Users className="w-3.5 h-3.5 text-gray-400" />
                                 <span className="text-xs text-gray-600 font-medium">{archive.members} members</span>
@@ -491,17 +560,11 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                                 <WeatherIcon condition={archive.weather} />
                                 <span className="text-xs text-gray-600 font-medium">{archive.weather}</span>
                                 </div>
-                                {archive.max_speed && (
-                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full">
-                                        <Activity className="w-3.5 h-3.5 text-blue-400" />
-                                        <span className="text-xs text-blue-600 font-medium">{archive.max_speed.toFixed(1)} km/h</span>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
                     </motion.div>
-                ))
+                )})
             )}
         </div>
       </div>
