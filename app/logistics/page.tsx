@@ -1,8 +1,5 @@
 import Logistics from "@/components/Logistics";
-import LogisticsClient from "@/components/LogisticsClient";
 import { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
-import { getConsumables, getTools } from "@/app/actions/logistics";
 
 export const metadata: Metadata = {
   title: "Logistics (広域兵站・作戦経路)",
@@ -14,26 +11,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function LogisticsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const isAdmin = !!user;
-
-  const [consumables, tools] = await Promise.all([
-    getConsumables(),
-    getTools()
-  ]);
-
+export default function LogisticsPage() {
   return (
     <div className="bg-black min-h-screen">
       <Logistics />
-      <section id="inventory" className="relative z-10 bg-mieno-gray py-24">
-         <LogisticsClient
-            consumables={consumables}
-            tools={tools}
-            isAdmin={isAdmin}
-         />
-      </section>
     </div>
   );
 }
