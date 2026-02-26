@@ -13,6 +13,7 @@ const footerNavigation = {
   company: [
     { name: "組織沿革", href: "/history" },
     { name: "ニュース", href: "/" },
+    { name: "Doctrine (CEO Message)", href: "/doctrine" },
   ],
   legal: [
     { name: "プライバシーポリシー", href: "/legal/privacy" },
