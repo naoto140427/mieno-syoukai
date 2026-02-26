@@ -1,8 +1,8 @@
 import Logistics from "@/components/Logistics";
-import Inventory from "@/components/Inventory";
+import LogisticsClient from "@/components/LogisticsClient";
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { Consumable, Tool } from "@/types/database";
+import { getConsumables, getTools } from "@/app/actions/logistics";
 
 export const metadata: Metadata = {
   title: "Logistics (広域兵站・作戦経路)",
@@ -19,19 +19,16 @@ export default async function LogisticsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   const isAdmin = !!user;
 
-  const [consumablesRes, toolsRes] = await Promise.all([
-    supabase.from('consumables').select('*').order('id', { ascending: true }),
-    supabase.from('tools').select('*').order('id', { ascending: true })
+  const [consumables, tools] = await Promise.all([
+    getConsumables(),
+    getTools()
   ]);
-
-  const consumables = (consumablesRes.data as Consumable[]) || [];
-  const tools = (toolsRes.data as Tool[]) || [];
 
   return (
     <div className="bg-black min-h-screen">
       <Logistics />
       <section id="inventory" className="relative z-10 bg-mieno-gray py-24">
-         <Inventory
+         <LogisticsClient
             consumables={consumables}
             tools={tools}
             isAdmin={isAdmin}
