@@ -61,6 +61,7 @@ export interface MaintenanceLog {
   title: string;
   type: 'maintenance' | 'inspection' | 'upgrade' | 'incident';
   details: string;
+  cost?: number;
 }
 
 export interface Unit {
