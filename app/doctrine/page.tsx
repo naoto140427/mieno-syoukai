@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -128,10 +129,22 @@ export default function DoctrinePage() {
                 さあ、ヘルメットのシールドを下ろせ。あなたも、この美しく狂ったエコシステムへようこそ。
             </p>
 
-            <div className="mt-16 text-right">
-                <p className="text-sm font-bold tracking-widest text-gray-400 uppercase">
-                    MIENO CORP. Chief Executive Officer
-                </p>
+            <div className="mt-20 flex flex-col md:flex-row items-center justify-end gap-6 text-center md:text-left">
+                <Image
+                    src="/ceo.jpg"
+                    alt="Mieno CEO"
+                    width={96}
+                    height={96}
+                    className="rounded-2xl shadow-md object-cover w-24 h-24"
+                />
+                <div>
+                    <p className="text-xl font-bold tracking-tight text-gray-900">
+                        三重野 (Mieno)
+                    </p>
+                    <p className="text-sm font-medium text-gray-500 mt-1">
+                        Chief Executive Officer / 最高司令官
+                    </p>
+                </div>
             </div>
         </motion.div>
 

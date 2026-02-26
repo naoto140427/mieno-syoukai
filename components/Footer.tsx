@@ -13,7 +13,7 @@ const footerNavigation = {
   company: [
     { name: "組織沿革", href: "/history" },
     { name: "ニュース", href: "/" },
-    { name: "Doctrine (CEO Message)", href: "/doctrine" },
+    { name: "基本理念 (CEO Message)", href: "/doctrine" },
   ],
   legal: [
     { name: "プライバシーポリシー", href: "/legal/privacy" },
@@ -39,7 +39,7 @@ export default function Footer() {
           <div className="grid grid-cols-2 gap-8 xl:col-span-2">
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
-                <h3 className="text-sm font-semibold leading-6 text-mieno-text">Solutions</h3>
+                <h3 className="text-sm font-semibold leading-6 text-mieno-text">事業概要</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   {footerNavigation.solutions.map((item) => (
                     <li key={item.name}>
@@ -51,7 +51,7 @@ export default function Footer() {
                 </ul>
               </div>
               <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-semibold leading-6 text-mieno-text">Support</h3>
+                <h3 className="text-sm font-semibold leading-6 text-mieno-text">情報公開</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   {footerNavigation.support.map((item) => (
                     <li key={item.name}>
@@ -65,7 +65,7 @@ export default function Footer() {
             </div>
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
-                <h3 className="text-sm font-semibold leading-6 text-mieno-text">Company</h3>
+                <h3 className="text-sm font-semibold leading-6 text-mieno-text">企業情報</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   {footerNavigation.company.map((item) => (
                     <li key={item.name}>
@@ -77,7 +77,7 @@ export default function Footer() {
                 </ul>
               </div>
               <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-semibold leading-6 text-mieno-text">Legal</h3>
+                <h3 className="text-sm font-semibold leading-6 text-mieno-text">法的情報</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   {footerNavigation.legal.map((item) => (
                     <li key={item.name}>

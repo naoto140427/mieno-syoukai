@@ -21,3 +21,7 @@ https://nextjs.org/telemetry
 (node:3370) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
  GET / 200 in 2.8s (compile: 2.4s, proxy.ts: 20ms, render: 387ms)
+✓ Compiled in 3.8s
+✓ Compiled in 159ms
+ GET /doctrine 200 in 5.4s (compile: 2.7s, proxy.ts: 218ms, render: 2.5s)
+ GET / 200 in 1091ms (compile: 455ms, proxy.ts: 8ms, render: 628ms)
