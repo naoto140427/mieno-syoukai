@@ -15,10 +15,13 @@ You can learn more, including how to opt-out if you'd not like to participate in
 https://nextjs.org/telemetry
 
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 6s
-○ Compiling /units/[slug] ...
- GET /units/cbr600rr 200 in 12.6s (compile: 10.8s, proxy.ts: 224ms, render: 1495ms)
-(node:11661) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+✓ Ready in 6.6s
+○ Compiling /doctrine ...
+ GET /doctrine 200 in 11.0s (compile: 9.6s, proxy.ts: 297ms, render: 1065ms)
+(node:3370) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
- GET /units/cbr600rr 200 in 686ms (compile: 245ms, proxy.ts: 15ms, render: 427ms)
-✓ Compiled in 68ms
+ GET / 200 in 2.8s (compile: 2.4s, proxy.ts: 20ms, render: 387ms)
+✓ Compiled in 3.8s
+✓ Compiled in 159ms
+ GET /doctrine 200 in 5.4s (compile: 2.7s, proxy.ts: 218ms, render: 2.5s)
+ GET / 200 in 1091ms (compile: 455ms, proxy.ts: 8ms, render: 628ms)
