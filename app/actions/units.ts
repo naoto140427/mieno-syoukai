@@ -11,17 +11,34 @@ export async function getUnitBySlug(slug: string): Promise<Unit | null> {
   try {
     const { data, error } = await supabase
       .from('units')
-      .select('*')
+      .select(`
+        *,
+        docs:unit_documents(id, title, type:document_type, date:created_at, url:file_url),
+        logs:maintenance_logs(id, title, type:log_type, date, details)
+      `)
       .ilike('slug', safeSlug)
       .single();
 
-    if (error) {
-      // It's normal to return null if not found or error, as per requirements
+    if (error || !data) {
       return null;
     }
 
-    return data as Unit;
+    // Process the data to ensure arrays and default values
+    const processedUnit: Unit = {
+      ...data,
+      specs: Array.isArray(data.specs) ? data.specs : [], // Ensure specs is an array
+      docs: Array.isArray(data.docs)
+        ? data.docs.map((doc: any) => ({
+            ...doc,
+            size: '-' // Default size since DB does not store it
+          }))
+        : [],
+      logs: Array.isArray(data.logs) ? data.logs : [],
+    } as unknown as Unit;
+
+    return processedUnit;
   } catch (error) {
+    console.error('Error fetching unit:', error);
     return null;
   }
 }
@@ -49,7 +66,9 @@ export async function updateUnit(id: number, data: Partial<Unit>) {
 
   revalidatePath('/');
   revalidatePath('/units');
-  revalidatePath(`/units/${data.slug}`); // Revalidate specific unit page if slug changed (though unlikely here)
+  if (data.slug) {
+    revalidatePath(`/units/${data.slug}`);
+  }
 
   return { success: true };
 }
