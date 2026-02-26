@@ -14,7 +14,7 @@ export async function getUnitBySlug(slug: string): Promise<Unit | null> {
       .select(`
         *,
         docs:unit_documents(id, title, type:document_type, date:created_at, url:file_url),
-        logs:maintenance_logs(id, title, type:log_type, date, details)
+        logs:maintenance_logs(id, title, type:log_type, date, details, cost)
       `)
       .ilike('slug', safeSlug)
       .single();
@@ -68,6 +68,70 @@ export async function updateUnit(id: number, data: Partial<Unit>) {
   revalidatePath('/units');
   if (data.slug) {
     revalidatePath(`/units/${data.slug}`);
+  }
+
+  return { success: true };
+}
+
+export async function addMaintenanceLog(unitId: number, data: { date: string, type: string, description: string, cost: number }) {
+  const supabase = await createClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    throw new Error('Unauthorized');
+  }
+
+  const { error } = await supabase
+    .from('maintenance_logs')
+    .insert({
+      unit_id: unitId,
+      date: data.date,
+      log_type: data.type,
+      title: data.description,
+      details: data.description,
+      cost: data.cost
+    });
+
+  if (error) {
+    console.error('Error adding maintenance log:', error);
+    throw new Error('Failed to add maintenance log');
+  }
+
+  // Fetch slug for revalidation
+  const { data: unit } = await supabase.from('units').select('slug').eq('id', unitId).single();
+  if (unit) {
+    revalidatePath(`/units/${unit.slug}`);
+  }
+
+  return { success: true };
+}
+
+export async function deleteMaintenanceLog(logId: number) {
+  const supabase = await createClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    throw new Error('Unauthorized');
+  }
+
+  // Get unit id/slug before deletion for revalidation
+  const { data: log } = await supabase.from('maintenance_logs').select('unit_id').eq('id', logId).single();
+
+  const { error } = await supabase
+    .from('maintenance_logs')
+    .delete()
+    .eq('id', logId);
+
+  if (error) {
+    console.error('Error deleting maintenance log:', error);
+    throw new Error('Failed to delete maintenance log');
+  }
+
+  if (log) {
+     const { data: unit } = await supabase.from('units').select('slug').eq('id', log.unit_id).single();
+     if (unit) {
+       revalidatePath(`/units/${unit.slug}`);
+     }
   }
 
   return { success: true };
