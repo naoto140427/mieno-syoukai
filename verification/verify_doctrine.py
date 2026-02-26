@@ -1,44 +1,25 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
-def run():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+def run(playwright):
+    browser = playwright.chromium.launch(headless=True)
+    page = browser.new_page()
 
-        # 1. Verify Doctrine Page
-        print("Navigating to /doctrine...")
-        page.goto("http://localhost:3000/doctrine")
-        page.wait_for_timeout(2000) # Wait for animations
+    # Go to the Doctrine page
+    print("Navigating to /doctrine...")
+    page.goto("http://localhost:3000/doctrine")
 
-        # Take screenshot of the top
-        page.screenshot(path="verification/doctrine_top.png")
-        print("Screenshot saved: verification/doctrine_top.png")
+    # Wait for key elements to be visible
+    print("Waiting for content to load...")
+    expect(page.get_by_role("heading", name="三重野")).to_be_visible()
+    expect(page.get_by_text("Chief Executive Officer")).to_be_visible()
+    expect(page.get_by_text("DOCTRINE")).to_be_visible()
 
-        # Scroll down to see core values
-        page.evaluate("window.scrollBy(0, 1000)")
-        page.wait_for_timeout(1000)
-        page.screenshot(path="verification/doctrine_middle.png")
-        print("Screenshot saved: verification/doctrine_middle.png")
+    # Take a screenshot
+    print("Taking screenshot...")
+    page.screenshot(path="verification/doctrine_page.png", full_page=True)
 
-        # 2. Verify Footer Link
-        print("Navigating to /...")
-        page.goto("http://localhost:3000/")
+    browser.close()
+    print("Verification complete.")
 
-        # Scroll to bottom
-        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        page.wait_for_timeout(1000)
-
-        # Check for link
-        link = page.get_by_role("link", name="Doctrine (CEO Message)")
-        if link.is_visible():
-            print("Doctrine link found in footer.")
-        else:
-            print("Doctrine link NOT found in footer.")
-
-        page.screenshot(path="verification/footer_link.png")
-        print("Screenshot saved: verification/footer_link.png")
-
-        browser.close()
-
-if __name__ == "__main__":
-    run()
+with sync_playwright() as playwright:
+    run(playwright)
