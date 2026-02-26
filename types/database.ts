@@ -33,6 +33,12 @@ export interface Archive {
   weather: "Clear" | "Rainy" | "Cloudy" | "Snow";
   details: string;
   geojson?: string | null;
+  // Tactical Data (GPX)
+  distance_km?: number;
+  max_speed?: number;
+  max_elevation?: number;
+  route_data?: any; // JSON or array of coordinates
+  location_name?: string;
 }
 
 export interface Inquiry {
