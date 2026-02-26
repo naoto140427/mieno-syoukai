@@ -12,6 +12,8 @@ export async function addArchive(data: Omit<Archive, 'id'>) {
     throw new Error('Unauthorized');
   }
 
+  // The 'data' object now includes new tactical fields:
+  // distance_km, max_speed, max_elevation, route_data, location_name
   const { error } = await supabase
     .from('archives')
     .insert(data);

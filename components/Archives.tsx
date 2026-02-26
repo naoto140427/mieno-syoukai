@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, Edit2, Trash2 } from "lucide-react";
+import { Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, Edit2, Trash2, Upload, Activity, Loader2, MapPin } from "lucide-react";
 import { Archive } from "@/types/database";
 import { addArchive, updateArchive, deleteArchive } from "@/app/actions/archives";
+import { parseGPX } from "@/lib/gpx/parser";
+import { getLocationName } from "@/lib/gpx/geocoding";
 
 const WeatherIcon = ({ condition }: { condition: string }) => {
   switch (condition) {
@@ -24,6 +26,8 @@ interface ArchivesProps {
 export default function Archives({ archives = [], isAdmin = false }: ArchivesProps) {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisStatus, setAnalysisStatus] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
 
   // Form State
@@ -35,6 +39,11 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
     weather: "Clear",
     details: "",
     geojson: "",
+    distance_km: 0,
+    max_speed: 0,
+    max_elevation: 0,
+    route_data: [],
+    location_name: ""
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -50,9 +59,15 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
         weather: "Clear",
         details: "",
         geojson: "",
+        distance_km: 0,
+        max_speed: 0,
+        max_elevation: 0,
+        route_data: [],
+        location_name: ""
     });
     setEditingId(null);
     setShowForm(false);
+    setAnalysisStatus("");
   };
 
   const handleEditClick = (archive: Archive) => {
@@ -72,24 +87,101 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
       }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setAnalyzing(true);
+      setAnalysisStatus("Parsing tactical data...");
+
+      try {
+          const text = await file.text();
+
+          // 1. Parse GPX
+          const parsed = parseGPX(text);
+
+          setAnalysisStatus("Establishing satellite uplink...");
+
+          // 2. Geocode
+          let locationName = "Unknown Territory";
+          const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+          if (token) {
+             try {
+                 const name = await getLocationName(parsed.centerPoint[0], parsed.centerPoint[1], token);
+                 if (name) locationName = name;
+             } catch (geoError) {
+                 console.warn("Geocoding failed", geoError);
+             }
+          }
+
+          setAnalysisStatus("Calibrating telemetry...");
+
+          // 3. Auto-fill Form
+          const newDistance = `${parsed.distance}km`;
+
+          setFormData(prev => ({
+              ...prev,
+              distance: newDistance,
+              distance_km: parsed.distance,
+              max_speed: parsed.maxSpeed,
+              max_elevation: parsed.maxElevation,
+              route_data: parsed.routeData, // Keep raw array for DB
+              location_name: locationName,
+              title: (!prev.title || prev.title === "Untitled Operation") ? `Operation: ${locationName}` : prev.title,
+              // Generate GeoJSON string for display/edit if needed
+              geojson: JSON.stringify({
+                  type: "FeatureCollection",
+                  features: [{
+                      type: "Feature",
+                      properties: {},
+                      geometry: {
+                          type: "LineString",
+                          coordinates: parsed.routeData
+                      }
+                  }]
+              }, null, 2)
+          }));
+
+          setAnalysisStatus("Tactical data uplink complete.");
+
+          // Clear status after delay
+          setTimeout(() => {
+              setAnalyzing(false);
+              setAnalysisStatus("");
+          }, 2000);
+
+      } catch (err) {
+          console.error("GPX Analysis failed", err);
+          setAnalysisStatus("Data extraction failed.");
+          alert("Failed to analyze GPX file.");
+          setAnalyzing(false);
+      }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
     try {
-        const payload = {
+        const payload: Partial<Archive> = {
             title: formData.title || "Untitled Operation",
             date: formData.date || new Date().toISOString().split('T')[0],
             distance: formData.distance || "0km",
             members: Number(formData.members) || 1,
             weather: (formData.weather as "Clear" | "Rainy" | "Cloudy" | "Snow") || "Clear",
             details: formData.details || "",
-            geojson: formData.geojson || null
+            geojson: formData.geojson || null,
+            distance_km: formData.distance_km,
+            max_speed: formData.max_speed,
+            max_elevation: formData.max_elevation,
+            route_data: formData.route_data,
+            location_name: formData.location_name
         };
 
         if (editingId) {
             await updateArchive(editingId, payload);
         } else {
+            // @ts-expect-error Partial<Archive> is compatible with Omit<Archive, 'id'> for our purposes here
             await addArchive(payload);
         }
 
@@ -151,6 +243,34 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                         EDITING MODE
                     </div>
                 )}
+
+                {/* GPX Upload Area (Full Width) */}
+                <div className="col-span-1 md:col-span-2">
+                    <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-300 flex flex-col items-center justify-center gap-3 ${analyzing ? 'border-blue-400 bg-blue-50/50' : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
+                        <input
+                            type="file"
+                            accept=".gpx"
+                            onChange={handleFileUpload}
+                            disabled={analyzing || submitting}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                        />
+
+                        {analyzing ? (
+                            <div className="flex flex-col items-center animate-pulse">
+                                <Activity className="w-8 h-8 text-blue-500 mb-2" />
+                                <span className="text-sm font-bold text-blue-600">🛰 {analysisStatus}</span>
+                            </div>
+                        ) : (
+                            <>
+                                <Upload className="w-8 h-8 text-gray-400" />
+                                <div className="text-center">
+                                    <p className="text-sm font-bold text-gray-600">Upload GPX File</p>
+                                    <p className="text-xs text-gray-400 mt-1">Tactical Data Auto-Extraction</p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
 
                 <div className="space-y-6">
                   <div>
@@ -219,6 +339,21 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                         />
                       </div>
                   </div>
+
+                  {/* Tactical Data Read-only Display (if available) */}
+                  {(formData.max_speed || 0) > 0 && (
+                      <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                          <div>
+                              <span className="text-[10px] uppercase text-blue-400 font-bold block">Max Speed</span>
+                              <span className="text-sm font-mono text-blue-900">{formData.max_speed?.toFixed(1)} km/h</span>
+                          </div>
+                          <div>
+                              <span className="text-[10px] uppercase text-blue-400 font-bold block">Max Elevation</span>
+                              <span className="text-sm font-mono text-blue-900">{formData.max_elevation?.toFixed(0)} m</span>
+                          </div>
+                      </div>
+                  )}
+
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Details</label>
                     <textarea
@@ -250,7 +385,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                   </div>
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || analyzing}
                     className="w-full py-3.5 bg-black hover:bg-gray-800 text-white font-bold tracking-wide rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
                   >
                     {submitting ? (
@@ -286,12 +421,18 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                     <div className="flex flex-col lg:flex-row h-full">
 
                         {/* Map Placeholder Area */}
-                        <div className="w-full lg:w-1/3 h-64 lg:h-auto bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-100 relative flex items-center justify-center">
+                        <div className="w-full lg:w-1/3 h-64 lg:h-auto bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-100 relative flex items-center justify-center group-hover:bg-gray-50 transition-colors">
                             <div className="text-gray-300 flex flex-col items-center gap-2">
                                 <div className="w-12 h-12 rounded-full bg-gray-200/50 flex items-center justify-center">
                                     <Cloud className="w-6 h-6 text-gray-400" />
                                 </div>
                                 <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Map View</span>
+                                {archive.location_name && (
+                                    <div className="mt-2 flex items-center gap-1 text-gray-400 px-3 py-1 bg-white border border-gray-100 rounded-full shadow-sm">
+                                        <MapPin className="w-3 h-3" />
+                                        <span className="text-[10px] font-bold uppercase">{archive.location_name}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -350,6 +491,12 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                                 <WeatherIcon condition={archive.weather} />
                                 <span className="text-xs text-gray-600 font-medium">{archive.weather}</span>
                                 </div>
+                                {archive.max_speed && (
+                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full">
+                                        <Activity className="w-3.5 h-3.5 text-blue-400" />
+                                        <span className="text-xs text-blue-600 font-medium">{archive.max_speed.toFixed(1)} km/h</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
