@@ -46,6 +46,23 @@ export interface News {
   created_at?: string;
 }
 
+export interface UnitDocument {
+  id: number;
+  title: string;
+  type: string;
+  size: string;
+  date: string;
+  url: string;
+}
+
+export interface MaintenanceLog {
+  id: number;
+  date: string;
+  title: string;
+  type: 'maintenance' | 'inspection' | 'upgrade' | 'incident';
+  details: string;
+}
+
 export interface Unit {
   id: number;
   slug: string;
@@ -57,4 +74,6 @@ export interface Unit {
   created_at?: string;
   description?: string;
   specs?: any;
+  docs?: UnitDocument[];
+  logs?: MaintenanceLog[];
 }
