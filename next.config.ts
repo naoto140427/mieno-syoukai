@@ -2,6 +2,11 @@ import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -10,7 +15,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-};
+} as any;
 
 export default withSentryConfig(nextConfig, {
   // For all available options, see:
