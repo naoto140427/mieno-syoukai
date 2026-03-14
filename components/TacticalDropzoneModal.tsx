@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useDropzone } from "react-dropzone";
 import {
-  X, UploadCloud, Map as MapIcon, Zap, Mountain,
-  Activity, Check, Calendar, Users, MapPin, Loader2, Gauge
+  X, UploadCloud, Zap, Mountain, Check, MapPin, Loader2, Gauge, AlertCircle
 } from "lucide-react";
 import { parseGPX, ParsedGPXData } from "@/lib/gpx/parser";
 import { getLocationName } from "@/lib/gpx/geocoding";
@@ -27,6 +27,7 @@ const LOADING_TEXTS = [
 ];
 
 export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: TacticalDropzoneModalProps) {
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("idle");
   const [loadingTextIndex, setLoadingTextIndex] = useState(0);
   const [parsedData, setParsedData] = useState<ParsedGPXData | null>(null);
@@ -39,6 +40,9 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
   const [members, setMembers] = useState<number>(1);
   const [weather, setWeather] = useState<Archive["weather"]>("Clear");
   const [details, setDetails] = useState("");
+
+  // Toast State
+  const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -53,6 +57,7 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
       setWeather("Clear");
       setDetails("");
       setIsSubmitting(false);
+      setToastMsg(null);
     }
   }, [isOpen]);
 
@@ -65,6 +70,16 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
       return () => clearInterval(interval);
     }
   }, [phase]);
+
+  // Toast auto-hide effect
+  useEffect(() => {
+    if (toastMsg) {
+      const timeout = setTimeout(() => {
+        setToastMsg(null);
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [toastMsg]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -98,7 +113,7 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
         }, 2500);
       } catch (err) {
         console.error("GPX Parsing error:", err);
-        alert("Failed to parse GPX file.");
+        setToastMsg({ type: 'error', message: 'Failed to parse GPX file.' });
         setPhase("idle");
       }
     };
@@ -119,6 +134,7 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
     if (!parsedData) return;
 
     setIsSubmitting(true);
+    setToastMsg(null);
     try {
       const archiveData: Omit<Archive, "id"> = {
         title: title || "Untitled Operation",
@@ -135,10 +151,16 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
       };
 
       await onSave(archiveData);
-      onClose();
+      setToastMsg({ type: 'success', message: '作戦記録を転送しました。' });
+      router.refresh();
+
+      // Delay closing so user can see the success toast
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (err) {
       console.error(err);
-      alert("Failed to save data.");
+      setToastMsg({ type: 'error', message: '保存に失敗しました。' });
     } finally {
       setIsSubmitting(false);
     }
@@ -153,6 +175,11 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
     hidden: { opacity: 0, scale: 0.95, y: 20 },
     visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", damping: 25, stiffness: 300 } },
     exit: { opacity: 0, scale: 0.95, y: 20 }
+  };
+
+  const toastVariants: Variants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { opacity: 1, y: 0 }
   };
 
   if (!isOpen) return null;
@@ -193,8 +220,26 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
               </button>
             </div>
 
+            {/* Toast Notification */}
+            <AnimatePresence>
+              {toastMsg && (
+                <motion.div
+                  variants={toastVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  className={`absolute top-16 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 z-50 ${
+                    toastMsg.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {toastMsg.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                  <span className="text-sm font-bold">{toastMsg.message}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-6 md:p-8">
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 relative">
               {phase === "idle" && (
                 <div
                   {...getRootProps()}
@@ -288,7 +333,7 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
                         <div>
                           <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Weather</label>
                           <select
-                            value={weather}
+                            value={weather || "Clear"}
                             onChange={e => setWeather(e.target.value as Archive["weather"])}
                             className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-900 transition-all text-gray-900 appearance-none"
                           >
@@ -342,7 +387,7 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
                       {isSubmitting ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          SUBMITTING...
+                          転送中...
                         </>
                       ) : (
                         <>

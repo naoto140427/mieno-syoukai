@@ -29,16 +29,16 @@ export interface Archive {
   title: string;
   date: string;
   distance: string;
-  members: number;
-  weather: "Clear" | "Rainy" | "Cloudy" | "Snow";
+  members: number | null;
+  weather: "Clear" | "Rainy" | "Cloudy" | "Snow" | string | null;
   details: string;
   geojson?: string | null;
   // Tactical Data (GPX)
-  distance_km?: number;
-  max_speed?: number;
-  max_elevation?: number;
-  route_data?: any; // JSON or array of coordinates
-  location_name?: string;
+  distance_km?: number | null;
+  max_speed?: number | null;
+  max_elevation?: number | null;
+  route_data?: any | null; // JSON or array of coordinates
+  location_name?: string | null;
 }
 
 export interface Inquiry {
