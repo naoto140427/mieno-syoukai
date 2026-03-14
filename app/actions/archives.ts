@@ -73,3 +73,20 @@ export async function deleteArchive(id: number) {
   revalidatePath('/');
   return { success: true };
 }
+
+export async function getArchiveById(id: number) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('archives')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching archive with id ${id}:`, error);
+    return null;
+  }
+
+  return data as Archive;
+}
