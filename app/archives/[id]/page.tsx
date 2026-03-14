@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getArchiveById } from '@/app/actions/archives';
 import ArchiveDetailClient from '@/components/ArchiveDetailClient';
+import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
   title: 'Operation Details - MIENO CORP.',
@@ -26,5 +27,9 @@ export default async function ArchiveDetailPage({
     notFound();
   }
 
-  return <ArchiveDetailClient archive={archive} />;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isAdmin = !!user;
+
+  return <ArchiveDetailClient archive={archive} isAdmin={isAdmin} />;
 }
