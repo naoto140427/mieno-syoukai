@@ -470,11 +470,12 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                     const hasRoute = archive.route_data && Array.isArray(archive.route_data) && archive.route_data.length > 0;
 
                     // Create GeoJSON structure from route_data (which is just coordinate array)
-                    const geoJsonData: GeoJSON.Feature<GeoJSON.LineString> | null = hasRoute ? {
+                    const routeCoords = (archive.route_data as [number, number][]) || [];
+    const geoJsonData: GeoJSON.Feature<GeoJSON.LineString> | null = hasRoute ? {
                         type: 'Feature',
                         geometry: {
                             type: 'LineString',
-                            coordinates: archive.route_data
+                            coordinates: routeCoords
                         },
     properties: {}
                     } : null;
@@ -496,8 +497,8 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                                     <Map
                                         mapboxAccessToken={mapboxToken}
                                         initialViewState={{
-                                            longitude: archive.route_data[0][0],
-                                            latitude: archive.route_data[0][1],
+                                            longitude: routeCoords[0]?.[0] || 139.6917,
+                                            latitude: routeCoords[0]?.[1] || 35.6895,
                                             zoom: 11
                                         }}
                                         style={{width: '100%', height: '100%'}}

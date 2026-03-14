@@ -10,6 +10,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@google/genai": "^1.45.0",
     "@sentry/nextjs": "^10.39.0",
     "@splinetool/react-spline": "^4.1.0",
     "@supabase/ssr": "^0.8.0",
@@ -26,6 +27,7 @@
     "react-dom": "19.2.3",
     "react-dropzone": "^15.0.0",
     "react-map-gl": "^8.1.0",
+    "recharts": "^3.8.0",
     "resend": "^6.9.2"
   },
   "devDependencies": {

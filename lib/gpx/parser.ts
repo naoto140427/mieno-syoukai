@@ -8,7 +8,7 @@ export interface ParsedGPXData {
   durationTime: string; // HH:MM:SS
   avgSpeed: number; // km/h
   elevationGain: number; // m
-  routeData: [number, number][]; // [lng, lat]
+  routeData: [number, number, number][]; // [lng, lat]
   centerPoint: [number, number]; // [lng, lat]
 }
 
@@ -25,9 +25,9 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
   // 2. Extract Points, Max Elevation, Duration & Elevation Gain
   let maxElevation = 0;
   let elevationGain = 0;
-  let minTime: any = null;
-  let maxTime: any = null;
-  const allPoints: { lat: number; lon: number; ele: number; time?: any }[] = [];
+  let minTime: Date | any = null;
+  let maxTime: Date | any = null;
+  const allPoints: { lat: number; lon: number; ele: number; time?: Date }[] = [];
 
   gpx.tracks.forEach((track) => {
     let previousPoint: { ele: number } | null = null;
@@ -113,7 +113,7 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
   }
 
   // 4. Generate Route Data for Mapbox ([lng, lat])
-  const routeData: [number, number][] = allPoints.map((p) => [p.lon, p.lat]);
+  const routeData: [number, number, number][] = allPoints.map((p) => [p.lon, p.lat, p.ele || 0]);
 
   // 5. Determine Center Point (Middle of the route)
   let centerPoint: [number, number] = [0, 0];
