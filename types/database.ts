@@ -40,7 +40,7 @@ export interface Archive {
   duration_time?: string | null;
   avg_speed?: number | null;
   elevation_gain?: number | null;
-  route_data?: any | null; // JSON or array of coordinates
+  route_data?: [number, number, number][] | [number, number][] | null;
   location_name?: string | null;
 }
 

@@ -1,15 +1,19 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Archive } from '@/types/database';
 import { motion, Variants } from 'framer-motion';
 import Map, { Source, Layer, LayerProps } from 'react-map-gl/mapbox';
 import { MapPin, Calendar, Gauge, Zap, Mountain, Users, Cloud, Sun, CloudRain, Snowflake, ArrowLeft, Clock, Activity, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
+import ElevationChart from './ElevationChart';
+import { generateTacticalReport } from '@/app/actions/report';
+import { Bot } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface Props {
   archive: Archive;
+  isAdmin?: boolean;
 }
 
 const WeatherIcon = ({ condition }: { condition: string }) => {
@@ -37,25 +41,47 @@ const fadeUpVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
 };
 
-export default function ArchiveDetailClient({ archive }: Props) {
+export default function ArchiveDetailClient({ archive, isAdmin }: Props) {
+  const [aiReport, setAiReport] = useState<string | null>(null);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const handleGenerateReport = async () => {
+    setIsGeneratingAi(true);
+    setAiError(null);
+    try {
+      const result = await generateTacticalReport(archive as unknown as Record<string, unknown>);
+      if (result.success && result.report) {
+        setAiReport(result.report);
+      } else {
+        setAiError(result.error || 'レポートの生成に失敗しました');
+      }
+    } catch {
+      setAiError('予期せぬエラーが発生しました');
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
   const mapboxToken = typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '') : '';
 
 
 
   const hasRoute = archive.route_data && Array.isArray(archive.route_data) && archive.route_data.length > 0;
 
+  const routeCoords = (archive.route_data as [number, number][]) || [];
   const geoJsonData: GeoJSON.Feature<GeoJSON.LineString> | null = hasRoute ? {
     type: 'Feature',
     geometry: {
       type: 'LineString',
-      coordinates: archive.route_data
+      coordinates: routeCoords
     },
     properties: {}
   } : null;
 
   const initialView = hasRoute ? {
-    longitude: archive.route_data[0][0],
-    latitude: archive.route_data[0][1],
+    longitude: routeCoords[0]?.[0] || 139.6917,
+    latitude: routeCoords[0]?.[1] || 35.6895,
     zoom: 12
   } : {
     longitude: 139.6917, // Default Tokyo
@@ -219,6 +245,12 @@ export default function ArchiveDetailClient({ archive }: Props) {
               </div>
             </div>
           </div>
+
+            {/* Elevation Chart */}
+            {hasRoute && (archive.route_data as any[])[0]?.length >= 3 && (
+              <ElevationChart routeData={archive.route_data as [number, number, number][]} />
+            )}
+
         </motion.div>
 
         {/* Mission Report */}
@@ -239,6 +271,62 @@ export default function ArchiveDetailClient({ archive }: Props) {
             </div>
           </div>
         </motion.div>
+
+
+        {/* AI Tactical Report Section */}
+        {isAdmin && (
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={fadeUpVariants}
+            transition={{ delay: 0.3 }}
+            className="mt-8"
+          >
+            <div className="bg-white rounded-3xl p-8 md:p-12 shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-100">
+              <div className="flex items-center justify-between mb-8 border-b border-gray-100 pb-4">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-[#06b6d4]" />
+                  AI Tactical Analysis
+                </h3>
+                {!aiReport && (
+                  <button
+                    onClick={handleGenerateReport}
+                    disabled={isGeneratingAi}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-full text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isGeneratingAi ? '🛰 AIと通信中...' : '🤖 Generate Tactical Report'}
+                  </button>
+                )}
+              </div>
+
+              {aiError && (
+                <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm mb-6 border border-red-100">
+                  {aiError}
+                </div>
+              )}
+
+              {aiReport ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="prose prose-lg prose-gray max-w-3xl mx-auto"
+                >
+                  <p className="text-lg text-gray-800 leading-loose whitespace-pre-wrap font-serif">
+                    {aiReport}
+                  </p>
+                </motion.div>
+              ) : (
+                !isGeneratingAi && (
+                  <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                    <Bot className="w-12 h-12 mb-4 opacity-20" />
+                    <p className="text-sm font-medium tracking-widest uppercase">No AI Analysis Generated Yet</p>
+                  </div>
+                )
+              )}
+            </div>
+          </motion.div>
+        )}
 
       </div>
     </div>
