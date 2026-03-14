@@ -459,7 +459,8 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                         geometry: {
                             type: 'LineString',
                             coordinates: archive.route_data
-                        }
+                        },
+    properties: {}
                     } : null;
 
                     return (

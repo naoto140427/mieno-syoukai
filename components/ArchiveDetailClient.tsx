@@ -49,7 +49,8 @@ export default function ArchiveDetailClient({ archive }: Props) {
     geometry: {
       type: 'LineString',
       coordinates: archive.route_data
-    }
+    },
+    properties: {}
   } : null;
 
   const initialView = hasRoute ? {
