@@ -29,7 +29,7 @@ export interface Archive {
   title: string;
   date: string;
   distance: string;
-  members: number | null;
+  members: string[] | null;
   weather: "Clear" | "Rainy" | "Cloudy" | "Snow" | string | null;
   details: string;
   geojson?: string | null;
@@ -37,6 +37,9 @@ export interface Archive {
   distance_km?: number | null;
   max_speed?: number | null;
   max_elevation?: number | null;
+  duration_time?: string | null;
+  avg_speed?: number | null;
+  elevation_gain?: number | null;
   route_data?: any | null; // JSON or array of coordinates
   location_name?: string | null;
 }
