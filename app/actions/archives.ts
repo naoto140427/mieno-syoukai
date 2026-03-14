@@ -14,9 +14,24 @@ export async function addArchive(data: Omit<Archive, 'id'>) {
 
   // The 'data' object now includes new tactical fields:
   // distance_km, max_speed, max_elevation, route_data, location_name
+  const payload = {
+    title: data.title,
+    date: data.date,
+    distance: data.distance,
+    members: data.members,
+    weather: data.weather,
+    details: data.details,
+    geojson: data.geojson,
+    distance_km: data.distance_km,
+    max_speed: data.max_speed,
+    max_elevation: data.max_elevation,
+    route_data: data.route_data,
+    location_name: data.location_name
+  };
+
   const { error } = await supabase
     .from('archives')
-    .insert(data);
+    .insert(payload);
 
   if (error) {
     console.error('Error adding archive:', error);
