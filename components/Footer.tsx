@@ -14,6 +14,7 @@ const footerNavigation = {
     { name: "組織沿革", href: "/history" },
     { name: "ニュース", href: "/" },
     { name: "基本理念 (CEO Message)", href: "/doctrine" },
+    { name: "エージェント募集 (Careers)", href: "/careers" },
   ],
   legal: [
     { name: "プライバシーポリシー", href: "/legal/privacy" },
