@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from 'next/link';
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, Edit2, Trash2, Upload, Activity, Loader2, MapPin, Zap, Mountain } from "lucide-react";
 import { Archive } from "@/types/database";
+import type * as GeoJSON from 'geojson';
 import { addArchive, updateArchive, deleteArchive } from "@/app/actions/archives";
 import { parseGPX } from "@/lib/gpx/parser";
 import { getLocationName } from "@/lib/gpx/geocoding";
@@ -452,7 +454,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                     const hasRoute = archive.route_data && Array.isArray(archive.route_data) && archive.route_data.length > 0;
 
                     // Create GeoJSON structure from route_data (which is just coordinate array)
-                    const geoJsonData: any = hasRoute ? {
+                    const geoJsonData: GeoJSON.Feature<GeoJSON.LineString> | null = hasRoute ? {
                         type: 'Feature',
                         geometry: {
                             type: 'LineString',
@@ -461,12 +463,12 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                     } : null;
 
                     return (
+                    <Link href={`/archives/${archive.id}`} key={archive.id} className="block group">
                     <motion.div
-                    key={archive.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                    className="group relative bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl overflow-hidden"
+                    className="relative bg-white border border-gray-100 shadow-sm group-hover:shadow-lg group-hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
                     >
                     <div className="flex flex-col lg:flex-row h-full">
 
@@ -517,14 +519,14 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                             {isAdmin && (
                                 <div className="absolute top-6 right-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                                     <button
-                                        onClick={() => handleEditClick(archive)}
+                                        onClick={(e) => { e.preventDefault(); handleEditClick(archive); }}
                                         className="p-2 bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
                                         title="Edit"
                                     >
                                         <Edit2 size={16} />
                                     </button>
                                     <button
-                                        onClick={() => handleDeleteClick(archive.id)}
+                                        onClick={(e) => { e.preventDefault(); handleDeleteClick(archive.id); }}
                                         className="p-2 bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
                                         title="Delete"
                                     >
@@ -585,6 +587,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                         </div>
                     </div>
                     </motion.div>
+                    </Link>
                 )})
             )}
         </div>
