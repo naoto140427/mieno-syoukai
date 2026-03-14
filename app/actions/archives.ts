@@ -13,7 +13,7 @@ export async function addArchive(data: Omit<Archive, 'id'>) {
   }
 
   // The 'data' object now includes new tactical fields:
-  // distance_km, max_speed, max_elevation, route_data, location_name
+  // distance_km, max_speed, max_elevation, duration_time, avg_speed, elevation_gain, route_data, location_name
   const payload = {
     title: data.title,
     date: data.date,
@@ -25,6 +25,9 @@ export async function addArchive(data: Omit<Archive, 'id'>) {
     distance_km: data.distance_km,
     max_speed: data.max_speed,
     max_elevation: data.max_elevation,
+    duration_time: data.duration_time,
+    avg_speed: data.avg_speed,
+    elevation_gain: data.elevation_gain,
     route_data: data.route_data,
     location_name: data.location_name
   };

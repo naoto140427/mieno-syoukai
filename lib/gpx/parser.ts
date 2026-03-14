@@ -5,6 +5,9 @@ export interface ParsedGPXData {
   distance: number; // km
   maxElevation: number; // m
   maxSpeed: number; // km/h
+  durationTime: string; // HH:MM:SS
+  avgSpeed: number; // km/h
+  elevationGain: number; // m
   routeData: [number, number][]; // [lng, lat]
   centerPoint: [number, number]; // [lng, lat]
 }
@@ -19,15 +22,31 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
   const totalDistanceMeters = gpx.tracks.reduce((acc, track) => acc + track.distance.total, 0);
   const distanceKm = totalDistanceMeters / 1000;
 
-  // 2. Extract Points & Max Elevation
+  // 2. Extract Points, Max Elevation, Duration & Elevation Gain
   let maxElevation = 0;
-  const allPoints: { lat: number; lon: number; ele: number; time?: Date }[] = [];
+  let elevationGain = 0;
+  let minTime: any = null;
+  let maxTime: any = null;
+  const allPoints: { lat: number; lon: number; ele: number; time?: any }[] = [];
 
   gpx.tracks.forEach((track) => {
+    let previousPoint: { ele: number } | null = null;
     track.points.forEach((point) => {
       // Update max elevation
       if (point.ele > maxElevation) {
         maxElevation = point.ele;
+      }
+
+      // Calculate elevation gain
+      if (previousPoint && point.ele > previousPoint.ele) {
+        elevationGain += (point.ele - previousPoint.ele);
+      }
+      previousPoint = point;
+
+      // Update min/max time
+      if (point.time) {
+        if (!minTime || point.time < minTime) minTime = point.time;
+        if (!maxTime || point.time > maxTime) maxTime = point.time;
       }
 
       allPoints.push({
@@ -38,6 +57,27 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
       });
     });
   });
+
+  // Calculate Duration Time (HH:MM:SS)
+  let durationTime = "00:00:00";
+  let durationHours = 0;
+  if (minTime && maxTime) {
+    const diffMs = maxTime.getTime() - minTime.getTime();
+    if (diffMs > 0) {
+      const totalSeconds = Math.floor(diffMs / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      durationTime = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+      durationHours = diffMs / (1000 * 60 * 60);
+    }
+  }
+
+  // Calculate Average Speed
+  let avgSpeed = 0;
+  if (durationHours > 0) {
+    avgSpeed = distanceKm / durationHours;
+  }
 
   // 3. Calculate Max Speed (km/h)
   let maxSpeedKmh = 0;
@@ -86,6 +126,9 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
     distance: parseFloat(distanceKm.toFixed(2)),
     maxElevation: parseFloat(maxElevation.toFixed(1)),
     maxSpeed: parseFloat(maxSpeedKmh.toFixed(1)),
+    durationTime,
+    avgSpeed: parseFloat(avgSpeed.toFixed(1)),
+    elevationGain: parseFloat(elevationGain.toFixed(1)),
     routeData,
     centerPoint,
   };
