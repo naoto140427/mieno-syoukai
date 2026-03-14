@@ -333,7 +333,7 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
                         <div>
                           <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Weather</label>
                           <select
-                            value={weather}
+                            value={weather || "Clear"}
                             onChange={e => setWeather(e.target.value as Archive["weather"])}
                             className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-900 transition-all text-gray-900 appearance-none"
                           >

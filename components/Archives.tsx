@@ -341,7 +341,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Weather</label>
                         <select
                             name="weather"
-                            value={formData.weather}
+                            value={formData.weather || "Clear"}
                             onChange={handleInputChange}
                             className="w-full bg-gray-50 border border-transparent text-gray-900 px-4 py-3 text-sm rounded-lg focus:bg-white focus:border-blue-500/20 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all appearance-none"
                             disabled={submitting}
@@ -370,7 +370,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                         <input
                             type="number"
                             name="members"
-                            value={formData.members}
+                            value={formData.members || 1}
                             onChange={handleInputChange}
                             className="w-full bg-gray-50 border border-transparent text-gray-900 px-4 py-3 text-sm rounded-lg focus:bg-white focus:border-blue-500/20 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
                             min={1}
@@ -583,7 +583,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                                 <span className="text-xs text-gray-600 font-medium">{archive.members} members</span>
                                 </div>
                                 <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
-                                <WeatherIcon condition={archive.weather} />
+                                <WeatherIcon condition={archive.weather || "Clear"} />
                                 <span className="text-xs text-gray-600 font-medium">{archive.weather}</span>
                                 </div>
                             </div>

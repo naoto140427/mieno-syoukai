@@ -134,8 +134,8 @@ export default function ArchiveDetailClient({ archive }: Props) {
                 </h1>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-2xl border border-gray-100 shrink-0">
-                 <WeatherIcon condition={archive.weather} />
-                 <span className="text-sm font-medium text-gray-700">{archive.weather}</span>
+                 <WeatherIcon condition={archive.weather || "Clear"} />
+                 <span className="text-sm font-medium text-gray-700">{archive.weather || "Clear"}</span>
               </div>
             </div>
 
