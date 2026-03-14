@@ -490,9 +490,11 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                                         attributionControl={false}
                                         reuseMaps
                                     >
-                                        <Source id={`route-${archive.id}`} type="geojson" data={geoJsonData}>
+                                        {geoJsonData && (
+              <Source id={`route-${archive.id}`} type="geojson" data={geoJsonData}>
                                             <Layer {...routeLayerStyle} />
                                         </Source>
+            )}
                                     </Map>
                                 </div>
                             ) : (

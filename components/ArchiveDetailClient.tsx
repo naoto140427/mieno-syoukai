@@ -88,9 +88,11 @@ export default function ArchiveDetailClient({ archive }: Props) {
             attributionControl={false}
             reuseMaps
           >
-            <Source id="route-detail" type="geojson" data={geoJsonData}>
+            {geoJsonData && (
+              <Source id="route-detail" type="geojson" data={geoJsonData}>
               <Layer {...routeLayerStyle} />
             </Source>
+            )}
           </Map>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center text-gray-400">
