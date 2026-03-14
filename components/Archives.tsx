@@ -7,6 +7,7 @@ import { Archive } from "@/types/database";
 import { addArchive, updateArchive, deleteArchive } from "@/app/actions/archives";
 import { parseGPX } from "@/lib/gpx/parser";
 import { getLocationName } from "@/lib/gpx/geocoding";
+import TacticalDropzoneModal from "./TacticalDropzoneModal";
 // @ts-expect-error react-map-gl/mapbox types mismatch in v8
 import Map, { Source, Layer, LineLayer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -46,6 +47,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisStatus, setAnalysisStatus] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   // Form State
@@ -215,6 +217,16 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
     <div className="min-h-screen bg-[#F5F5F7] text-gray-900 font-sans p-6 lg:p-12">
       <div className="max-w-6xl mx-auto space-y-12">
 
+        {/* Tactical Dropzone Modal */}
+        <TacticalDropzoneModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          onSave={async (data) => {
+            await addArchive(data);
+            setIsUploadModalOpen(false);
+          }}
+        />
+
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-gray-200 pb-6 gap-4">
           <div>
@@ -226,20 +238,29 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
             </p>
           </div>
           {isAdmin && (
-            <button
-                onClick={() => {
-                    if (showForm && editingId) {
-                        resetForm();
-                    } else {
-                        setShowForm(!showForm);
-                        if (!showForm) resetForm();
-                    }
-                }}
-                className="group flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 hover:shadow-sm transition-all duration-300 rounded-full text-xs font-bold tracking-wide"
-            >
-                <Plus className={`w-4 h-4 transition-transform duration-300 ${showForm && !editingId ? "rotate-45" : ""}`} />
-                {showForm ? "キャンセル" : "新規記録作成"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all font-bold text-xs tracking-widest shadow-sm hover:shadow-md"
+              >
+                <Upload className="w-4 h-4" />
+                UPLOAD TACTICAL DATA
+              </button>
+              <button
+                  onClick={() => {
+                      if (showForm && editingId) {
+                          resetForm();
+                      } else {
+                          setShowForm(!showForm);
+                          if (!showForm) resetForm();
+                      }
+                  }}
+                  className="group flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 hover:shadow-sm transition-all duration-300 rounded-full text-xs font-bold tracking-wide"
+              >
+                  <Plus className={`w-4 h-4 transition-transform duration-300 ${showForm && !editingId ? "rotate-45" : ""}`} />
+                  {showForm ? "キャンセル" : "新規手動入力"}
+              </button>
+            </div>
           )}
         </div>
 
