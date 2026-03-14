@@ -57,7 +57,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
     title: "",
     date: new Date().toISOString().split('T')[0],
     distance: "0km",
-    members: 1,
+    members: [],
     weather: "Clear",
     details: "",
     geojson: "",
@@ -77,7 +77,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
         title: "",
         date: new Date().toISOString().split('T')[0],
         distance: "0km",
-        members: 1,
+        members: [],
         weather: "Clear",
         details: "",
         geojson: "",
@@ -93,7 +93,23 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
   };
 
   const handleEditClick = (archive: Archive) => {
-      setFormData(archive);
+      // Handle legacy numeric members
+      let currentMembers: string[] = [];
+      if (Array.isArray(archive.members)) {
+          currentMembers = archive.members;
+      } else if (typeof archive.members === 'number') {
+          // Convert legacy number to array of empty strings or just leave empty depending on preference,
+          // but for safety in the form we need a string[]. We'll initialize it empty.
+          currentMembers = [];
+      } else if (typeof archive.members === 'string') {
+           // just in case it's a single string somehow
+           currentMembers = [archive.members];
+      }
+
+      setFormData({
+          ...archive,
+          members: currentMembers
+      });
       setEditingId(archive.id);
       setShowForm(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -187,7 +203,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
             title: formData.title || "Untitled Operation",
             date: formData.date || new Date().toISOString().split('T')[0],
             distance: formData.distance || "0km",
-            members: Number(formData.members) || 1,
+            members: Array.isArray(formData.members) ? formData.members : [],
             weather: (formData.weather as "Clear" | "Rainy" | "Cloudy" | "Snow") || "Clear",
             details: formData.details || "",
             geojson: formData.geojson || null,
@@ -366,14 +382,14 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Members</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Members (Crew)</label>
                         <input
-                            type="number"
+                            type="text"
                             name="members"
-                            value={formData.members || 1}
-                            onChange={handleInputChange}
+                            value={Array.isArray(formData.members) ? formData.members.join(', ') : ''}
+                            onChange={(e) => setFormData({ ...formData, members: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                            placeholder="Mieno, Sato"
                             className="w-full bg-gray-50 border border-transparent text-gray-900 px-4 py-3 text-sm rounded-lg focus:bg-white focus:border-blue-500/20 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
-                            min={1}
                             disabled={submitting}
                         />
                       </div>
@@ -580,7 +596,9 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
 
                                 <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
                                 <Users className="w-3.5 h-3.5 text-gray-400" />
-                                <span className="text-xs text-gray-600 font-medium">{archive.members} members</span>
+                                <span className="text-xs text-gray-600 font-medium">
+    {Array.isArray(archive.members) ? archive.members.length : (typeof archive.members === 'number' ? archive.members : 1)} members
+  </span>
                                 </div>
                                 <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
                                 <WeatherIcon condition={archive.weather || "Clear"} />

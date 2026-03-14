@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Archive } from '@/types/database';
 import { motion, Variants } from 'framer-motion';
 import Map, { Source, Layer, LayerProps } from 'react-map-gl/mapbox';
-import { MapPin, Calendar, Gauge, Zap, Mountain, Users, Cloud, Sun, CloudRain, Snowflake, ArrowLeft } from 'lucide-react';
+import { MapPin, Calendar, Gauge, Zap, Mountain, Users, Cloud, Sun, CloudRain, Snowflake, ArrowLeft, Clock, Activity, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -159,7 +159,27 @@ export default function ArchiveDetailClient({ archive }: Props) {
 
               <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50 flex flex-col">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Mountain className="w-3.5 h-3.5 text-blue-400" /> Max Elevation
+                  <Activity className="w-3.5 h-3.5 text-blue-500" /> Avg Speed
+                </span>
+                <span className="text-2xl font-semibold text-gray-900">
+                  {archive.avg_speed ? `${archive.avg_speed.toFixed(0)} km/h` : 'N/A'}
+                </span>
+              </div>
+
+              <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50 flex flex-col">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-green-500" /> Duration
+                </span>
+                <span className="text-2xl font-semibold text-gray-900">
+                  {archive.duration_time ? archive.duration_time : 'N/A'}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50 flex flex-col">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Mountain className="w-3.5 h-3.5 text-indigo-400" /> Max Elevation
                 </span>
                 <span className="text-2xl font-semibold text-gray-900">
                   {archive.max_elevation ? `${archive.max_elevation.toFixed(0)} m` : 'N/A'}
@@ -168,9 +188,34 @@ export default function ArchiveDetailClient({ archive }: Props) {
 
               <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50 flex flex-col">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5" /> Members
+                  <ArrowUpRight className="w-3.5 h-3.5 text-purple-500" /> Elev Gain
                 </span>
-                <span className="text-2xl font-semibold text-gray-900">{archive.members}</span>
+                <span className="text-2xl font-semibold text-gray-900">
+                  {archive.elevation_gain ? `${archive.elevation_gain.toFixed(0)} m` : 'N/A'}
+                </span>
+              </div>
+
+              <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50 flex flex-col">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" /> Crew
+                </span>
+                <div className="flex items-center mt-1">
+                  {archive.members && Array.isArray(archive.members) ? (
+                    <div className="flex -space-x-2">
+                      {archive.members.map((member, idx) => (
+                        <div
+                          key={idx}
+                          title={member}
+                          className="w-8 h-8 rounded-full border-2 border-white bg-gray-900 text-white flex items-center justify-center text-xs font-bold shadow-sm"
+                        >
+                          {member.charAt(0)}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-2xl font-semibold text-gray-900">{archive.members || '1'}</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
