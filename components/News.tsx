@@ -138,7 +138,7 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
                 >
                     <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 relative">
                         {/* Interactive Area Link */}
-                        <Link href={getLinkForCategory(item.category)} className="absolute inset-0 z-0"></Link>
+                        <Link href={`/news/${item.id}`} className="absolute inset-0 z-0"></Link>
 
                         {item.image_url && (
                             <div className="w-full md:w-48 h-32 md:h-28 flex-shrink-0 relative overflow-hidden rounded-lg border border-white/10 bg-white/5 z-10 pointer-events-none">

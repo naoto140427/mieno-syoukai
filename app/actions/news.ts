@@ -80,3 +80,22 @@ export async function getNews() {
 
     return (data as News[]) || [];
 }
+
+export async function getNewsById(id: number) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('news')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (error) {
+        if (error.code === 'PGRST116') {
+            return null; // Not found
+        }
+        console.error('Error fetching news by id:', error);
+        throw new Error('Failed to fetch news');
+    }
+
+    return data as News;
+}
