@@ -1,0 +1,18 @@
+
+> temp-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+- Experiments (use with caution):
+  · clientTraceMetadata
+  · serverActions
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Ready in 5.6s
+○ Compiling /news-test ...
+ GET /news-test 200 in 14.1s (compile: 12.7s, proxy.ts: 434ms, render: 972ms)
+(node:7153) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
