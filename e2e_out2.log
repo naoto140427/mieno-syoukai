@@ -1,0 +1,265 @@
+
+> temp-app@0.1.0 test:e2e
+> playwright test
+
+
+Running 30 tests using 2 workers
+
+[1A[2K[1/30] [chromium] › tests/navigation.spec.ts:8:7 › Navigation › homepage has correct title
+[1A[2K[2/30] [chromium] › tests/navigation.spec.ts:12:7 › Navigation › desktop navigation links work
+[1A[2K[3/30] [chromium] › tests/navigation.spec.ts:30:7 › Navigation › mobile navigation menu works
+[1A[2K[4/30] [chromium] › tests/visual.spec.ts:11:9 › Visual Regression › home page visual
+[1A[2K  1) [chromium] › tests/navigation.spec.ts:12:7 › Navigation › desktop navigation links work ───────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/units/[39m
+    Received string:  [31m"http://localhost:3000/"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    8 × unexpected value "http://localhost:3000/"[22m
+
+
+      23 |       const navLink = page.locator('nav .hidden.lg\\:flex').getByRole('link', { name: link.name });
+      24 |       await navLink.click();
+    > 25 |       await expect(page).toHaveURL(new RegExp(link.href));
+         |                          ^
+      26 |       await page.goto('/');
+      27 |     }
+      28 |   });
+        at /app/tests/navigation.spec.ts:25:26
+
+    Error Context: test-results/navigation-Navigation-desktop-navigation-links-work-chromium/error-context.md
+
+
+[1A[2K[5/30] [chromium] › tests/visual.spec.ts:11:9 › Visual Regression › units page visual
+[1A[2K  2) [chromium] › tests/visual.spec.ts:11:9 › Visual Regression › home page visual ─────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForLoadState: Test timeout of 30000ms exceeded.
+
+      12 |       await page.goto(p.path);
+      13 |       // Wait for network to be idle to ensure content is loaded
+    > 14 |       await page.waitForLoadState('networkidle');
+         |                  ^
+      15 |
+      16 |       // Wait a bit for animations to settle
+      17 |       await page.waitForTimeout(1000);
+        at /app/tests/visual.spec.ts:14:18
+
+    Error Context: test-results/visual-Visual-Regression-home-page-visual-chromium/error-context.md
+
+
+[1A[2K[6/30] [chromium] › tests/visual.spec.ts:11:9 › Visual Regression › logistics page visual
+[1A[2K[7/30] [firefox] › tests/navigation.spec.ts:8:7 › Navigation › homepage has correct title
+[1A[2K[8/30] [firefox] › tests/navigation.spec.ts:12:7 › Navigation › desktop navigation links work
+[1A[2K[9/30] [firefox] › tests/navigation.spec.ts:30:7 › Navigation › mobile navigation menu works
+[1A[2K  3) [chromium] › tests/visual.spec.ts:11:9 › Visual Regression › logistics page visual ────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveScreenshot[2m([22m[32mexpected[39m[2m)[22m failed
+
+      Expected an image 1280px by 1452px, received 1280px by 1494px.
+
+      Snapshot: logistics.png
+
+    Call log:
+    [2m  - Expect "toHaveScreenshot(logistics.png)" with timeout 5000ms[22m
+    [2m    - verifying given screenshot expectation[22m
+    [2m  - taking page screenshot[22m
+    [2m    - disabled all CSS animations[22m
+    [2m  - waiting for fonts to load...[22m
+    [2m  - fonts loaded[22m
+    [2m  - Expected an image 1280px by 1452px, received 1280px by 1494px.[22m
+    [2m  - waiting 100ms before taking screenshot[22m
+    [2m  - taking page screenshot[22m
+    [2m    - disabled all CSS animations[22m
+    [2m  - waiting for fonts to load...[22m
+    [2m  - fonts loaded[22m
+    [2m  - captured a stable screenshot[22m
+    [2m  - Expected an image 1280px by 1452px, received 1280px by 1494px.[22m
+
+
+      17 |       await page.waitForTimeout(1000);
+      18 |
+    > 19 |       await expect(page).toHaveScreenshot(`${p.name}.png`, {
+         |                          ^
+      20 |         fullPage: true,
+      21 |         maxDiffPixelRatio: 0.05
+      22 |       });
+        at /app/tests/visual.spec.ts:19:26
+
+    attachment #1: logistics (image/png) ───────────────────────────────────────────────────────────
+    Expected: tests/visual.spec.ts-snapshots/logistics-chromium-linux.png
+    Received: test-results/visual-Visual-Regression-logistics-page-visual-chromium/logistics-actual.png
+    Diff:     test-results/visual-Visual-Regression-logistics-page-visual-chromium/logistics-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/visual-Visual-Regression-logistics-page-visual-chromium/error-context.md
+
+
+[1A[2K[10/30] [firefox] › tests/visual.spec.ts:11:9 › Visual Regression › home page visual
+[1A[2K[11/30] [firefox] › tests/visual.spec.ts:11:9 › Visual Regression › units page visual
+[1A[2K[12/30] [firefox] › tests/visual.spec.ts:11:9 › Visual Regression › logistics page visual
+[1A[2K  4) [firefox] › tests/visual.spec.ts:11:9 › Visual Regression › home page visual ──────────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveScreenshot[2m([22m[32mexpected[39m[2m)[22m failed
+
+      Expected an image 1280px by 1786px, received 1280px by 1788px.
+
+      Snapshot: home.png
+
+    Call log:
+    [2m  - Expect "toHaveScreenshot(home.png)" with timeout 5000ms[22m
+    [2m    - verifying given screenshot expectation[22m
+    [2m  - taking page screenshot[22m
+    [2m    - disabled all CSS animations[22m
+    [2m  - waiting for fonts to load...[22m
+    [2m  - fonts loaded[22m
+    [2m  - Expected an image 1280px by 1786px, received 1280px by 1788px.[22m
+    [2m  - waiting 100ms before taking screenshot[22m
+    [2m  - taking page screenshot[22m
+    [2m    - disabled all CSS animations[22m
+    [2m  - waiting for fonts to load...[22m
+    [2m  - fonts loaded[22m
+    [2m  - captured a stable screenshot[22m
+    [2m  - Expected an image 1280px by 1786px, received 1280px by 1788px.[22m
+
+
+      17 |       await page.waitForTimeout(1000);
+      18 |
+    > 19 |       await expect(page).toHaveScreenshot(`${p.name}.png`, {
+         |                          ^
+      20 |         fullPage: true,
+      21 |         maxDiffPixelRatio: 0.05
+      22 |       });
+        at /app/tests/visual.spec.ts:19:26
+
+    attachment #1: home (image/png) ────────────────────────────────────────────────────────────────
+    Expected: tests/visual.spec.ts-snapshots/home-firefox-linux.png
+    Received: test-results/visual-Visual-Regression-home-page-visual-firefox/home-actual.png
+    Diff:     test-results/visual-Visual-Regression-home-page-visual-firefox/home-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/visual-Visual-Regression-home-page-visual-firefox/error-context.md
+
+
+[1A[2K[13/30] [webkit] › tests/navigation.spec.ts:8:7 › Navigation › homepage has correct title
+[1A[2K[14/30] [webkit] › tests/navigation.spec.ts:12:7 › Navigation › desktop navigation links work
+[1A[2K[15/30] [webkit] › tests/navigation.spec.ts:30:7 › Navigation › mobile navigation menu works
+[1A[2K[16/30] [webkit] › tests/visual.spec.ts:11:9 › Visual Regression › home page visual
+[1A[2K[17/30] [webkit] › tests/visual.spec.ts:11:9 › Visual Regression › units page visual
+[1A[2K[18/30] [webkit] › tests/visual.spec.ts:11:9 › Visual Regression › logistics page visual
+[1A[2K[19/30] [Mobile Chrome] › tests/navigation.spec.ts:8:7 › Navigation › homepage has correct title
+[1A[2K[20/30] [Mobile Chrome] › tests/navigation.spec.ts:12:7 › Navigation › desktop navigation links work
+[1A[2K[21/30] [Mobile Chrome] › tests/navigation.spec.ts:30:7 › Navigation › mobile navigation menu works
+[1A[2K[22/30] [Mobile Chrome] › tests/visual.spec.ts:11:9 › Visual Regression › home page visual
+[1A[2K  5) [Mobile Chrome] › tests/navigation.spec.ts:30:7 › Navigation › mobile navigation menu works ───
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('.fixed.inset-0').getByRole('link', { name: '機動戦力', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('.fixed.inset-0').getByRole('link', { name: '機動戦力', exact: true })[22m
+
+
+      42 |       // Use exact: true to distinguish between "Contact" and "Contact Us"
+      43 |       const menuLink = page.locator('.fixed.inset-0').getByRole('link', { name: link.name, exact: true });
+    > 44 |       await expect(menuLink).toBeVisible();
+         |                              ^
+      45 |       await menuLink.click();
+      46 |       await expect(page).toHaveURL(new RegExp(link.href));
+      47 |       await page.goto('/');
+        at /app/tests/navigation.spec.ts:44:30
+
+    Error Context: test-results/navigation-Navigation-mobile-navigation-menu-works-Mobile-Chrome/error-context.md
+
+
+[1A[2K[23/30] [Mobile Chrome] › tests/visual.spec.ts:11:9 › Visual Regression › logistics page visual
+[1A[2K[24/30] [Mobile Chrome] › tests/visual.spec.ts:11:9 › Visual Regression › units page visual
+[1A[2K[25/30] [Mobile Safari] › tests/navigation.spec.ts:8:7 › Navigation › homepage has correct title
+[1A[2K  6) [Mobile Chrome] › tests/visual.spec.ts:11:9 › Visual Regression › logistics page visual ───────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveScreenshot[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Timeout: 5000ms
+      Timeout 5000ms exceeded.
+
+      Snapshot: logistics.png
+
+    Call log:
+    [2m  - Expect "toHaveScreenshot(logistics.png)" with timeout 5000ms[22m
+    [2m    - verifying given screenshot expectation[22m
+    [2m  - taking page screenshot[22m
+    [2m    - disabled all CSS animations[22m
+    [2m  - waiting for fonts to load...[22m
+    [2m  - fonts loaded[22m
+    [2m  - failed to take screenshot - Protocol error (Page.captureScreenshot): Unable to capture screenshot[22m
+    [2m  - waiting 100ms before taking screenshot[22m
+    [2m  - Timeout 5000ms exceeded.[22m
+
+
+      17 |       await page.waitForTimeout(1000);
+      18 |
+    > 19 |       await expect(page).toHaveScreenshot(`${p.name}.png`, {
+         |                          ^
+      20 |         fullPage: true,
+      21 |         maxDiffPixelRatio: 0.05
+      22 |       });
+        at /app/tests/visual.spec.ts:19:26
+
+    attachment #1: logistics (image/png) ───────────────────────────────────────────────────────────
+    tests/visual.spec.ts-snapshots/logistics-Mobile-Chrome-linux.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/visual-Visual-Regression-logistics-page-visual-Mobile-Chrome/error-context.md
+
+
+[1A[2K[26/30] [Mobile Safari] › tests/navigation.spec.ts:12:7 › Navigation › desktop navigation links work
+[1A[2K[27/30] [Mobile Safari] › tests/navigation.spec.ts:30:7 › Navigation › mobile navigation menu works
+[1A[2K[28/30] [Mobile Safari] › tests/visual.spec.ts:11:9 › Visual Regression › home page visual
+[1A[2K[29/30] [Mobile Safari] › tests/visual.spec.ts:11:9 › Visual Regression › units page visual
+[1A[2K  7) [Mobile Safari] › tests/navigation.spec.ts:30:7 › Navigation › mobile navigation menu works ───
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('.fixed.inset-0').getByRole('link', { name: '機動戦力', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('.fixed.inset-0').getByRole('link', { name: '機動戦力', exact: true })[22m
+
+
+      42 |       // Use exact: true to distinguish between "Contact" and "Contact Us"
+      43 |       const menuLink = page.locator('.fixed.inset-0').getByRole('link', { name: link.name, exact: true });
+    > 44 |       await expect(menuLink).toBeVisible();
+         |                              ^
+      45 |       await menuLink.click();
+      46 |       await expect(page).toHaveURL(new RegExp(link.href));
+      47 |       await page.goto('/');
+        at /app/tests/navigation.spec.ts:44:30
+
+    Error Context: test-results/navigation-Navigation-mobile-navigation-menu-works-Mobile-Safari/error-context.md
+
+
+[1A[2K[30/30] [Mobile Safari] › tests/visual.spec.ts:11:9 › Visual Regression › logistics page visual
+[1A[2K  7 failed
+    [chromium] › tests/navigation.spec.ts:12:7 › Navigation › desktop navigation links work ────────
+    [chromium] › tests/visual.spec.ts:11:9 › Visual Regression › home page visual ──────────────────
+    [chromium] › tests/visual.spec.ts:11:9 › Visual Regression › logistics page visual ─────────────
+    [firefox] › tests/visual.spec.ts:11:9 › Visual Regression › home page visual ───────────────────
+    [Mobile Chrome] › tests/navigation.spec.ts:30:7 › Navigation › mobile navigation menu works ────
+    [Mobile Chrome] › tests/visual.spec.ts:11:9 › Visual Regression › logistics page visual ────────
+    [Mobile Safari] › tests/navigation.spec.ts:30:7 › Navigation › mobile navigation menu works ────
+  5 skipped
+  18 passed (3.0m)
