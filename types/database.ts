@@ -54,6 +54,7 @@ export interface Inquiry {
 }
 
 export interface News {
+  is_pinned?: boolean;
   id: number;
   date: string;
   category: 'PRESS' | 'UPDATE' | 'REPORT' | 'OTHER' | 'TOURING';

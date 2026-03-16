@@ -161,6 +161,25 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
                                     </div>
                                 </div>
                             )}
+
+                            {news.event_date && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="pt-6 border-t border-white/10"
+                                >
+                                    <a
+                                        href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(news.title)}&dates=${news.event_date.replace(/-/g, '')}T000000Z/${news.event_date.replace(/-/g, '')}T235959Z&details=${encodeURIComponent(news.content)}&location=${encodeURIComponent(news.location || '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-bold tracking-widest rounded-full hover:bg-gray-200 transition-colors uppercase text-sm"
+                                    >
+                                        📅 ADD TO CALENDAR
+                                        <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">(カレンダーに追加)</span>
+                                    </a>
+                                </motion.div>
+                            )}
                         </div>
                     </motion.div>
                 )}

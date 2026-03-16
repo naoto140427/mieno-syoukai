@@ -141,7 +141,7 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
                 <motion.div
                     key={item.id}
                     variants={itemVariants}
-                    className="group relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-md border border-white/10 p-6 hover:bg-white/10 transition-colors duration-300"
+                    className={`group relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-md border p-6 hover:bg-white/10 transition-colors duration-300 ${item.is_pinned ? "border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "border-white/10"}`}
                 >
                     <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 relative">
                         {/* Interactive Area Link */}
@@ -163,6 +163,11 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
                             <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-gray-300 ring-1 ring-inset ring-white/20 tracking-widest">
                                 {item.category}
                             </span>
+                            {item.is_pinned && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-1 text-xs font-bold text-red-400 ring-1 ring-inset ring-red-500/20 tracking-widest">
+                                    📌 IMPORTANT
+                                </span>
+                            )}
                             {item.category === 'TOURING' && item.event_date && (
                                 <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-bold tracking-widest ring-1 ring-inset ${
                                     isUpcoming(item.event_date)
