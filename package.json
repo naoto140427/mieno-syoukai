@@ -30,7 +30,7 @@
     "react-map-gl": "^8.1.0",
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.0",
-    "resend": "^6.9.2"
+    "resend": "^6.9.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
