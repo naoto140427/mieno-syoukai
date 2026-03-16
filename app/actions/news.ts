@@ -75,7 +75,7 @@ export async function getNews(limit?: number) {
     let query = supabase
         .from('news')
         .select('*')
-        .order('date', { ascending: false });
+        .order('is_pinned', { ascending: false }).order('date', { ascending: false });
 
     if (limit) {
         query = query.limit(limit);
