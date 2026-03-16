@@ -42,6 +42,13 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
   const [currentNews, setCurrentNews] = useState<NewsType | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  const isUpcoming = (dateStr?: string) => {
+      if (!dateStr) return false;
+      const eventDate = new Date(dateStr);
+      eventDate.setHours(23, 59, 59, 999);
+      return eventDate >= new Date();
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -153,9 +160,19 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
                         <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 flex-1 z-10 pointer-events-none">
                             <div className="flex items-center gap-4 min-w-fit">
                             <time className="font-mono text-sm text-gray-400">{item.date.replace(/-/g, '.')}</time>
-                            <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/20">
+                            <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-gray-300 ring-1 ring-inset ring-white/20 tracking-widest">
                                 {item.category}
                             </span>
+                            {item.category === 'TOURING' && item.event_date && (
+                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-bold tracking-widest ring-1 ring-inset ${
+                                    isUpcoming(item.event_date)
+                                        ? 'bg-green-500/10 text-green-400 ring-green-500/20'
+                                        : 'bg-gray-500/10 text-gray-400 ring-gray-500/20'
+                                }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${isUpcoming(item.event_date) ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
+                                    {isUpcoming(item.event_date) ? 'UPCOMING (作戦待機)' : 'COMPLETED (作戦完了)'}
+                                </span>
+                            )}
                             </div>
                             <h3 className="text-lg font-medium leading-6 text-white group-hover:text-blue-400 transition-colors flex-1">
                             {item.title}

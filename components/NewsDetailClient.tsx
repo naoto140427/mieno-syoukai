@@ -1,9 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ArrowLeft, Share2, Printer } from 'lucide-react';
+import { ArrowLeft, Share2, Printer, MapPin, Calendar, ClipboardCheck } from 'lucide-react';
 import Link from 'next/link';
 import { News as NewsType } from '@/types/database';
+import ReactMarkdown from 'react-markdown';
 
 interface NewsDetailClientProps {
     news: NewsType;
@@ -106,14 +107,64 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
                 transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 className="max-w-3xl mx-auto"
             >
-                <div className="prose prose-invert prose-lg max-w-none text-gray-300 leading-[2.2] tracking-wide">
-                    {/* Render content preserving line breaks */}
-                    {news.content.split('\n').map((paragraph, index) => (
-                        <p key={index} className="mb-6 font-medium text-lg min-h-[1.5em]">
-                            {paragraph}
-                        </p>
-                    ))}
+                <div className="prose prose-invert prose-lg max-w-none text-gray-300 leading-[2.2] tracking-wide prose-p:mb-6 prose-p:font-medium prose-p:text-lg prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline">
+                    <ReactMarkdown>{news.content}</ReactMarkdown>
                 </div>
+
+                {news.category === 'TOURING' && (news.event_date || news.location || news.requirements) && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                        className="mt-16 bg-white/5 border border-white/10 rounded-2xl p-8"
+                    >
+                        <h2 className="text-xl font-bold tracking-widest text-white mb-8 flex items-center gap-3 uppercase">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                            Operation Details
+                            <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">作戦詳細</span>
+                        </h2>
+
+                        <div className="space-y-6">
+                            {news.event_date && (
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shrink-0">
+                                        <Calendar className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">Date</h3>
+                                        <p className="text-lg text-white font-mono">{news.event_date}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {news.location && (
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shrink-0">
+                                        <MapPin className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">Rendezvous Point</h3>
+                                        <p className="text-lg text-white">{news.location}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {news.requirements && (
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shrink-0">
+                                        <ClipboardCheck className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">Requirements</h3>
+                                        <p className="text-lg text-white">{news.requirements}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+
 
                 <div className="mt-24 pt-8 border-t border-white/10 text-center flex flex-col items-center">
                     <div className="w-12 h-1 bg-blue-600 rounded-full mb-8 opacity-50"></div>
