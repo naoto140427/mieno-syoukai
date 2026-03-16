@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import { X, Trash2, Loader2, Save, Sparkles, Globe, Tags } from 'lucide-react';
 import { News as NewsType } from '@/types/database';
 import { generateNewsContent, translateNews, generateNewsMetadata } from '@/app/actions/news-ai';
@@ -158,7 +159,7 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                        className="relative bg-[#1A1A1A] border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden text-white flex flex-col max-h-[90vh]"
+                        className="relative bg-[#1A1A1A] border border-white/10 md:rounded-2xl shadow-2xl w-[100vw] h-[100dvh] md:h-auto md:w-full md:max-w-3xl overflow-hidden text-white flex flex-col md:max-h-[90vh]"
                     >
                         <div className="flex justify-between items-center p-6 border-b border-white/10 shrink-0">
                             <div>
