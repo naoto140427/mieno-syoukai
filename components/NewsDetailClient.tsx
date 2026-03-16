@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, Share2, Printer, MapPin, Calendar, ClipboardCheck } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { News as NewsType } from '@/types/database';
 import ReactMarkdown from 'react-markdown';
 
@@ -34,7 +35,7 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
     };
 
     return (
-        <article className="max-w-4xl mx-auto px-6 lg:px-8">
+        <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -42,11 +43,11 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
                 className="mb-12 flex items-center justify-between border-b border-white/10 pb-6 print:hidden"
             >
                 <Link
-                    href="/#news"
+                    href="/news"
                     className="group flex items-center gap-2 text-sm font-bold tracking-widest text-gray-400 hover:text-white transition-colors uppercase"
                 >
                     <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                    BACK TO BASE
+                    ← 通達一覧へ戻る
                 </Link>
                 <div className="flex gap-4">
                     <button
@@ -80,7 +81,7 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
                         {news.date.replace(/-/g, '.')}
                     </time>
                 </div>
-                <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-8 leading-tight">
+                <h1 className="text-2xl md:text-5xl font-bold tracking-tight text-white mb-8 leading-tight">
                     {news.title}
                 </h1>
 
@@ -91,11 +92,12 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
                         transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
                         className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 mt-12 bg-white/5"
                     >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <Image
                             src={news.image_url}
                             alt={news.title}
-                            className="absolute inset-0 w-full h-full object-cover"
+                            fill
+                            sizes="(max-width: 896px) 100vw, 896px"
+                            className="object-cover"
                         />
                     </motion.div>
                 )}
@@ -117,22 +119,22 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, delay: 0.2 }}
-                        className="mt-16 bg-white/5 border border-white/10 rounded-2xl p-8"
+                        className="mt-16 bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
                     >
                         <h2 className="text-xl font-bold tracking-widest text-white mb-8 flex items-center gap-3 uppercase">
                             <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                            Operation Details
-                            <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">作戦詳細</span>
+                            作戦詳細
+                            <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">OPERATION DETAILS</span>
                         </h2>
 
-                        <div className="space-y-6">
+                        <div className="flex flex-col gap-6">
                             {news.event_date && (
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 bg-white/5 rounded-xl border border-white/5 shrink-0">
                                         <Calendar className="w-5 h-5 text-blue-400" />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">Date</h3>
+                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">開催日時</h3>
                                         <p className="text-lg text-white font-mono">{news.event_date}</p>
                                     </div>
                                 </div>
@@ -144,7 +146,7 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
                                         <MapPin className="w-5 h-5 text-blue-400" />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">Rendezvous Point</h3>
+                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">集合場所</h3>
                                         <p className="text-lg text-white">{news.location}</p>
                                     </div>
                                 </div>
@@ -156,7 +158,7 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
                                         <ClipboardCheck className="w-5 h-5 text-blue-400" />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">Requirements</h3>
+                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">参加条件</h3>
                                         <p className="text-lg text-white">{news.requirements}</p>
                                     </div>
                                 </div>

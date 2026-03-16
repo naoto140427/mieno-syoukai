@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { ArrowRight, Plus, Edit2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { News as NewsType } from '@/types/database';
 import { addNews, updateNews, deleteNews } from '@/app/actions/news';
 import NewsModal from './NewsModal';
@@ -149,16 +150,17 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
 
                         {item.image_url && (
                             <div className="w-full md:w-48 h-32 md:h-28 flex-shrink-0 relative overflow-hidden rounded-lg border border-white/10 bg-white/5 z-10 pointer-events-none">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
+                                <Image
                                     src={item.image_url}
                                     alt={item.title}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, 192px"
+                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                             </div>
                         )}
                         <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 flex-1 z-10 pointer-events-none">
-                            <div className="flex items-center gap-4 min-w-fit">
+                            <div className="flex items-center gap-4 min-w-fit flex-wrap">
                             <time className="font-mono text-sm text-gray-400">{item.date.replace(/-/g, '.')}</time>
                             <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-gray-300 ring-1 ring-inset ring-white/20 tracking-widest">
                                 {item.category}
@@ -175,7 +177,7 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
                                         : 'bg-gray-500/10 text-gray-400 ring-gray-500/20'
                                 }`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${isUpcoming(item.event_date) ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
-                                    {isUpcoming(item.event_date) ? 'UPCOMING (作戦待機)' : 'COMPLETED (作戦完了)'}
+                                    {isUpcoming(item.event_date) ? '🟢 作戦待機 (Upcoming)' : '⚪️ 作戦完了 (Completed)'}
                                 </span>
                             )}
                             </div>
@@ -235,8 +237,4 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
       )}
     </section>
   );
-}
-
-function getLinkForCategory(id: number) {
-    return `/news/${id}`;
 }

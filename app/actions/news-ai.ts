@@ -93,3 +93,37 @@ export async function generateNewsMetadata(text: string): Promise<{ title: strin
         throw new Error('AI metadata generation failed.');
     }
 }
+
+export async function semanticSearch(query: string, newsArray: any[]): Promise<number[]> {
+  try {
+    const aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+    const prompt = `
+      以下のニュース記事配列から、検索クエリ「${query}」に文脈や同義語レベルで関連する記事のIDを抽出し、JSONの配列形式（例: [1, 5, 12]）のみを返してください。
+      結果は必ずJSON配列のテキストのみとし、マークダウン（\`\`\`jsonなど）や余計な説明は一切含めないでください。
+
+      ニュース記事データ:
+      ${JSON.stringify(newsArray.map(n => ({ id: n.id, title: n.title, content: n.content, category: n.category })), null, 2)}
+    `;
+
+    const response = await aiInstance.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+
+    const text = response.text || '[]';
+    // Remove potential markdown wrappers if the model didn't follow instructions perfectly
+    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    const ids = JSON.parse(cleanText);
+
+    if (Array.isArray(ids)) {
+      return ids.map(id => Number(id)).filter(id => !isNaN(id));
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Semantic search error:', error);
+    return [];
+  }
+}
