@@ -56,10 +56,13 @@ export interface Inquiry {
 export interface News {
   id: number;
   date: string;
-  category: 'PRESS' | 'UPDATE' | 'REPORT' | 'OTHER';
+  category: 'PRESS' | 'UPDATE' | 'REPORT' | 'OTHER' | 'TOURING';
   title: string;
   content: string;
   image_url?: string;
+  event_date?: string;
+  location?: string;
+  requirements?: string;
   created_at?: string;
 }
 

@@ -22,6 +22,7 @@ export async function addNews(data: Omit<News, 'id' | 'created_at'>) {
     }
 
     revalidatePath('/');
+    revalidatePath('/news');
 }
 
 export async function updateNews(id: number, data: Partial<News>) {
@@ -43,6 +44,7 @@ export async function updateNews(id: number, data: Partial<News>) {
     }
 
     revalidatePath('/');
+    revalidatePath('/news');
 }
 
 export async function deleteNews(id: number) {
@@ -64,4 +66,5 @@ export async function deleteNews(id: number) {
     }
 
     revalidatePath('/');
+    revalidatePath('/news');
 }
