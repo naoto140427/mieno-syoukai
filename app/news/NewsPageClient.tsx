@@ -2,14 +2,42 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Search } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Search, Sparkles, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { News } from "@/types/database";
+import { semanticSearch } from "@/app/actions/news-ai";
 
 export default function NewsPageClient({ initialNews }: { initialNews: News[] }) {
     const [activeTab, setActiveTab] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [aiMatchedIds, setAiMatchedIds] = useState<number[] | null>(null);
     const tabs = ['ALL', 'UPDATE', 'NOTICE', 'TOURING'];
+
+    useEffect(() => {
+        const performSearch = async () => {
+            if (!searchQuery.trim()) {
+                setAiMatchedIds(null);
+                setIsSearching(false);
+                return;
+            }
+
+            setIsSearching(true);
+            try {
+                const ids = await semanticSearch(searchQuery, initialNews);
+                setAiMatchedIds(ids);
+            } catch (error) {
+                console.error("AI Search failed", error);
+                setAiMatchedIds(null); // Fallback to local search
+            } finally {
+                setIsSearching(false);
+            }
+        };
+
+        const timer = setTimeout(performSearch, 500); // 500ms debounce
+        return () => clearTimeout(timer);
+    }, [searchQuery, initialNews]);
 
     const filteredNews = initialNews.filter(item => {
         // Tab filter
@@ -23,6 +51,11 @@ export default function NewsPageClient({ initialNews }: { initialNews: News[] })
         // Search filter
         if (!searchQuery) return true;
 
+        if (aiMatchedIds !== null && aiMatchedIds.length > 0) {
+            return aiMatchedIds.includes(item.id);
+        }
+
+        // Fallback or empty AI results local search
         const query = searchQuery.toLowerCase();
         return item.title.toLowerCase().includes(query) ||
                item.content.toLowerCase().includes(query);
@@ -40,22 +73,22 @@ export default function NewsPageClient({ initialNews }: { initialNews: News[] })
             <div className="mx-auto max-w-5xl px-6 lg:px-8">
                 <div className="mb-12 border-b border-white/10 pb-8">
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4" style={{ fontFamily: "var(--font-sf-pro-display), sans-serif" }}>
-                        ALL UPDATES & OPERATIONS
+                        最新通達および作戦記録
                     </h1>
-                    <p className="text-gray-400 text-lg">
-                        全通達および作戦行動一覧
+                    <p className="text-gray-400 text-lg uppercase tracking-widest font-mono">
+                        ALL UPDATES & OPERATIONS
                     </p>
                 </div>
 
                 {/* Tabs & Search */}
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex overflow-x-auto no-scrollbar gap-2 pb-2 md:pb-0 md:flex-wrap">
                         {tabs.map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`px-6 py-2 rounded-full text-sm font-bold tracking-widest transition-all ${
+                                className={`px-6 py-2 rounded-full text-sm font-bold tracking-widest transition-all whitespace-nowrap ${
                                     activeTab === tab
                                         ? 'bg-white text-black'
                                         : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
@@ -65,17 +98,24 @@ export default function NewsPageClient({ initialNews }: { initialNews: News[] })
                             </button>
                         ))}
                     </div>
-                    <div className="relative w-full md:w-64 shrink-0">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Search className="h-4 w-4 text-gray-400" />
+                    <div className="relative w-full md:w-72 shrink-0 group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                            {isSearching ? (
+                                <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />
+                            ) : (
+                                <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-400 transition-colors" />
+                            )}
                         </div>
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search..."
-                            className="w-full bg-white/5 border border-white/10 rounded-full py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all backdrop-blur-sm"
+                            placeholder="AI Search..."
+                            className="w-full bg-white/5 border border-white/10 rounded-full py-3 pl-10 pr-10 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all backdrop-blur-sm"
                         />
+                         <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
+                             <Sparkles className="h-4 w-4 text-blue-500/50" />
+                        </div>
                     </div>
                 </div>
 
@@ -89,7 +129,7 @@ export default function NewsPageClient({ initialNews }: { initialNews: News[] })
                                 exit={{ opacity: 0 }}
                                 className="text-gray-500 text-center py-16 border border-white/10 rounded-2xl bg-white/5"
                             >
-                                No updates available for this category.
+                                No updates available for this category or search query.
                             </motion.div>
                         ) : (
                             filteredNews.map((item) => (
@@ -104,12 +144,13 @@ export default function NewsPageClient({ initialNews }: { initialNews: News[] })
                                 >
                                     <Link href={`/news/${item.id}`} className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8 relative z-10">
                                         {item.image_url && (
-                                            <div className="w-full md:w-56 h-40 md:h-32 flex-shrink-0 relative overflow-hidden rounded-xl bg-white/5 border border-white/10">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
+                                            <div className="w-full md:w-56 h-48 md:h-32 flex-shrink-0 relative overflow-hidden rounded-xl bg-white/5 border border-white/10">
+                                                <Image
                                                     src={item.image_url}
                                                     alt={item.title}
-                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                    fill
+                                                    sizes="(max-width: 768px) 100vw, 224px"
+                                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                                                 />
                                             </div>
                                         )}
@@ -131,7 +172,7 @@ export default function NewsPageClient({ initialNews }: { initialNews: News[] })
                                                             : 'bg-gray-500/10 text-gray-400 ring-gray-500/20'
                                                     }`}>
                                                         <span className={`w-1.5 h-1.5 rounded-full ${isUpcoming(item.event_date) ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
-                                                        {isUpcoming(item.event_date) ? 'UPCOMING (作戦待機)' : 'COMPLETED (作戦完了)'}
+                                                        {isUpcoming(item.event_date) ? '🟢 作戦待機 (Upcoming)' : '⚪️ 作戦完了 (Completed)'}
                                                     </span>
                                                 )}
                                             </div>
