@@ -22,7 +22,8 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
         date: new Date().toISOString().split('T')[0],
         category: 'UPDATE',
         content: '',
-        image_url: ''
+        image_url: '',
+        is_pinned: false
     });
 
     useEffect(() => {
@@ -37,7 +38,8 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                     date: initialData.date,
                     category: initialData.category,
                     content: initialData.content,
-                    image_url: initialData.image_url || ''
+                    image_url: initialData.image_url || '',
+                    is_pinned: initialData.is_pinned || false
                 });
             } else {
                 setFormData({
@@ -45,7 +47,8 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                     date: new Date().toISOString().split('T')[0],
                     category: 'UPDATE',
                     content: '',
-                    image_url: ''
+                    image_url: '',
+                    is_pinned: false
                 });
             }
         }
@@ -148,6 +151,21 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                                         </select>
                                     </div>
                                 </div>
+
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="checkbox"
+                                        id="is_pinned"
+                                        checked={formData.is_pinned || false}
+                                        onChange={(e) => setFormData({...formData, is_pinned: e.target.checked})}
+                                        className="w-5 h-5 rounded border-white/10 bg-white/5 text-red-500 focus:ring-red-500 focus:ring-offset-gray-900"
+                                    />
+                                    <label htmlFor="is_pinned" className="text-sm font-bold text-gray-300 flex items-center gap-2 cursor-pointer">
+                                        📌 ピン留め (Pin to Top)
+                                        <span className="text-xs text-gray-500 font-normal">※一覧の最上部に固定されます</span>
+                                    </label>
+                                </div>
+
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 mb-2 tracking-widest uppercase">Image URL <span className="text-gray-600 font-normal">(Optional)</span></label>
                                     <input
