@@ -1,5 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
-import { News as NewsType } from "@/types/database";
+import { getNews } from "@/app/actions/news";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -9,14 +8,7 @@ export const metadata = {
 };
 
 export default async function NewsPage() {
-  const supabase = await createClient();
-
-  const { data } = await supabase
-    .from('news')
-    .select('*')
-    .order('date', { ascending: false });
-
-  const news = (data as NewsType[]) || [];
+  const news = await getNews();
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-gray-900 pt-32 pb-24">
