@@ -144,6 +144,7 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                                             <option value="PRESS" className="bg-gray-900">PRESS</option>
                                             <option value="REPORT" className="bg-gray-900">REPORT</option>
                                             <option value="OTHER" className="bg-gray-900">OTHER</option>
+                                            <option value="TOURING" className="bg-gray-900">TOURING</option>
                                         </select>
                                     </div>
                                 </div>
@@ -157,8 +158,52 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                                         placeholder="https://mieno-images.s3.../image.jpg"
                                     />
                                 </div>
+
+                                <AnimatePresence>
+                                    {formData.category === 'TOURING' && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                                            animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                                            exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                                            transition={{ duration: 0.3 }}
+                                            className="space-y-6"
+                                        >
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="block text-xs font-bold text-gray-400 mb-2 tracking-widest uppercase">Event Date <span className="text-gray-600 font-normal">(開催日時)</span></label>
+                                                    <input
+                                                        type="date"
+                                                        value={formData.event_date || ''}
+                                                        onChange={(e) => setFormData({...formData, event_date: e.target.value})}
+                                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-white font-mono text-sm"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-gray-400 mb-2 tracking-widest uppercase">Location <span className="text-gray-600 font-normal">(集合場所)</span></label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData.location || ''}
+                                                        onChange={(e) => setFormData({...formData, location: e.target.value})}
+                                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-white placeholder-gray-600 font-medium"
+                                                        placeholder="Enter location..."
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-400 mb-2 tracking-widest uppercase">Requirements <span className="text-gray-600 font-normal">(参加条件)</span></label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.requirements || ''}
+                                                    onChange={(e) => setFormData({...formData, requirements: e.target.value})}
+                                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-white placeholder-gray-600 font-medium"
+                                                    placeholder="Enter requirements..."
+                                                />
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-2 tracking-widest uppercase">Content</label>
+                                    <label className="block text-xs font-bold text-gray-400 mb-2 tracking-widest uppercase">Content <span className="text-gray-600 font-normal ml-2">※Markdown記法（**太字**、- リスト等）が使用可能です</span></label>
                                     <textarea
                                         required
                                         rows={8}
