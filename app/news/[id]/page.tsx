@@ -1,49 +1,39 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
-import NewsDetailClient from "@/components/NewsDetailClient";
+import { notFound } from 'next/navigation';
+import { getNewsById } from '@/app/actions/news';
+import NewsDetailClient from '@/components/NewsDetailClient';
+import { Metadata } from 'next';
 
-export async function generateMetadata(
-  props: { params: Promise<{ id: string }> }
-) {
-  const params = await props.params;
-  const id = params.id;
-  const supabase = await createClient();
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+    const resolvedParams = await params;
+    const id = parseInt(resolvedParams.id, 10);
+    if (isNaN(id)) return { title: 'Not Found | MIENO CORP.' };
 
-  const { data: news } = await supabase
-    .from('news')
-    .select('*')
-    .eq('id', id)
-    .single();
+    const news = await getNewsById(id);
+    if (!news) return { title: 'Not Found | MIENO CORP.' };
 
-  if (!news) {
     return {
-      title: "News Not Found | MIENO CORP.",
-      description: "News article not found.",
+        title: `${news.title} | UPDATE | MIENO CORP.`,
+        description: news.content.substring(0, 160)
     };
-  }
-
-  return {
-    title: `${news.title} | MIENO CORP.`,
-    description: news.content ? news.content.substring(0, 160) : "MIENO CORP. News",
-  };
 }
 
-export default async function NewsDetailPage(
-  props: { params: Promise<{ id: string }> }
-) {
-  const params = await props.params;
-  const id = params.id;
-  const supabase = await createClient();
+export default async function NewsDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const resolvedParams = await params;
+    const id = parseInt(resolvedParams.id, 10);
 
-  const { data: news } = await supabase
-    .from('news')
-    .select('*')
-    .eq('id', id)
-    .single();
+    if (isNaN(id)) {
+        notFound();
+    }
 
-  if (!news) {
-    notFound();
-  }
+    const news = await getNewsById(id);
 
-  return <NewsDetailClient news={news} />;
+    if (!news) {
+        notFound();
+    }
+
+    return (
+        <main className="min-h-screen bg-black pt-24 pb-32">
+            <NewsDetailClient news={news} />
+        </main>
+    );
 }

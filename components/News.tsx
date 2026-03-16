@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { motion, Variants } from 'framer-motion';
-import { ArrowRight, Plus, Edit2 } from 'lucide-react';
+import { ArrowRight, Plus, Edit2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { News as NewsType } from '@/types/database';
+import { addNews, updateNews, deleteNews } from '@/app/actions/news';
 import NewsModal from './NewsModal';
 
 const containerVariants: Variants = {
@@ -47,13 +47,35 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
   }, []);
 
   const openModal = (item?: NewsType) => {
-      setCurrentNews(item || null);
+      if (item) {
+          setCurrentNews(item);
+      } else {
+          setCurrentNews(null);
+      }
       setIsModalOpen(true);
   };
 
-  const closeModal = () => {
-      setIsModalOpen(false);
-      setCurrentNews(null);
+  const handleSave = async (formData: Omit<NewsType, 'id' | 'created_at'>) => {
+      try {
+          if (currentNews) {
+              await updateNews(currentNews.id, formData);
+          } else {
+              await addNews(formData);
+          }
+      } catch (error) {
+          console.error("Failed to save news", error);
+          throw error; // Re-throw to be handled by modal
+      }
+  };
+
+  const handleDelete = async () => {
+      if (!currentNews) return;
+      try {
+          await deleteNews(currentNews.id);
+      } catch (error) {
+          console.error("Failed to delete news", error);
+          throw error;
+      }
   };
 
   return (
@@ -66,19 +88,19 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4">
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
                 Latest Updates
               </h2>
-              {isAdmin && (
+              {isAdmin && mounted && (
                 <motion.button
                   onClick={() => openModal()}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors shadow-lg shadow-blue-900/20"
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors shadow-lg shadow-blue-900/20 w-fit"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>NEW ENTRY</span>
+                  <span>＋ NEW UPDATE (新規通達を発令)</span>
                 </motion.button>
               )}
             </div>
@@ -99,58 +121,80 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
         </div>
 
         <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-50px" }}
-        className="space-y-4"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            className="space-y-4"
         >
         {news.length === 0 ? (
-                <div className="text-gray-500 text-center py-8">No updates available.</div>
+                <div className="text-gray-500 text-center py-8 border border-white/10 rounded-xl bg-white/5 backdrop-blur-md">No updates available.</div>
         ) : (
             news.map((item) => (
                 <motion.div
-                key={item.id}
-                variants={itemVariants}
-                className="group relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-md border border-white/10 p-6 hover:bg-white/10 transition-colors duration-300"
+                    key={item.id}
+                    variants={itemVariants}
+                    className="group relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-md border border-white/10 p-6 hover:bg-white/10 transition-colors duration-300"
                 >
-                <Link href={getLinkForCategory(item.id)} className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
-                    {item.image_url && (
-                        <div className="w-full md:w-48 h-32 md:h-28 flex-shrink-0 relative overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                            src={item.image_url}
-                            alt={item.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            />
-                        </div>
-                    )}
-                    <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 flex-1">
-                        <div className="flex items-center gap-4 min-w-fit">
-                        <time className="font-mono text-sm text-gray-400">{item.date.replace(/-/g, '.')}</time>
-                        <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/20">
-                            {item.category}
-                        </span>
-                        </div>
-                        <h3 className="text-lg font-medium leading-6 text-white group-hover:text-blue-400 transition-colors flex-1">
-                        {item.title}
-                        </h3>
-                    </div>
-                    <div className="hidden md:flex items-center gap-4">
-                        {isAdmin && (
-                            <button
-                            onClick={(e) => {
-                                e.preventDefault();
-                                openModal(item);
-                            }}
-                            className="p-2 bg-white/10 rounded-full hover:bg-blue-600 hover:text-white transition-colors z-20"
-                            >
-                            <Edit2 className="w-4 h-4" />
-                            </button>
+                    <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 relative">
+                        {/* Interactive Area Link */}
+                        <Link href={`/news/${item.id}`} className="absolute inset-0 z-0"></Link>
+
+                        {item.image_url && (
+                            <div className="w-full md:w-48 h-32 md:h-28 flex-shrink-0 relative overflow-hidden rounded-lg border border-white/10 bg-white/5 z-10 pointer-events-none">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={item.image_url}
+                                    alt={item.title}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                            </div>
                         )}
-                        <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-white transition-colors transform group-hover:translate-x-1" />
+                        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 flex-1 z-10 pointer-events-none">
+                            <div className="flex items-center gap-4 min-w-fit">
+                            <time className="font-mono text-sm text-gray-400">{item.date.replace(/-/g, '.')}</time>
+                            <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/20">
+                                {item.category}
+                            </span>
+                            </div>
+                            <h3 className="text-lg font-medium leading-6 text-white group-hover:text-blue-400 transition-colors flex-1">
+                            {item.title}
+                            </h3>
+                        </div>
+                        <div className="hidden md:flex items-center gap-4 z-20">
+                            {isAdmin && mounted && (
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            openModal(item);
+                                        }}
+                                        className="p-2 bg-white/10 rounded-full hover:bg-blue-600 hover:text-white transition-colors"
+                                    >
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (confirm("Are you sure you want to delete this news item?")) {
+                                                try {
+                                                    await deleteNews(item.id);
+                                                } catch (err) {
+                                                    console.error(err);
+                                                }
+                                            }
+                                        }}
+                                        className="p-2 bg-white/10 rounded-full hover:bg-red-600 hover:text-white transition-colors text-red-400"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )}
+                            <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-white transition-colors transform group-hover:translate-x-1" />
+                        </div>
                     </div>
-                </Link>
                 </motion.div>
             ))
         )}
@@ -158,9 +202,14 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
       </div>
 
       {/* Admin Modal */}
-      {mounted && createPortal(
-        <NewsModal isOpen={isModalOpen} onClose={closeModal} currentNews={currentNews} />,
-        document.body
+      {mounted && (
+          <NewsModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              onSave={handleSave}
+              onDelete={currentNews ? handleDelete : undefined}
+              initialData={currentNews}
+          />
       )}
     </section>
   );
