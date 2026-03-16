@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2, Loader2, Save, Sparkles, Globe, Tags } from 'lucide-react';
 import { News as NewsType } from '@/types/database';
-import { generateTacticalContent, translateTactical, generateNewsMetadata } from '@/app/actions/news-ai';
+import { generateNewsContent, translateNews, generateNewsMetadata } from '@/app/actions/news-ai';
 
 interface NewsModalProps {
     isOpen: boolean;
@@ -66,7 +66,7 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
         }
         setIsGeneratingContent(true);
         try {
-            const result = await generateTacticalContent(formData.content);
+            const result = await generateNewsContent(formData.content);
             setFormData(prev => ({ ...prev, content: result }));
         } catch (error) {
             alert("AI generation failed.");
@@ -82,9 +82,9 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
         }
         setIsTranslating(true);
         try {
-            const result = await translateTactical(formData.content);
-            const cypherDivider = "\n\n---\n\n[GLOBAL ENCRYPTED TRANSMISSION]\n\n";
-            setFormData(prev => ({ ...prev, content: prev.content + cypherDivider + result }));
+            const result = await translateNews(formData.content);
+
+            setFormData(prev => ({ ...prev, content: prev.content + result }));
         } catch (error) {
             alert("AI translation failed.");
         } finally {

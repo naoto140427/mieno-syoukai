@@ -22,7 +22,7 @@ const mienoSystemPrompt = `
   - 予定 -> 「作戦待機 (Standby / Deployment Scheduled)」
 `;
 
-export async function generateTacticalContent(rawText: string): Promise<string> {
+export async function generateNewsContent(rawText: string): Promise<string> {
     if (!rawText) return '';
     try {
         const response = await ai.models.generateContent({
@@ -40,7 +40,7 @@ export async function generateTacticalContent(rawText: string): Promise<string> 
     }
 }
 
-export async function translateTactical(text: string): Promise<string> {
+export async function translateNews(text: string): Promise<string> {
     if (!text) return '';
     try {
         const response = await ai.models.generateContent({
