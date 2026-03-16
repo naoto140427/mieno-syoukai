@@ -22,6 +22,7 @@ export async function addNews(data: Omit<News, 'id' | 'created_at'>) {
     }
 
     revalidatePath('/');
+    revalidatePath('/news');
 }
 
 export async function updateNews(id: number, data: Partial<News>) {
@@ -43,6 +44,7 @@ export async function updateNews(id: number, data: Partial<News>) {
     }
 
     revalidatePath('/');
+    revalidatePath('/news');
 }
 
 export async function deleteNews(id: number) {
@@ -64,6 +66,29 @@ export async function deleteNews(id: number) {
     }
 
     revalidatePath('/');
+    revalidatePath('/news');
+}
+
+export async function getNews(limit?: number) {
+    const supabase = await createClient();
+
+    let query = supabase
+        .from('news')
+        .select('*')
+        .order('date', { ascending: false });
+
+    if (limit) {
+        query = query.limit(limit);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('Error fetching news:', error);
+        return [];
+    }
+
+    return (data as News[]) || [];
 }
 
 export async function getNews() {

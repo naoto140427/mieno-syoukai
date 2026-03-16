@@ -114,7 +114,7 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
              viewport={{ once: true }}
              transition={{ duration: 0.6 }}
           >
-             <Link href="/logistics" className="text-sm font-semibold leading-6 text-gray-300 hover:text-white flex items-center gap-1">
+             <Link href="/news" className="text-sm font-semibold leading-6 text-gray-300 hover:text-white flex items-center gap-1">
                View All <ArrowRight className="h-4 w-4" />
              </Link>
           </motion.div>
@@ -215,11 +215,6 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
   );
 }
 
-function getLinkForCategory(category: string) {
-    switch (category) {
-        case 'PRESS': return '/services';
-        case 'UPDATE': return '/units';
-        case 'REPORT': return '/logistics';
-        default: return '/logistics';
-    }
+function getLinkForCategory(id: number) {
+    return `/news/${id}`;
 }
