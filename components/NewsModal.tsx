@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, Loader2, Save } from 'lucide-react';
+import { X, Trash2, Loader2, Save, Sparkles, Globe, Tags } from 'lucide-react';
 import { News as NewsType } from '@/types/database';
+import { generateTacticalContent, translateTactical, generateNewsMetadata } from '@/app/actions/news-ai';
 
 interface NewsModalProps {
     isOpen: boolean;
@@ -17,6 +18,9 @@ interface NewsModalProps {
 export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialData }: NewsModalProps) {
     const [mounted, setMounted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+    const [isTranslating, setIsTranslating] = useState(false);
+    const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false);
     const [formData, setFormData] = useState<Partial<NewsType>>({
         title: '',
         date: new Date().toISOString().split('T')[0],
@@ -53,6 +57,60 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
             }
         }
     }, [isOpen, initialData]);
+
+
+    const handleGenerateContent = async () => {
+        if (!formData.content) {
+            alert("元となるメモや箇条書きを入力してください (Enter basic notes first)");
+            return;
+        }
+        setIsGeneratingContent(true);
+        try {
+            const result = await generateTacticalContent(formData.content);
+            setFormData(prev => ({ ...prev, content: result }));
+        } catch (error) {
+            alert("AI generation failed.");
+        } finally {
+            setIsGeneratingContent(false);
+        }
+    };
+
+    const handleTranslateContent = async () => {
+        if (!formData.content) {
+            alert("翻訳する本文を入力してください (Enter content to translate)");
+            return;
+        }
+        setIsTranslating(true);
+        try {
+            const result = await translateTactical(formData.content);
+            const cypherDivider = "\n\n---\n\n[GLOBAL ENCRYPTED TRANSMISSION]\n\n";
+            setFormData(prev => ({ ...prev, content: prev.content + cypherDivider + result }));
+        } catch (error) {
+            alert("AI translation failed.");
+        } finally {
+            setIsTranslating(false);
+        }
+    };
+
+    const handleGenerateMetadata = async () => {
+        if (!formData.content) {
+            alert("解析する本文を入力してください (Enter content to analyze)");
+            return;
+        }
+        setIsGeneratingMetadata(true);
+        try {
+            const { title, category } = await generateNewsMetadata(formData.content);
+            setFormData(prev => ({
+                ...prev,
+                title: title || prev.title,
+                category: (category as NewsType['category']) || prev.category
+            }));
+        } catch (error) {
+            alert("AI analysis failed.");
+        } finally {
+            setIsGeneratingMetadata(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -115,7 +173,18 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                         <div className="p-6 overflow-y-auto">
                             <form id="news-form" onSubmit={handleSubmit} className="space-y-6">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-2 tracking-widest uppercase">Title</label>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-xs font-bold text-gray-400 tracking-widest uppercase">Title</label>
+                                        <button
+                                            type="button"
+                                            onClick={handleGenerateMetadata}
+                                            disabled={isGeneratingMetadata || !formData.content}
+                                            className="flex items-center gap-1.5 px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10px] font-bold tracking-widest text-blue-400 transition-colors disabled:opacity-50"
+                                        >
+                                            {isGeneratingMetadata ? <Loader2 className="w-3 h-3 animate-spin" /> : <Tags className="w-3 h-3" />}
+                                            🏷️ SMART TAGS (自動解析)
+                                        </button>
+                                    </div>
                                     <input
                                         type="text"
                                         required
@@ -221,7 +290,31 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                                     )}
                                 </AnimatePresence>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 mb-2 tracking-widest uppercase">Content <span className="text-gray-600 font-normal ml-2">※Markdown記法（**太字**、- リスト等）が使用可能です</span></label>
+                                    <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                                        <label className="block text-xs font-bold text-gray-400 tracking-widest uppercase">
+                                            Content <span className="text-gray-600 font-normal ml-2">※Markdown記法（**太字**、- リスト等）が使用可能です</span>
+                                        </label>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={handleGenerateContent}
+                                                disabled={isGeneratingContent || !formData.content}
+                                                className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/30 hover:to-purple-500/30 border border-indigo-500/30 rounded-full text-[10px] font-bold tracking-widest text-indigo-300 transition-colors disabled:opacity-50"
+                                            >
+                                                {isGeneratingContent ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                                ✨ AUTO-DRAFT (AI執筆アシスト)
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleTranslateContent}
+                                                disabled={isTranslating || !formData.content}
+                                                className="flex items-center gap-1.5 px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10px] font-bold tracking-widest text-gray-300 transition-colors disabled:opacity-50"
+                                            >
+                                                {isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />}
+                                                🌐 TRANSLATE (タクティカル英訳)
+                                            </button>
+                                        </div>
+                                    </div>
                                     <textarea
                                         required
                                         rows={8}
