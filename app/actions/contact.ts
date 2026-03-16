@@ -28,6 +28,7 @@ export async function submitInquiry(formData: {
         email: formData.email,
         subject: formData.subject,
         message: formData.message,
+        status: 'unread',
       },
     ]);
 

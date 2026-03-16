@@ -51,6 +51,7 @@ export interface Inquiry {
   subject: string;
   message: string;
   created_at: string;
+  status?: string;
 }
 
 export interface News {

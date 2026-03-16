@@ -13,6 +13,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { submitInquiry } from '@/app/actions/contact';
+import { processAndReplyContact } from '@/app/actions/contact-ai';
 
 export default function Contact() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success'>('idle');
@@ -52,6 +53,8 @@ export default function Contact() {
 
       if (result.success) {
         setFormState('success');
+        // Asynchronously call AI reply without blocking the success UI
+        processAndReplyContact(formData.name, formData.email, formData.message).catch(console.error);
         setFormData({ name: '', email: '', subject: '', message: '' });
       } else {
         setFormState('idle');
@@ -128,30 +131,57 @@ export default function Contact() {
           <AnimatePresence mode="wait">
             {formState === 'success' ? (
               <motion.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col items-center justify-center py-12 text-center"
-              >
-                <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-6 border border-green-100 shadow-sm">
-                  <CheckCircle className="w-10 h-10 text-green-500" />
-                </div>
-                <h3 className="text-2xl font-bold text-mieno-navy mb-2">送信完了</h3>
-                <p className="text-gray-400 font-mono text-sm tracking-wider uppercase mb-6">TRANSMISSION COMPLETE</p>
-                <p className="text-gray-600 max-w-md mx-auto mb-8 leading-relaxed">
-                  お問い合わせを受け付けました。<br />
-                  担当役員より暗号化通信にて返信いたしますので、<br />
-                  しばらくお待ちください。
-                </p>
-                <button
-                  onClick={() => setFormState('idle')}
-                  className="px-6 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-mieno-navy text-sm font-medium transition-colors border border-gray-200"
-                >
-                  新しい通信を開始する
-                </button>
-              </motion.div>
+  key="success"
+  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+  animate={{ opacity: 1, scale: 1, y: 0 }}
+  exit={{ opacity: 0, scale: 0.95, y: -20 }}
+  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+  className="flex flex-col items-center justify-center py-20 text-center"
+>
+  <motion.div
+    initial={{ scale: 0 }}
+    animate={{ scale: 1 }}
+    transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.2 }}
+    className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mb-8 shadow-xl shadow-green-500/20"
+  >
+    <CheckCircle className="w-12 h-12 text-white" />
+  </motion.div>
+  <motion.h3
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.4 }}
+    className="text-3xl font-bold text-gray-900 mb-3 tracking-tight"
+  >
+    送信完了
+  </motion.h3>
+  <motion.p
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ delay: 0.5 }}
+    className="text-gray-400 font-mono text-xs tracking-[0.2em] uppercase mb-8"
+  >
+    TRANSMISSION COMPLETE
+  </motion.p>
+  <motion.p
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.6 }}
+    className="text-gray-600 max-w-md mx-auto mb-10 leading-relaxed"
+  >
+    お問い合わせを受け付けました。<br />
+    自律型AIエージェント、または担当役員より<br />
+    暗号化通信にて返信いたしますので、しばらくお待ちください。
+  </motion.p>
+  <motion.button
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ delay: 0.8 }}
+    onClick={() => setFormState('idle')}
+    className="px-8 py-4 rounded-full bg-gray-900 hover:bg-black text-white text-sm font-bold tracking-widest transition-all shadow-lg hover:-translate-y-1"
+  >
+    新しい通信を開始する
+  </motion.button>
+</motion.div>
             ) : (
               <motion.form
                 key="form"
