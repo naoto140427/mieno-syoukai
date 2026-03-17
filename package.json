@@ -30,6 +30,7 @@
     "react-map-gl": "^8.1.0",
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.0",
+    "remark-gfm": "^4.0.1",
     "resend": "^6.9.3"
   },
   "devDependencies": {
