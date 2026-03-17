@@ -2,10 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, Activity, Archive, Megaphone, Clock, Mail } from 'lucide-react';
+import { LogOut, Activity, Archive, Megaphone, Clock, Mail, Settings } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
+
+import TransmissionControl from '@/components/admin/TransmissionControl';
+import LiveEditor from '@/components/admin/LiveEditor';
+import OperationBoard from '@/components/admin/OperationBoard';
+import GlobalOverride from '@/components/admin/GlobalOverride';
 
 const supabase = createClient();
 
@@ -20,7 +25,6 @@ interface DashboardProps {
   latestNews: any[];
 }
 
-// Generate some fake trend data for the chart to make it look active
 const generateTrendData = () => {
     return Array.from({ length: 15 }, (_, i) => ({
         name: `Day ${i}`,
@@ -33,6 +37,12 @@ const chartData = generateTrendData();
 export default function AdminDashboardClient({ user, stats, latestInquiries, latestNews }: DashboardProps) {
   const router = useRouter();
   const [time, setTime] = useState(new Date());
+
+  // Panel states
+  const [isTransmissionOpen, setTransmissionOpen] = useState(false);
+  const [isLiveEditorOpen, setLiveEditorOpen] = useState(false);
+  const [isOperationBoardOpen, setOperationBoardOpen] = useState(false);
+  const [isGlobalOverrideOpen, setGlobalOverrideOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -65,6 +75,12 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
             <p className="text-[10px] font-bold text-gray-400 tracking-widest mt-1 uppercase">Strategic Dashboard</p>
         </div>
         <div className="flex items-center gap-3">
+            <button
+                onClick={() => setGlobalOverrideOpen(true)}
+                className="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-gray-900 hover:shadow-md transition-all active:scale-95"
+            >
+                <Settings size={18} />
+            </button>
             <div className="text-right mr-2 hidden sm:block">
                 <p className="text-sm font-bold text-gray-900">{user.email}</p>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Agent</p>
@@ -106,31 +122,34 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
 
             {/* Top Right: Stat Cards */}
             <motion.div variants={itemVariants} className="col-span-1 md:col-span-1 lg:col-span-1 flex flex-col gap-6">
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex flex-col justify-center relative overflow-hidden group">
+                <button onClick={() => setOperationBoardOpen(true)} className="text-left bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex flex-col justify-center relative overflow-hidden group hover:border-gray-300 transition-colors">
                      <div className="absolute right-[-10px] top-1/2 -translate-y-1/2 opacity-5 group-hover:opacity-10 transition-opacity">
                          <Archive size={100} />
                      </div>
-                     <h3 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">Operations</h3>
+                     <h3 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">Operations Board</h3>
                      <p className="text-5xl font-bold tracking-tighter text-gray-900">{stats.archives}</p>
-                </div>
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex flex-col justify-center relative overflow-hidden group">
+                </button>
+                <button onClick={() => setLiveEditorOpen(true)} className="text-left bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex flex-col justify-center relative overflow-hidden group hover:border-gray-300 transition-colors">
                      <div className="absolute right-[-10px] top-1/2 -translate-y-1/2 opacity-5 group-hover:opacity-10 transition-opacity">
                          <Megaphone size={100} />
                      </div>
-                     <h3 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">Transmissions</h3>
+                     <h3 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">Live Editor</h3>
                      <p className="text-5xl font-bold tracking-tighter text-gray-900">{stats.news}</p>
-                </div>
+                </button>
             </motion.div>
 
+            {/* Unread Intel (Transmission Control) */}
             <motion.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-1 flex flex-col gap-6">
-                <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-6 shadow-md border border-blue-500 flex-1 flex flex-col justify-center relative overflow-hidden">
-                     <div className="absolute right-0 top-0 opacity-10">
+                <button onClick={() => setTransmissionOpen(true)} className="text-left bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-6 shadow-md border border-blue-500 flex-1 flex flex-col justify-center relative overflow-hidden group hover:from-blue-700 hover:to-blue-900 transition-colors">
+                     <div className="absolute right-0 top-0 opacity-10 group-hover:opacity-20 transition-opacity">
                          <Mail size={120} />
                      </div>
                      <h3 className="text-xs font-semibold tracking-widest text-blue-200 uppercase mb-2">Unread Intel</h3>
                      <p className="text-5xl font-bold tracking-tighter text-white">{stats.unreadInquiries}</p>
-                     <p className="text-xs text-blue-200 mt-2">Requires immediate attention</p>
-                </div>
+                     <p className="text-xs text-blue-200 mt-2 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                        Open Transmission Control →
+                     </p>
+                </button>
             </motion.div>
 
             {/* Middle Full: Area Chart */}
@@ -162,7 +181,7 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
                     </div>
                     <div className="space-y-4">
                         {latestInquiries.length > 0 ? latestInquiries.map((inq) => (
-                            <div key={inq.id} className="p-4 rounded-2xl bg-[#F5F5F7] hover:bg-gray-100 transition-colors flex items-center justify-between border border-transparent hover:border-gray-200 cursor-pointer">
+                            <div key={inq.id} onClick={() => setTransmissionOpen(true)} className="p-4 rounded-2xl bg-[#F5F5F7] hover:bg-gray-100 transition-colors flex items-center justify-between border border-transparent hover:border-gray-200 cursor-pointer">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
                                         <h3 className="font-bold text-gray-900 text-sm">{inq.subject}</h3>
@@ -188,7 +207,7 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
                     </div>
                     <div className="space-y-4">
                         {latestNews.length > 0 ? latestNews.map((news) => (
-                            <div key={news.id} className="p-4 rounded-2xl bg-[#F5F5F7] hover:bg-gray-100 transition-colors flex items-center justify-between border border-transparent hover:border-gray-200 cursor-pointer">
+                            <div key={news.id} onClick={() => setLiveEditorOpen(true)} className="p-4 rounded-2xl bg-[#F5F5F7] hover:bg-gray-100 transition-colors flex items-center justify-between border border-transparent hover:border-gray-200 cursor-pointer">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">{news.category}</span>
@@ -209,6 +228,30 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
 
         </motion.div>
       </main>
+
+      {/* Admin Modals */}
+      <TransmissionControl
+         isOpen={isTransmissionOpen}
+         onClose={() => setTransmissionOpen(false)}
+         inquiries={latestInquiries}
+      />
+
+      <LiveEditor
+         isOpen={isLiveEditorOpen}
+         onClose={() => setLiveEditorOpen(false)}
+      />
+
+      <OperationBoard
+         isOpen={isOperationBoardOpen}
+         onClose={() => setOperationBoardOpen(false)}
+         operations={latestNews}
+      />
+
+      <GlobalOverride
+         isOpen={isGlobalOverrideOpen}
+         onClose={() => setGlobalOverrideOpen(false)}
+      />
+
     </div>
   );
 }
