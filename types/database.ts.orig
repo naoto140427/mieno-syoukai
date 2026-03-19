@@ -68,16 +68,6 @@ export interface News {
   created_at?: string;
 }
 
-export interface TouringSurvey {
-  id: number;
-  news_id: number;
-  agent_name: string;
-  attendance_status: 'JOIN' | 'PENDING' | 'DECLINE';
-  vehicle_info?: string;
-  message?: string;
-  created_at?: string;
-}
-
 export interface UnitDocument {
   id: number;
   title: string;

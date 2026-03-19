@@ -1,0 +1,25 @@
+#!/bin/bash
+cat << 'INNER_EOF' > app/actions/survey.ts.patch
+--- app/actions/survey.ts	2023-10-27 10:00:00.000000000 +0000
++++ app/actions/survey.ts	2023-10-27 10:00:00.000000000 +0000
+@@ -35,3 +35,18 @@
+
+     return (data as TouringSurvey[]) || [];
+ }
++
++export async function deleteSurvey(id: number) {
++    const supabase = await createClient();
++
++    const { error } = await supabase
++        .from('touring_surveys')
++        .delete()
++        .eq('id', id);
++
++    if (error) {
++        console.error('Error deleting survey:', error);
++        throw new Error('Failed to delete survey');
++    }
++    return { success: true };
++}
+INNER_EOF
+patch -p0 < app/actions/survey.ts.patch
