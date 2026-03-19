@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Kanban, CheckCircle2, Clock, Activity, GripVertical, Users, MapPin, Calendar, FileText } from 'lucide-react';
-import { getSurveysByNewsId } from '@/app/actions/survey';
+import { X, Kanban, CheckCircle2, Clock, Activity, GripVertical, Users, MapPin, Calendar, FileText, Trash2, Download } from 'lucide-react';
+import { getSurveysByNewsId, deleteSurvey } from '@/app/actions/survey';
 import type { TouringSurvey } from '@/types/database';
 import { updateNewsStatus } from '@/app/actions/admin';
 import type { News } from '@/types/database';
@@ -25,6 +25,39 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
   const [selectedOp, setSelectedOp] = useState<News | null>(null);
   const [roster, setRoster] = useState<TouringSurvey[]>([]);
   const [isLoadingRoster, setIsLoadingRoster] = useState(false);
+
+
+  const handleDeleteSurvey = async (id: number) => {
+    if (!confirm('このエージェントの記録を削除しますか？')) return;
+    try {
+      await deleteSurvey(id);
+      setRoster(prev => prev.filter(r => r.id !== id));
+    } catch (e) {
+      console.error('Failed to delete survey:', e);
+      alert('削除に失敗しました。');
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (!roster.length || !selectedOp) return;
+    const headers = ['Name', 'Status', 'Vehicle', 'Notes', 'Date'];
+    const rows = roster.map(r => [
+      r.agent_name,
+      r.attendance_status,
+      r.vehicle_info || '',
+      (r.message || '').replace(/\n/g, ' '),
+      new Date(r.created_at || '').toLocaleString()
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `roster_operation_${selectedOp.id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleOpClick = async (op: News) => {
     setSelectedOp(op);
@@ -217,9 +250,14 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
                       <span className="text-[10px] font-bold tracking-widest text-blue-600 uppercase mb-1 block">Roster Control</span>
                       <h3 className="text-lg font-bold text-gray-900 leading-tight">{selectedOp.title}</h3>
                     </div>
-                    <button onClick={() => setSelectedOp(null)} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 text-gray-400">
-                      <X size={16} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={handleExportCSV} title="Export CSV" className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm border border-blue-200 text-[10px] font-bold tracking-widest uppercase">
+                        <Download size={12} /> CSV
+                      </button>
+                      <button onClick={() => setSelectedOp(null)} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 text-gray-400 border border-gray-100 transition-colors">
+                        <X size={16} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-6 bg-[#F5F5F7]">
@@ -249,17 +287,33 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
                           {roster.length === 0 ? (
                             <div className="text-center py-8 text-gray-400 text-sm font-mono">No responses yet.</div>
                           ) : (
-                            roster.map(r => (
-                              <div key={r.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-100 transition-colors">
+                            <AnimatePresence>
+                            {roster.map(r => (
+                              <motion.div
+                                key={r.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, height: 0 }}
+                                className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-100 transition-colors overflow-hidden group"
+                              >
                                 <div className="flex justify-between items-start mb-2">
                                   <span className="font-bold text-gray-900 text-sm">{r.agent_name}</span>
-                                  <span className={`text-[10px] font-bold px-2 py-1 rounded-md tracking-wider ${
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleDeleteSurvey(r.id)}
+                                      className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                      title="Delete Record"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md tracking-wider ${
                                     r.attendance_status === 'JOIN' ? 'bg-emerald-50 text-emerald-700' :
                                     r.attendance_status === 'PENDING' ? 'bg-amber-50 text-amber-700' :
                                     'bg-rose-50 text-rose-700'
                                   }`}>
                                     {r.attendance_status}
                                   </span>
+                                  </div>
                                 </div>
                                 {r.vehicle_info && (
                                   <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
@@ -272,8 +326,9 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
                                     {r.message}
                                   </div>
                                 )}
-                              </div>
-                            ))
+                              </motion.div>
+                            ))}
+                            </AnimatePresence>
                           )}
                         </div>
                       </div>

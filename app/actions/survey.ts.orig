@@ -37,18 +37,3 @@ export async function getSurveysByNewsId(newsId: number) {
 
     return (data as TouringSurvey[]) || [];
 }
-
-export async function deleteSurvey(id: number) {
-    const supabase = await createClient();
-
-    const { error } = await supabase
-        .from('touring_surveys')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-        console.error('Error deleting survey:', error);
-        throw new Error('Failed to delete survey');
-    }
-    return { success: true };
-}
