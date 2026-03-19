@@ -118,3 +118,100 @@ export async function addTool(data: Omit<Tool, 'id'>) {
 
     return { success: true };
 }
+
+export async function createInventoryRequest(toolId: number, startDate: string, endDate: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('Unauthorized');
+
+    const { error } = await supabase
+        .from('inventory_requests')
+        .insert({
+            tool_id: toolId,
+            agent_id: user.id,
+            start_date: startDate,
+            end_date: endDate,
+            status: 'PENDING'
+        });
+
+    if (error) {
+        console.error('Error creating inventory request:', error);
+        throw new Error('Failed to create request');
+    }
+
+    revalidatePath('/inventory');
+    revalidatePath('/agent');
+
+    return { success: true };
+}
+
+export async function approveInventoryRequest(requestId: number, toolId: number) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('Unauthorized');
+
+    // Check Admin role
+    const { data: profile } = await supabase.from('agents').select('role').eq('id', user.id).single();
+    if (!profile || (profile.role !== 'CTO' && profile.role !== 'Admin' && profile.role !== 'admin' && profile.role !== 'ADMIN')) {
+        throw new Error('Forbidden: Admin access required');
+    }
+
+    // Update request status
+    const { error: requestError } = await supabase
+        .from('inventory_requests')
+        .update({ status: 'APPROVED' })
+        .eq('id', requestId);
+
+    if (requestError) throw new Error('Failed to approve request');
+
+    // Update tool status to In Use
+    const { error: toolError } = await supabase
+        .from('tools')
+        .update({ status: 'In Use' })
+        .eq('id', toolId);
+
+    if (toolError) throw new Error('Failed to update tool status');
+
+    revalidatePath('/inventory');
+    revalidatePath('/agent');
+    revalidatePath('/admin');
+
+    return { success: true };
+}
+
+export async function returnInventoryRequest(requestId: number, toolId: number) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('Unauthorized');
+
+    // Check Admin role
+    const { data: profile } = await supabase.from('agents').select('role').eq('id', user.id).single();
+    if (!profile || (profile.role !== 'CTO' && profile.role !== 'Admin' && profile.role !== 'admin' && profile.role !== 'ADMIN')) {
+        throw new Error('Forbidden: Admin access required');
+    }
+
+    // Update request status
+    const { error: requestError } = await supabase
+        .from('inventory_requests')
+        .update({ status: 'RETURNED' })
+        .eq('id', requestId);
+
+    if (requestError) throw new Error('Failed to return request');
+
+    // Update tool status to Available
+    const { error: toolError } = await supabase
+        .from('tools')
+        .update({ status: 'Available' })
+        .eq('id', toolId);
+
+    if (toolError) throw new Error('Failed to update tool status');
+
+    revalidatePath('/inventory');
+    revalidatePath('/agent');
+    revalidatePath('/admin');
+
+    return { success: true };
+}

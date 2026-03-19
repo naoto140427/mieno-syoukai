@@ -12,9 +12,16 @@ export async function addNews(data: Omit<News, 'id' | 'created_at'>) {
         throw new Error('Unauthorized');
     }
 
-    const { error } = await supabase
+    const { data: insertedData, error } = await supabase
         .from('news')
-        .insert(data);
+        .insert(data)
+        .select()
+        .single();
+
+    if (!error && insertedData && insertedData.category === 'TOURING') {
+        const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://mieno-corp.vercel.app'}/news/${insertedData.id}`;
+        await sendLineNotification(insertedData.title, url);
+    }
 
     if (error) {
         console.error('Error adding news:', error);
@@ -110,4 +117,38 @@ export async function getNewsById(id: number) {
     }
 
     return data as News;
+}
+
+export async function sendLineNotification(title: string, url: string) {
+    const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    if (!token) {
+        console.warn('LINE_CHANNEL_ACCESS_TOKEN not set. Skipping LINE notification.');
+        return;
+    }
+
+    const message = `[MIENO COMMAND CENTER] 新たな作戦『${title}』が発令されました。各員、直ちに詳細を確認しRSVPを提出せよ。 URL: ${url}`;
+
+    try {
+        const response = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                messages: [
+                    {
+                        type: 'text',
+                        text: message
+                    }
+                ]
+            })
+        });
+
+        if (!response.ok) {
+            console.error('Failed to send LINE notification:', await response.text());
+        }
+    } catch (error) {
+        console.error('Error sending LINE notification:', error);
+    }
 }
