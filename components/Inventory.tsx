@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wrench, Package, AlertCircle, Plus, X, ChevronUp, ChevronDown, Minus, RefreshCw } from "lucide-react";
 import { Consumable, Tool } from "@/types/database";
-import { updateConsumableLevel, toggleToolStatus, addConsumable, addTool } from "@/app/actions/inventory";
+import { updateConsumableLevel, toggleToolStatus, addConsumable, addTool, createInventoryRequest } from "@/app/actions/inventory";
 
 interface InventoryProps {
     consumables?: Consumable[];
@@ -16,6 +16,9 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Tool; direction: "asc" | "desc" } | null>(null);
   const [loadingAction, setLoadingAction] = useState<number | null>(null);
+  const [requestModalTool, setRequestModalTool] = useState<Tool | null>(null);
+  const [requestDates, setRequestDates] = useState({ start: '', end: '' });
+  const [isRequesting, setIsRequesting] = useState(false);
 
   // Form State
   const [newItemType, setNewItemType] = useState<'consumable' | 'tool'>('consumable');
@@ -41,6 +44,22 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
     if (aVal > bVal) return direction === "asc" ? 1 : -1;
     return 0;
   });
+
+  const handleRequestDeployment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requestModalTool) return;
+    setIsRequesting(true);
+    try {
+      await createInventoryRequest(requestModalTool.id, requestDates.start, requestDates.end);
+      setRequestModalTool(null);
+      setRequestDates({ start: '', end: '' });
+      alert('Deployment requested successfully.');
+    } catch (e) {
+      alert('Failed to request deployment.');
+    } finally {
+      setIsRequesting(false);
+    }
+  };
 
   const requestSort = (key: keyof Tool) => {
     let direction: "asc" | "desc" = "asc";
@@ -519,6 +538,64 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
             </motion.div>
           </div>
         )}
+
+      {/* Request Deployment Modal */}
+      {requestModalTool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative"
+          >
+             <button
+                onClick={() => setRequestModalTool(null)}
+                className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition-colors"
+             >
+                <X size={20} />
+             </button>
+
+             <h2 className="text-2xl font-bold tracking-tight text-mieno-navy mb-6">REQUEST DEPLOYMENT</h2>
+             <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+               <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase block mb-1">TARGET EQUIPMENT</span>
+               <span className="font-bold text-gray-900">{requestModalTool.name}</span>
+             </div>
+
+             <form onSubmit={handleRequestDeployment} className="space-y-4">
+               <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <label className="block text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">START DATE</label>
+                   <input
+                     type="date"
+                     required
+                     value={requestDates.start}
+                     onChange={e => setRequestDates(prev => ({ ...prev, start: e.target.value }))}
+                     className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-mieno-blue/20 focus:border-mieno-blue transition-all"
+                   />
+                 </div>
+                 <div>
+                   <label className="block text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">END DATE</label>
+                   <input
+                     type="date"
+                     required
+                     value={requestDates.end}
+                     onChange={e => setRequestDates(prev => ({ ...prev, end: e.target.value }))}
+                     className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-mieno-blue/20 focus:border-mieno-blue transition-all"
+                   />
+                 </div>
+               </div>
+
+               <button
+                 type="submit"
+                 disabled={isRequesting}
+                 className="w-full mt-6 py-4 bg-mieno-blue hover:bg-mieno-navy text-white font-bold tracking-widest uppercase text-sm rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex justify-center"
+               >
+                 {isRequesting ? <RefreshCw className="animate-spin" size={20} /> : 'SUBMIT REQUEST'}
+               </button>
+             </form>
+          </motion.div>
+        </div>
+      )}
       </AnimatePresence>
     </div>
   );

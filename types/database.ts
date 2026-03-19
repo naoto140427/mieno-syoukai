@@ -110,3 +110,29 @@ export interface Unit {
   docs?: UnitDocument[];
   logs?: MaintenanceLog[];
 }
+
+export interface Agent {
+  id: string; // uuid from auth.users
+  email: string;
+  name: string;
+  role: string;
+  created_at?: string;
+}
+
+export interface InventoryItem {
+  id: number;
+  tool_id: number;
+  status: "Available" | "In Use" | "Maintenance" | "Missing";
+  // redundant with tool but requested
+}
+
+export interface InventoryRequest {
+  id: number;
+  tool_id: number;
+  agent_id: string;
+  start_date: string;
+  end_date: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "RETURNED";
+  created_at?: string;
+  tool?: Tool; // Optional for joins
+}

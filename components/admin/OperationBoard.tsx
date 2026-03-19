@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Kanban, CheckCircle2, Clock, Activity, GripVertical, Users, MapPin, Calendar, FileText, Trash2, Download } from 'lucide-react';
+import { X, Kanban, CheckCircle2, Clock, Activity, GripVertical, Users, MapPin, Calendar, FileText, Trash2, Download, Package } from 'lucide-react';
 import { getSurveysByNewsId, deleteSurvey } from '@/app/actions/survey';
+import { approveInventoryRequest } from '@/app/actions/inventory';
+import { createClient } from '@/lib/supabase/client';
 import type { TouringSurvey } from '@/types/database';
 import { updateNewsStatus } from '@/app/actions/admin';
 import type { News } from '@/types/database';
@@ -24,6 +26,26 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
 
   const [selectedOp, setSelectedOp] = useState<News | null>(null);
   const [roster, setRoster] = useState<TouringSurvey[]>([]);
+  const [inventoryRequests, setInventoryRequests] = useState<any[]>([]);
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (isOpen) {
+      supabase.from('inventory_requests')
+        .select('*, tool:tool_id(*), agent:agents(*)')
+        .eq('status', 'PENDING')
+        .then(({ data }) => setInventoryRequests(data || []));
+    }
+  }, [isOpen]);
+
+  const handleApproveRequest = async (reqId: number, toolId: number) => {
+    try {
+      await approveInventoryRequest(reqId, toolId);
+      setInventoryRequests(prev => prev.filter(r => r.id !== reqId));
+    } catch (e) {
+      alert('Failed to approve request');
+    }
+  };
   const [isLoadingRoster, setIsLoadingRoster] = useState(false);
 
 
@@ -230,6 +252,47 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
                     </div>
                     <div className="flex-1 overflow-y-auto min-h-[100px]">
                         {completed.map(op => <OperationCard key={op.id} op={op} lane="Completed" />)}
+                    </div>
+                 </div>
+
+
+
+                 {/* Lane: Inventory Requests */}
+                 <div
+                   className="w-[320px] bg-amber-50/50 rounded-3xl p-4 flex flex-col border border-amber-100"
+                 >
+                    <div className="flex items-center justify-between mb-4 px-2">
+                       <h3 className="text-xs font-bold tracking-widest text-amber-700 uppercase flex items-center gap-2">
+                           <Package size={14} className="text-amber-500" />
+                           Inventory Requests
+                       </h3>
+                       <span className="text-xs font-mono text-amber-400">{inventoryRequests.length}</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto min-h-[100px] space-y-3">
+                        {inventoryRequests.length === 0 ? (
+                            <div className="text-center py-8 text-amber-400 text-sm font-mono opacity-50">NO REQUESTS.</div>
+                        ) : (
+                            inventoryRequests.map(req => (
+                                <div key={req.id} className="bg-white p-4 rounded-2xl shadow-sm border border-amber-200">
+                                   <div className="flex justify-between items-start mb-2">
+                                     <span className="font-bold text-gray-900 text-sm">{req.tool?.name || 'Unknown Tool'}</span>
+                                     <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded-md font-bold uppercase tracking-wider">
+                                       PENDING
+                                     </span>
+                                   </div>
+                                   <div className="text-xs text-gray-500 font-mono mb-3">
+                                      Req: {req.agent?.name || 'Agent'} <br/>
+                                      Dates: {new Date(req.start_date).toLocaleDateString()} - {new Date(req.end_date).toLocaleDateString()}
+                                   </div>
+                                   <button
+                                      onClick={() => handleApproveRequest(req.id, req.tool_id)}
+                                      className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-bold tracking-widest uppercase transition-colors"
+                                   >
+                                      Approve (Deploy)
+                                   </button>
+                                </div>
+                            ))
+                        )}
                     </div>
                  </div>
 
