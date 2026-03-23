@@ -44,6 +44,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Protect /agent route
+  if (request.nextUrl.pathname.startsWith('/agent')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin'
+      return NextResponse.redirect(url)
+    }
+
+    // Strict role check
+    const { data: agentProfile, error } = await supabase
+      .from('agents')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (error || !agentProfile) {
+      // Not an agent, redirect to home or unauthorized
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+  }
+
   return response
 }
 
