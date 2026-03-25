@@ -20,3 +20,716 @@ The width(-1) and height(-1) of chart should be greater than 0,
  GET /admin 200 in 15.3s (compile: 14.1s, proxy.ts: 11ms, render: 1255ms)
 (node:6136) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
+✓ Compiled in 5.9s
+○ Compiling / ...
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 15.4s (compile: 14.5s, proxy.ts: 197ms, render: 689ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 1186ms (compile: 57ms, proxy.ts: 12ms, render: 1117ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 2.2s (compile: 135ms, proxy.ts: 47ms, render: 2.0s)
+ GET / 200 in 2.3s (compile: 245ms, proxy.ts: 113ms, render: 1950ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 1877ms (compile: 431ms, proxy.ts: 67ms, render: 1379ms)
+✓ Finished writing to filesystem cache in 12.7s
+○ Compiling /units ...
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 611ms (compile: 110ms, proxy.ts: 25ms, render: 475ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+○ Compiling /_error ...
+ GET /units 200 in 1121ms (compile: 123ms, proxy.ts: 60ms, render: 937ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+✓ Finished filesystem cache database compaction in 20.2s
+○ Compiling /logistics ...
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 408ms (compile: 26ms, proxy.ts: 14ms, render: 369ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 235ms (compile: 33ms, proxy.ts: 8ms, render: 194ms)
+ GET /logistics 200 in 16.9s (compile: 16.3s, proxy.ts: 8ms, render: 540ms)
+ GET /units 200 in 176ms (compile: 45ms, proxy.ts: 18ms, render: 113ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET /images/noise.png 404 in 3.3s (compile: 2.3s, render: 1029ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+ GET / 200 in 1053ms (compile: 298ms, proxy.ts: 53ms, render: 702ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+ GET /logistics 200 in 123ms (compile: 68ms, proxy.ts: 16ms, render: 40ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+ GET /images/noise.png 404 in 351ms (compile: 17ms, render: 333ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 544ms (compile: 180ms, proxy.ts: 11ms, render: 353ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+○ Compiling /contact ...
+ GET /contact 200 in 3.8s (compile: 3.7s, proxy.ts: 18ms, render: 45ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+ GET / 200 in 367ms (compile: 29ms, proxy.ts: 6ms, render: 331ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 175ms (compile: 20ms, proxy.ts: 14ms, render: 141ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 365ms (compile: 42ms, proxy.ts: 18ms, render: 304ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+ GET /units 200 in 244ms (compile: 20ms, proxy.ts: 11ms, render: 213ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+ GET /logistics 200 in 146ms (compile: 22ms, proxy.ts: 14ms, render: 110ms)
+ GET /images/noise.png 404 in 206ms (compile: 22ms, render: 185ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 395ms (compile: 36ms, proxy.ts: 15ms, render: 344ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 1162ms (compile: 105ms, proxy.ts: 87ms, render: 971ms)
+✓ Finished filesystem cache database compaction in 13.6s
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 358ms (compile: 90ms, proxy.ts: 8ms, render: 260ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+ GET /units 200 in 118ms (compile: 40ms, proxy.ts: 16ms, render: 63ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 620ms (compile: 128ms, proxy.ts: 62ms, render: 431ms)
+Error: aborted
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+⨯ uncaughtException: Error: aborted
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+⨯ uncaughtException:  Error: aborted
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 173ms (compile: 29ms, proxy.ts: 18ms, render: 126ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+ GET /logistics 200 in 188ms (compile: 25ms, proxy.ts: 13ms, render: 150ms)
+ GET /images/noise.png 404 in 158ms (compile: 29ms, render: 129ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 473ms (compile: 71ms, proxy.ts: 17ms, render: 386ms)
+ GET /units 200 in 192ms (compile: 17ms, proxy.ts: 8ms, render: 167ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+ GET /logistics 200 in 439ms (compile: 39ms, proxy.ts: 7ms, render: 394ms)
+ GET /images/noise.png 404 in 136ms (compile: 18ms, render: 118ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 270ms (compile: 64ms, proxy.ts: 25ms, render: 181ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 138ms (compile: 18ms, proxy.ts: 8ms, render: 113ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 214ms (compile: 31ms, proxy.ts: 10ms, render: 174ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 449ms (compile: 49ms, proxy.ts: 18ms, render: 383ms)
+Failed to proxy https://o4510652115320832.ingest.us.sentry.io/api/4510935840980992/envelope/?o=4510652115320832&p=4510935840980992&r=us&hsts=0 AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError:
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+ GET /logistics 200 in 337ms (compile: 32ms, proxy.ts: 23ms, render: 283ms)
+ GET /images/noise.png 404 in 180ms (compile: 34ms, render: 147ms)
+ GET /units 200 in 231ms (compile: 27ms, proxy.ts: 7ms, render: 197ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 153ms (compile: 19ms, proxy.ts: 12ms, render: 122ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 207ms (compile: 21ms, proxy.ts: 8ms, render: 178ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 155ms (compile: 19ms, proxy.ts: 8ms, render: 128ms)
+Error fetching news: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 443ms (compile: 80ms, proxy.ts: 88ms, render: 275ms)
+ GET /units 200 in 227ms (compile: 30ms, proxy.ts: 16ms, render: 181ms)
+ GET /logistics 200 in 275ms (compile: 52ms, proxy.ts: 13ms, render: 210ms)
+ GET /images/noise.png 404 in 288ms (compile: 30ms, render: 258ms)
+Error fetching news by id: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching news by id: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+⨯ Error: Failed to fetch news
+    at getNewsById (app/actions/news.ts:116:15)
+    at async Module.generateMetadata (app/news/[id]/page.tsx:14:18)
+  114 |         }
+  115 |         console.error('Error fetching news by id:', error);
+> 116 |         throw new Error('Failed to fetch news');
+      |               ^
+  117 |     }
+  118 |
+  119 |     return data as News; {
+  digest: '4141955207'
+}
+⨯ Error: Failed to fetch news
+    at getNewsById (app/actions/news.ts:116:15)
+    at async NewsDetailPage (app/news/[id]/page.tsx:31:18)
+  114 |         }
+  115 |         console.error('Error fetching news by id:', error);
+> 116 |         throw new Error('Failed to fetch news');
+      |               ^
+  117 |     }
+  118 |
+  119 |     return data as News; {
+  digest: '1118966610'
+}
+Error fetching news by id: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: getaddrinfo ENOTFOUND example.supabase.co (ENOTFOUND)\n' +
+    'Error: getaddrinfo ENOTFOUND example.supabase.co\n' +
+    '    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)\n' +
+    '    at GetAddrInfoReqWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET /news/1 500 in 4.4s (compile: 4.0s, proxy.ts: 11ms, render: 465ms)
