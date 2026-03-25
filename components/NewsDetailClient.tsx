@@ -13,7 +13,7 @@ interface NewsDetailClientProps {
     news: NewsType;
 }
 
-export default function NewsDetailClient({ news }: NewsDetailClientProps) {
+export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailClientProps & { hideLegacySurvey?: boolean }) {
     const [rsvpStatus, setRsvpStatus] = useState<'JOIN' | 'PENDING' | 'DECLINE' | null>(null);
     const [agentName, setAgentName] = useState('');
     const [vehicleInfo, setVehicleInfo] = useState('');
@@ -154,7 +154,7 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
                     <ReactMarkdown>{news.content}</ReactMarkdown>
                 </div>
 
-                {news.category === 'TOURING' && (news.event_date || news.location || news.requirements) && (
+                {(news.category === 'TOURING' && !hideLegacySurvey) && (news.event_date || news.location || news.requirements) && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -229,7 +229,7 @@ export default function NewsDetailClient({ news }: NewsDetailClientProps) {
 
 
 
-                {news.category === 'TOURING' && (
+                {(news.category === 'TOURING' && !hideLegacySurvey) && (
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
