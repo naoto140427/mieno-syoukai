@@ -3,13 +3,21 @@
 import React, { useState } from 'react';
 import { Archive } from '@/types/database';
 import { motion, Variants } from 'framer-motion';
-import Map, { Source, Layer, LayerProps } from 'react-map-gl/mapbox';
+import dynamic from 'next/dynamic';
 import { MapPin, Calendar, Gauge, Zap, Mountain, Users, Cloud, Sun, CloudRain, Snowflake, ArrowLeft, Clock, Activity, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
-import ElevationChart from './ElevationChart';
 import { generateTacticalReport } from '@/app/actions/report';
 import { Bot } from 'lucide-react';
-import 'mapbox-gl/dist/mapbox-gl.css';
+
+const ArchiveMap = dynamic(() => import('./ArchiveMap'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-white/5 animate-pulse backdrop-blur-md border border-white/10" />
+});
+
+const ElevationChart = dynamic(() => import('./ElevationChart'), {
+  ssr: false,
+  loading: () => <div className="w-full h-64 mt-8 bg-white/5 animate-pulse rounded-3xl p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-100" />
+});
 
 interface Props {
   archive: Archive;
@@ -24,16 +32,6 @@ const WeatherIcon = ({ condition }: { condition: string }) => {
     case 'Cloudy':
     default: return <Cloud className="w-5 h-5 text-gray-400" />;
   }
-};
-
-const routeLayerStyle: LayerProps = {
-  id: 'route',
-  type: 'line',
-  paint: {
-    'line-color': '#06b6d4',
-    'line-width': 4,
-    'line-opacity': 0.8,
-  },
 };
 
 const fadeUpVariants: Variants = {
@@ -105,21 +103,11 @@ export default function ArchiveDetailClient({ archive, isAdmin }: Props) {
       {/* Hero Map Section */}
       <div className="w-full h-[45vh] relative bg-gray-200 overflow-hidden">
         {mapboxToken && hasRoute ? (
-          <Map
-            mapboxAccessToken={mapboxToken}
-            initialViewState={initialView}
-            style={{ width: '100%', height: '100%' }}
-            mapStyle="mapbox://styles/mapbox/light-v11"
-            scrollZoom={false}
-            attributionControl={false}
-            reuseMaps
-          >
-            {geoJsonData && (
-              <Source id="route-detail" type="geojson" data={geoJsonData}>
-              <Layer {...routeLayerStyle} />
-            </Source>
-            )}
-          </Map>
+          <ArchiveMap
+            mapboxToken={mapboxToken}
+            initialView={initialView}
+            geoJsonData={geoJsonData}
+          />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center text-gray-400">
              <MapPin className="w-12 h-12 mb-4 opacity-50" />

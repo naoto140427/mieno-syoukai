@@ -2,32 +2,11 @@
 
 import { motion } from 'framer-motion';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
-import { Agent, News, Tool, InventoryRequest } from '@/types/database';
+import { Agent } from '@/types/database';
+import { ExtendedSurvey, ExtendedRequest } from '@/app/actions/agent';
 import { Package, Calendar, MapPin, Activity, ShieldCheck, LogOut, User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-
-interface ExtendedSurvey {
-  id: number;
-  news_id: number;
-  agent_name: string;
-  attendance_status: string;
-  vehicle_info?: string;
-  message?: string;
-  created_at?: string;
-  news: News;
-}
-
-interface ExtendedRequest {
-  id: number;
-  tool_id: number;
-  agent_id: string;
-  start_date: string;
-  end_date: string;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "RETURNED";
-  created_at?: string;
-  tool: Tool;
-}
 
 interface AgentDashboardClientProps {
   user: SupabaseUser;
@@ -56,7 +35,7 @@ export default function AgentDashboardClient({ user, agentProfile, surveys, requ
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push('/admin');
+    router.push('/auth/login');
   };
 
   return (
@@ -72,7 +51,9 @@ export default function AgentDashboardClient({ user, agentProfile, surveys, requ
              <ShieldCheck size={32} className="text-mieno-blue" />
              AGENT PORTAL
           </h1>
-          <p className="text-gray-500 font-mono text-sm mt-2">{agentProfile?.role || 'FIELD AGENT'} // {user.email}</p>
+          <p className="text-gray-500 font-mono text-sm mt-2 tracking-widest uppercase">
+            AGENT CLEARANCE: <span className="text-emerald-500 font-bold">AUTHORIZED</span> // {agentProfile?.role || 'FIELD AGENT'}
+          </p>
         </div>
         <button
            onClick={handleSignOut}
