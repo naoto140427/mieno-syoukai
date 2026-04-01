@@ -51,7 +51,7 @@ export default function Hero() {
 
       {/* Spline 3D Scene (Embedded via Iframe for Event Isolation) */}
       <div className={`absolute inset-0 z-0 h-full w-full pointer-events-none transition-opacity duration-1000 ease-in-out ${isSplineLoaded ? 'opacity-100' : 'opacity-0'}`}>
-         <iframe
+         <iframe loading="lazy"
             src="/spline-bg.html"
             className="w-full h-full border-0 pointer-events-none"
             title="Spline Background"
