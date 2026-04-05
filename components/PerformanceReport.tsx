@@ -1,9 +1,10 @@
 'use client';
 
-import { motion, useInView, useSpring, useTransform, Variants } from 'framer-motion';
+import { m, useInView, useSpring, useTransform, Variants } from 'framer-motion';
 import { useRef, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface KPI {
   id: string;
@@ -92,7 +93,7 @@ function AnimatedNumber({ value, format }: { value: number; format: (val: number
     }
   }, [isInView, spring, value]);
 
-  return <motion.span ref={ref}>{displayValue}</motion.span>;
+  return <m.span ref={ref}>{displayValue}</m.span>;
 }
 
 export default function PerformanceReport() {
@@ -100,6 +101,7 @@ export default function PerformanceReport() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
+    <ClientMotionWrapper>
     <section className="py-24 bg-mieno-navy relative overflow-hidden">
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
@@ -117,14 +119,14 @@ export default function PerformanceReport() {
           </p>
         </div>
 
-        <motion.div
+        <m.div
           variants={containerVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
           {kpiData.map((kpi) => (
-            <motion.div
+            <m.div
               key={kpi.id}
               variants={itemVariants}
               className="group relative overflow-hidden rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 p-8 shadow-2xl hover:bg-white/10 transition-colors duration-500"
@@ -147,7 +149,7 @@ export default function PerformanceReport() {
 
                   {/* Progress Bar Animation */}
                   <div className="w-full h-2 bg-white/10 rounded-full mb-6 overflow-hidden">
-                    <motion.div
+                    <m.div
                       initial={{ width: 0 }}
                       animate={isInView ? { width: `${kpi.target}%` } : { width: 0 }}
                       transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
@@ -160,9 +162,9 @@ export default function PerformanceReport() {
                   </p>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           ))}
-        </motion.div>
+        </m.div>
 
         {/* CTA Button */}
         <div className="mt-16 text-center">
@@ -176,5 +178,6 @@ export default function PerformanceReport() {
         </div>
       </div>
     </section>
+  </ClientMotionWrapper>
   );
 }

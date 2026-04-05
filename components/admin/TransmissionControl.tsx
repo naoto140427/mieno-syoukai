@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { X, Bot, Send, Mail, User, Clock, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { generateAiReplyDraft, sendReplyAndUpdateInquiry } from '@/app/actions/admin';
 import type { Inquiry } from '@/types/database';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface TransmissionControlProps {
   isOpen: boolean;
@@ -55,17 +56,18 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
   };
 
   return (
+    <ClientMotionWrapper>
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40"
           />
-          <motion.div
+          <m.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -103,7 +105,7 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
                     </div>
                   ) : (
                     unreadInquiries.map((inq) => (
-                      <motion.div
+                      <m.div
                         key={inq.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -118,12 +120,12 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
                           <span className="flex items-center gap-1"><User size={12} /> {inq.name}</span>
                           <span className="flex items-center gap-1 font-mono"><Clock size={12} /> {new Date(inq.created_at).toLocaleDateString()}</span>
                         </div>
-                      </motion.div>
+                      </m.div>
                     ))
                   )}
                 </div>
               ) : (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="space-y-6"
@@ -169,7 +171,7 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
                     </button>
 
                     {draftHtml && (
-                      <motion.div
+                      <m.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         className="space-y-4"
@@ -206,15 +208,16 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
                             </>
                           )}
                         </button>
-                      </motion.div>
+                      </m.div>
                     )}
                   </div>
-                </motion.div>
+                </m.div>
               )}
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>
+  </ClientMotionWrapper>
   );
 }

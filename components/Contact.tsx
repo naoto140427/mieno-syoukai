@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { m, AnimatePresence, Variants } from 'framer-motion';
 import {
   Send,
   User,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { submitInquiry } from '@/app/actions/contact';
 import { processAndReplyContact } from '@/app/actions/contact-ai';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 export default function Contact() {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success'>('idle');
@@ -89,20 +90,21 @@ export default function Contact() {
   };
 
   return (
+    <ClientMotionWrapper>
     <div className="relative min-h-screen py-24 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center overflow-hidden bg-mieno-gray">
 
       {/* Background Elements */}
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-5 pointer-events-none mix-blend-multiply" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-blue-100/50 blur-[100px] rounded-full pointer-events-none" />
 
-      <motion.div
+      <m.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
         className="relative z-10 w-full max-w-2xl"
       >
         {/* Header */}
-        <motion.div variants={itemVariants} className="text-center mb-12">
+        <m.div variants={itemVariants} className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-mieno-navy text-xs font-bold tracking-widest uppercase mb-6 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             SECURE CHANNEL OPEN
@@ -118,10 +120,10 @@ export default function Contact() {
           <p className="text-gray-600 text-lg leading-relaxed max-w-lg mx-auto">
             株式会社三重野商会への各種お問い合わせ・作戦支援要請は<br className="hidden sm:block" />こちらから承ります。
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Form Container */}
-        <motion.div
+        <m.div
           variants={itemVariants}
           className="bg-white border border-gray-200 rounded-2xl p-6 md:p-10 shadow-xl relative overflow-hidden"
         >
@@ -130,7 +132,7 @@ export default function Contact() {
 
           <AnimatePresence mode="wait">
             {formState === 'success' ? (
-              <motion.div
+              <m.div
   key="success"
   initial={{ opacity: 0, scale: 0.95, y: 20 }}
   animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -138,31 +140,31 @@ export default function Contact() {
   transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
   className="flex flex-col items-center justify-center py-20 text-center"
 >
-  <motion.div
+  <m.div
     initial={{ scale: 0 }}
     animate={{ scale: 1 }}
     transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.2 }}
     className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mb-8 shadow-xl shadow-green-500/20"
   >
     <CheckCircle className="w-12 h-12 text-white" />
-  </motion.div>
-  <motion.h3
+  </m.div>
+  <m.h3
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.4 }}
     className="text-3xl font-bold text-gray-900 mb-3 tracking-tight"
   >
     送信完了
-  </motion.h3>
-  <motion.p
+  </m.h3>
+  <m.p
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     transition={{ delay: 0.5 }}
     className="text-gray-400 font-mono text-xs tracking-[0.2em] uppercase mb-8"
   >
     TRANSMISSION COMPLETE
-  </motion.p>
-  <motion.p
+  </m.p>
+  <m.p
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.6 }}
@@ -171,8 +173,8 @@ export default function Contact() {
     お問い合わせを受け付けました。<br />
     自律型AIエージェント、または担当役員より<br />
     暗号化通信にて返信いたしますので、しばらくお待ちください。
-  </motion.p>
-  <motion.button
+  </m.p>
+  <m.button
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     transition={{ delay: 0.8 }}
@@ -180,10 +182,10 @@ export default function Contact() {
     className="px-8 py-4 rounded-full bg-gray-900 hover:bg-black text-white text-sm font-bold tracking-widest transition-all shadow-lg hover:-translate-y-1"
   >
     新しい通信を開始する
-  </motion.button>
-</motion.div>
+  </m.button>
+</m.div>
             ) : (
-              <motion.form
+              <m.form
                 key="form"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -292,18 +294,18 @@ export default function Contact() {
 
                 {/* Error Message */}
                 {errorMessage && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="p-3 rounded-lg bg-red-50 text-red-600 text-sm flex items-center gap-2 border border-red-100"
                   >
                     <AlertCircle size={16} />
                     <span>{errorMessage}</span>
-                  </motion.div>
+                  </m.div>
                 )}
 
                 {/* Submit Button */}
-                <motion.button
+                <m.button
                   type="submit"
                   disabled={!isValid || formState === 'submitting'}
                   whileHover={isValid && formState !== 'submitting' ? { scale: 1.02 } : {}}
@@ -326,7 +328,7 @@ export default function Contact() {
                       <span className="text-[10px] opacity-60 font-mono hidden sm:inline">SEND MESSAGE</span>
                     </>
                   )}
-                </motion.button>
+                </m.button>
 
                 {/* Secure Notice */}
                 <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-500">
@@ -334,12 +336,13 @@ export default function Contact() {
                   <span>この通信はSSL/TLSにより暗号化されています。</span>
                 </div>
 
-              </motion.form>
+              </m.form>
             )}
           </AnimatePresence>
-        </motion.div>
+        </m.div>
 
-      </motion.div>
+      </m.div>
     </div>
+  </ClientMotionWrapper>
   );
 }

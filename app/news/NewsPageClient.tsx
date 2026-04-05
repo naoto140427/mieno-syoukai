@@ -142,7 +142,7 @@ export default function NewsPageClient({ initialNews }: { initialNews: News[] })
                                     key={item.id}
                                     className={`group relative overflow-hidden rounded-2xl bg-white/5 border p-6 hover:bg-white/10 transition-colors duration-300 ${item.is_pinned ? "border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "border-white/10"}`}
                                 >
-                                    <Link href={`/news/${item.id}`} className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8 relative z-10">
+                                    <Link href={`/news/${item.id}`} prefetch={false} className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8 relative z-10">
                                         {item.image_url && (
                                             <div className="w-full md:w-56 h-48 md:h-32 flex-shrink-0 relative overflow-hidden rounded-xl bg-white/5 border border-white/10">
                                                 <Image
@@ -184,7 +184,7 @@ export default function NewsPageClient({ initialNews }: { initialNews: News[] })
                                             <ArrowRight className="h-6 w-6 text-gray-500 group-hover:text-blue-400 transition-colors transform group-hover:translate-x-1" />
                                         </div>
                                     </Link>
-                                    <Link href={`/news/${item.id}`} className="absolute inset-0 z-0"></Link>
+                                    <Link href={`/news/${item.id}`} prefetch={false} className="absolute inset-0 z-0"></Link>
                                 </motion.div>
                             ))
                         )}

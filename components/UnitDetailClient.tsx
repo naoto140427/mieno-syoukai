@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   FileText,
@@ -28,6 +28,7 @@ import {
 import { Unit } from '@/types/database';
 import { updateUnit, addMaintenanceLog, deleteMaintenanceLog } from '@/app/actions/units';
 import { notFound } from 'next/navigation';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 // --- Types ---
 
@@ -292,7 +293,7 @@ function ProgressBar({ value, color }: { value: number; color: string }) {
 
   return (
     <div className="h-2 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden mt-2">
-      <motion.div
+      <m.div
         initial={{ width: 0 }}
         whileInView={{ width: `${value}%` }}
         transition={{ duration: 1, ease: "easeOut" }}
@@ -519,6 +520,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
   };
 
   return (
+    <ClientMotionWrapper>
     <div className="min-h-screen bg-gray-50 dark:bg-black pb-20">
 
       {/* --- Header Section --- */}
@@ -535,7 +537,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
             <span className="text-sm font-medium tracking-wider">機動戦力一覧へ戻る</span>
           </Link>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -551,7 +553,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
             <p className="text-white/60 text-lg md:text-xl font-light tracking-widest font-mono uppercase">
               {unit.name.en}
             </p>
-          </motion.div>
+          </m.div>
         </div>
       </div>
 
@@ -559,7 +561,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
       <div className="container mx-auto px-4 md:px-6 -mt-8 relative z-10">
 
         {/* Unit Description Card */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
@@ -603,12 +605,12 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
                   </div>
                 </div>
               ) : (
-                <motion.p
+                <m.p
                   layout
                   className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg whitespace-pre-wrap"
                 >
                   {unit.description}
-                </motion.p>
+                </m.p>
               )}
             </div>
             <div className="w-full md:w-auto flex flex-row md:flex-col gap-4">
@@ -625,7 +627,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
                </div>
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* --- Tabs Navigation --- */}
         <div className="flex overflow-x-auto pb-2 mb-6 gap-2 no-scrollbar border-b border-gray-200 dark:border-white/10">
@@ -643,7 +645,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
               <span className="text-[10px] font-mono tracking-wider uppercase opacity-70">{tab.sub}</span>
 
               {activeTab === tab.id && (
-                <motion.div
+                <m.div
                   layoutId="activeTab"
                   className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeClasses.tabIndicator}`}
                 />
@@ -654,7 +656,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
 
         {/* --- Tab Content --- */}
         <AnimatePresence mode="wait">
-          <motion.div
+          <m.div
             key={activeTab}
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -696,7 +698,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
                 </button>
                 <AnimatePresence>
                   {isFormOpen && (
-                    <motion.form
+                    <m.form
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
@@ -770,7 +772,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
                           Save Record
                         </button>
                       </div>
-                    </motion.form>
+                    </m.form>
                   )}
                 </AnimatePresence>
               </div>
@@ -793,10 +795,11 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
                 )}
               </div>
             </>)}
-          </motion.div>
+          </m.div>
         </AnimatePresence>
 
       </div>
     </div>
+  </ClientMotionWrapper>
   );
 }

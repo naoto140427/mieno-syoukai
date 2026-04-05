@@ -3,10 +3,11 @@
 import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { m, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Gauge, Calendar, Wrench, Edit2, X, Save, User } from 'lucide-react';
 import { Unit } from '@/types/database';
 import { updateUnit } from '@/app/actions/units';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface UnitData {
   id: string;
@@ -127,12 +128,12 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
         {/* Image Side */}
         <div className="w-full md:w-1/2 relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-800 shadow-2xl group">
            {/* Parallax Background Simulation */}
-           <motion.div
+           <m.div
              style={{ y }}
              className="absolute inset-0 w-full h-[120%] -top-[10%] bg-gray-200 flex items-center justify-center text-gray-400 font-bold text-2xl tracking-widest transition-colors duration-500 group-hover:bg-gray-300 dark:group-hover:bg-gray-700"
            >
              <AnimatePresence mode='wait'>
-                <motion.span
+                <m.span
                     key={currentImageLabel}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -141,13 +142,13 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
                     className="block text-center px-4"
                 >
                     {currentImageLabel}
-                </motion.span>
+                </m.span>
              </AnimatePresence>
-           </motion.div>
+           </m.div>
         </div>
 
         {/* Text Side */}
-        <motion.div
+        <m.div
           style={{ opacity }}
           className="w-full md:w-1/2 space-y-8"
         >
@@ -158,7 +159,7 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
                 {unit.isSpecial && unit.toggleLabels && (
                     <div className="flex items-center bg-gray-100 rounded-full p-1 relative">
                         {/* Animated Background Pill */}
-                        <motion.div
+                        <m.div
                             className="absolute top-1 bottom-1 bg-mieno-navy rounded-full shadow-sm z-0"
                             initial={false}
                             animate={{
@@ -186,7 +187,7 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
 
             <div className="min-h-[120px] flex flex-col justify-center">
                 <AnimatePresence mode='wait'>
-                    <motion.h2
+                    <m.h2
                         key={currentName}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -195,14 +196,14 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
                         className="text-3xl md:text-5xl font-bold tracking-tight text-mieno-text leading-tight"
                     >
                         {displayName}
-                    </motion.h2>
+                    </m.h2>
                 </AnimatePresence>
             </div>
           </div>
 
           <div className="min-h-[160px]">
               <AnimatePresence mode='wait'>
-                <motion.div
+                <m.div
                     key={mode}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -219,7 +220,7 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
 
                     {/* DB Info Card */}
                     {dbUnit && (
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="relative p-4 bg-gray-50 rounded-xl border border-gray-100 shadow-sm group/card"
@@ -254,9 +255,9 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
                                     <span>{dbUnit.maintenance_note}</span>
                                 </div>
                             )}
-                        </motion.div>
+                        </m.div>
                     )}
-                </motion.div>
+                </m.div>
               </AnimatePresence>
           </div>
 
@@ -267,7 +268,7 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
             詳細を見る
             <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </Link>
-        </motion.div>
+        </m.div>
 
       </div>
     </section>
@@ -308,10 +309,11 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
   };
 
   return (
+    <ClientMotionWrapper>
     <div className="bg-white text-mieno-text">
       {/* Title Section */}
       <section className="py-24 text-center bg-gray-50">
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -327,7 +329,7 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
             <p className="text-gray-500 text-lg font-light tracking-widest uppercase">
                 Power / Precision / Prestige
             </p>
-        </motion.div>
+        </m.div>
       </section>
 
       {/* Units */}
@@ -346,7 +348,7 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
       {mounted && createPortal(
         <AnimatePresence>
             {editingUnit && (
-                <motion.div
+                <m.div
                     key="edit-modal"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -354,7 +356,7 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
                     className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
                     onClick={() => setEditingUnit(null)}
                 >
-                    <motion.div
+                    <m.div
                         initial={{ scale: 0.95, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.95, opacity: 0 }}
@@ -422,12 +424,13 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
                                 )}
                             </button>
                         </div>
-                    </motion.div>
-                </motion.div>
+                    </m.div>
+                </m.div>
             )}
         </AnimatePresence>,
         document.body
       )}
     </div>
+  </ClientMotionWrapper>
   );
 }

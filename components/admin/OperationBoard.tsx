@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { X, Kanban, CheckCircle2, Clock, Activity, GripVertical, Users, MapPin, Calendar, FileText, Trash2, Download, Package } from 'lucide-react';
 import { getSurveysByNewsId, deleteSurvey } from '@/app/actions/survey';
 import { approveInventoryRequest } from '@/app/actions/inventory';
@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { TouringSurvey } from '@/types/database';
 import { updateNewsStatus } from '@/app/actions/admin';
 import type { News } from '@/types/database';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface OperationBoardProps {
   isOpen: boolean;
@@ -161,17 +162,18 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
   );
 
   return (
+    <ClientMotionWrapper>
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40"
           />
-          <motion.div
+          <m.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -302,7 +304,7 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
             {/* Roster Overlay */}
             <AnimatePresence>
               {selectedOp && (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
@@ -352,7 +354,7 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
                           ) : (
                             <AnimatePresence>
                             {roster.map(r => (
-                              <motion.div
+                              <m.div
                                 key={r.id}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -389,7 +391,7 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
                                     {r.message}
                                   </div>
                                 )}
-                              </motion.div>
+                              </m.div>
                             ))}
                             </AnimatePresence>
                           )}
@@ -397,12 +399,13 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
                       </div>
                     )}
                   </div>
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>
+  </ClientMotionWrapper>
   );
 }

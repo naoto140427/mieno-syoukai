@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, Variants } from 'framer-motion';
+import { m, Variants } from 'framer-motion';
 import { ArrowRight, Plus, Edit2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { News as NewsType } from '@/types/database';
 import { addNews, updateNews, deleteNews } from '@/app/actions/news';
 import NewsModal from './NewsModal';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -87,10 +88,11 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
   };
 
   return (
+    <ClientMotionWrapper>
     <section id="news" className="bg-black py-24 text-white border-t border-white/10 relative z-10">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -101,7 +103,7 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
                 Latest Updates
               </h2>
               {isAdmin && mounted && (
-                <motion.button
+                <m.button
                   onClick={() => openModal()}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -109,14 +111,14 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
                 >
                   <Plus className="w-4 h-4" />
                   <span>＋ NEW UPDATE (新規通達を発令)</span>
-                </motion.button>
+                </m.button>
               )}
             </div>
             <p className="mt-2 text-gray-400">
               組織からの最新通達事項
             </p>
-          </motion.div>
-          <motion.div
+          </m.div>
+          <m.div
              initial={{ opacity: 0, x: 20 }}
              whileInView={{ opacity: 1, x: 0 }}
              viewport={{ once: true }}
@@ -125,10 +127,10 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
              <Link href="/news" className="text-sm font-semibold leading-6 text-gray-300 hover:text-white flex items-center gap-1">
                View All <ArrowRight className="h-4 w-4" />
              </Link>
-          </motion.div>
+          </m.div>
         </div>
 
-        <motion.div
+        <m.div
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
@@ -139,14 +141,14 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
                 <div className="text-gray-500 text-center py-8 border border-white/10 rounded-xl bg-white/5 backdrop-blur-md">No updates available.</div>
         ) : (
             news.map((item) => (
-                <motion.div
+                <m.div
                     key={item.id}
                     variants={itemVariants}
                     className={`group relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-md border p-6 hover:bg-white/10 transition-colors duration-300 ${item.is_pinned ? "border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "border-white/10"}`}
                 >
                     <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 relative">
                         {/* Interactive Area Link */}
-                        <Link href={`/news/${item.id}`} className="absolute inset-0 z-0"></Link>
+                        <Link href={`/news/${item.id}`} prefetch={false} className="absolute inset-0 z-0"></Link>
 
                         {item.image_url && (
                             <div className="w-full md:w-48 h-32 md:h-28 flex-shrink-0 relative overflow-hidden rounded-lg border border-white/10 bg-white/5 z-10 pointer-events-none">
@@ -219,10 +221,10 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
                             <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-white transition-colors transform group-hover:translate-x-1" />
                         </div>
                     </div>
-                </motion.div>
+                </m.div>
             ))
         )}
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Admin Modal */}
@@ -236,5 +238,6 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
           />
       )}
     </section>
+  </ClientMotionWrapper>
   );
 }

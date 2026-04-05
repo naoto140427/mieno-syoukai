@@ -1,7 +1,8 @@
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 "use client"
 
 import { useState, useActionState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { Mail, ArrowRight, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { signInWithEmail } from '@/app/actions/auth'
 
@@ -15,12 +16,13 @@ export default function LoginForm() {
   const [email, setEmail] = useState('')
 
   return (
+    <ClientMotionWrapper>
     <div className="min-h-screen bg-[#F5F5F7] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Background Decorative Elements */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gray-200/50 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-gray-300/30 rounded-full blur-3xl -z-10" />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -28,14 +30,14 @@ export default function LoginForm() {
       >
         {/* Header */}
         <div className="text-center mb-10">
-          <motion.div
+          <m.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
             className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-6"
           >
             <ShieldCheck className="w-8 h-8 text-[#1D1D1F]" strokeWidth={1.5} />
-          </motion.div>
+          </m.div>
           <h1 className="text-3xl font-semibold tracking-tight text-[#1D1D1F] mb-2">
             Agent Authentication
           </h1>
@@ -48,7 +50,7 @@ export default function LoginForm() {
         <div className="bg-white/70 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
           <AnimatePresence mode="wait">
             {state.success ? (
-              <motion.div
+              <m.div
                 key="success"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -73,9 +75,9 @@ export default function LoginForm() {
                 >
                   別のアカウントでログイン
                 </button>
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.form
+              <m.form
                 key="form"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -105,13 +107,13 @@ export default function LoginForm() {
                 </div>
 
                 {state.message && !state.success && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     className="text-red-500 text-sm bg-red-50 p-3 rounded-xl border border-red-100"
                   >
                     {state.message}
-                  </motion.div>
+                  </m.div>
                 )}
 
                 <button
@@ -136,11 +138,12 @@ export default function LoginForm() {
                   ※ 許可されたエージェント（役員・メンバー）のみアクセス可能です。<br/>
                   Passkeys（生体認証）サポートは現在準備中です。
                 </p>
-              </motion.form>
+              </m.form>
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
+      </m.div>
     </div>
+  </ClientMotionWrapper>
   )
 }
