@@ -19,7 +19,7 @@ export default function CareersPage() {
   const heroY = useTransform(scrollYProgress, [0, 0.2], [0, 100]);
 
   // Reveal Text component for elegant typography masking
-  const RevealText = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => {
+  function RevealText({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => {
     return (
       <motion.div
         initial="hidden"
