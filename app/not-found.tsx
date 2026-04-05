@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 export default function NotFound() {
   return (
+    <ClientMotionWrapper>
     <div className="relative min-h-screen bg-black flex flex-col items-center justify-center text-white overflow-hidden font-sans">
       {/* Background Noise/Grid Effect */}
       <div className="absolute inset-0 opacity-10 pointer-events-none"
@@ -17,23 +19,23 @@ export default function NotFound() {
       {/* Glow Effect */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none" />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="z-10 text-center px-4"
       >
         {/* Glitchy 404 Text */}
-        <motion.h1
+        <m.h1
           className="text-9xl md:text-[12rem] font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-600 select-none"
           initial={{ y: -50 }}
           animate={{ y: 0 }}
           transition={{ type: "spring", stiffness: 100 }}
         >
           404
-        </motion.h1>
+        </m.h1>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.8 }}
@@ -51,7 +53,7 @@ export default function NotFound() {
 
           <div className="pt-8">
             <Link href="/" className="inline-block group">
-              <motion.button
+              <m.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="relative px-8 py-4 bg-transparent border border-white/20 text-white font-mono text-sm tracking-wider uppercase overflow-hidden group-hover:border-white/50 transition-colors"
@@ -61,11 +63,11 @@ export default function NotFound() {
                   [ HQ（トップページ）へ帰還する ]
                 </span>
                 <div className="absolute inset-0 bg-white/5 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out"></div>
-              </motion.button>
+              </m.button>
             </Link>
           </div>
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
       {/* Decorative Elements */}
       <div className="absolute bottom-10 left-10 font-mono text-xs text-gray-600">
@@ -75,5 +77,6 @@ export default function NotFound() {
         SYS_STATUS: CRITICAL
       </div>
     </div>
+  </ClientMotionWrapper>
   );
 }

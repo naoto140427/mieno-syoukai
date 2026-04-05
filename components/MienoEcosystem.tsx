@@ -1,8 +1,9 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Wrench, Map, Database, LucideIcon, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface Service {
   id: string;
@@ -63,6 +64,7 @@ const itemVariants = {
 
 export default function MienoEcosystem() {
   return (
+    <ClientMotionWrapper>
     <section className="py-24 bg-mieno-gray min-h-screen flex flex-col justify-center">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center mb-16">
@@ -75,7 +77,7 @@ export default function MienoEcosystem() {
           </p>
         </div>
 
-        <motion.div
+        <m.div
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
@@ -83,7 +85,7 @@ export default function MienoEcosystem() {
           className="grid grid-cols-1 md:grid-cols-3 gap-8"
         >
           {services.map((service) => (
-            <motion.div
+            <m.div
               key={service.id}
               variants={itemVariants}
               whileHover={{ y: -5 }}
@@ -105,9 +107,9 @@ export default function MienoEcosystem() {
                   </p>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           ))}
-        </motion.div>
+        </m.div>
 
         {/* CTA Button */}
         <div className="mt-20 text-center">
@@ -121,5 +123,6 @@ export default function MienoEcosystem() {
         </div>
       </div>
     </section>
+  </ClientMotionWrapper>
   );
 }

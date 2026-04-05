@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import Link from 'next/link';
 import { useState } from 'react';
 // @ts-expect-error react-map-gl/mapbox exports are not correctly typed in v8
@@ -13,6 +13,7 @@ const END_POINT = [138.65, 35.70];   // Yamanashi (Hottarakashi Onsen approx)
 
 // GeoJSON for the route
 import type { Feature, LineString } from 'geojson';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 const routeGeoJSON: Feature<LineString> = {
   type: 'Feature',
   properties: {},
@@ -62,6 +63,7 @@ const Logistics = () => {
   });
 
   return (
+    <ClientMotionWrapper>
     <section className="min-h-screen bg-black text-white py-24 px-6 overflow-hidden relative flex flex-col items-center justify-center">
       {/* Background Grid Effect */}
       <div className="absolute inset-0 z-0 opacity-20 pointer-events-none"
@@ -78,7 +80,7 @@ const Logistics = () => {
 
         {/* Text Content (Left / Top) */}
         <div className="w-full lg:w-1/2 space-y-8">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -163,7 +165,7 @@ const Logistics = () => {
               </div>
 
             </div>
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Map Visualization (Right / Bottom) */}
@@ -215,6 +217,7 @@ const Logistics = () => {
 
       </div>
     </section>
+  </ClientMotionWrapper>
   );
 };
 

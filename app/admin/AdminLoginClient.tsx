@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { Lock, User, Send, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import EasterEggModal from '../../components/EasterEggModal';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 const supabase = createClient();
 
@@ -15,7 +16,7 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
   }, [onClose]);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 50, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.9 }}
@@ -25,7 +26,7 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
         {type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
       </div>
       <span className="font-bold text-gray-800 text-sm whitespace-nowrap">{message}</span>
-    </motion.div>
+    </m.div>
   );
 };
 
@@ -68,10 +69,11 @@ export default function AdminLoginClient() {
   };
 
   return (
+    <ClientMotionWrapper>
     <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6 text-gray-900 font-sans">
       <EasterEggModal isOpen={showEasterEgg} onClose={() => setShowEasterEgg(false)} />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-sm bg-white/80 backdrop-blur-xl border border-white/40 rounded-[2rem] p-8 shadow-2xl"
@@ -155,16 +157,16 @@ export default function AdminLoginClient() {
         </p>
 
         <div className="mt-8 flex justify-center">
-          <motion.button
+          <m.button
             onClick={() => setShowEasterEgg(true)}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="text-xs text-gray-400 hover:text-gray-900 font-mono tracking-widest border-b border-transparent hover:border-gray-900 transition-colors"
           >
             [ ROOT ACCESS ]
-          </motion.button>
+          </m.button>
         </div>
-      </motion.div>
+      </m.div>
 
       <AnimatePresence>
           {toast.show && (
@@ -176,5 +178,6 @@ export default function AdminLoginClient() {
           )}
       </AnimatePresence>
     </div>
+  </ClientMotionWrapper>
   );
 }

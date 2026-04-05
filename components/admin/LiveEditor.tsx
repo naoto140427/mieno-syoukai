@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { X, Save, Pin, FileText, Image as ImageIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface LiveEditorProps {
   isOpen: boolean;
@@ -18,9 +19,10 @@ export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
   const [category, setCategory] = useState<'UPDATE' | 'PRESS' | 'REPORT' | 'TOURING'>('UPDATE');
 
   return (
+    <ClientMotionWrapper>
     <AnimatePresence>
       {isOpen && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
@@ -124,8 +126,9 @@ export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
                  </div>
              </div>
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
+  </ClientMotionWrapper>
   );
 }

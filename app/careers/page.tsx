@@ -1,8 +1,9 @@
 'use client';
 
 import { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { m, useScroll, useTransform } from 'framer-motion';
 import Link from 'next/link';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 export default function CareersPage() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,7 +22,7 @@ export default function CareersPage() {
   // Reveal Text component for elegant typography masking
   const RevealText = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => {
     return (
-      <motion.div
+      <m.div
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
@@ -32,9 +33,9 @@ export default function CareersPage() {
         }}
       >
         {children}
-      </motion.div>
+      </m.div>
     );
-  };
+  }
 
   const fadeInUp = {
     initial: { opacity: 0, y: 40 },
@@ -43,11 +44,12 @@ export default function CareersPage() {
   };
 
   return (
+    <ClientMotionWrapper>
     <main ref={containerRef} className="text-gray-800 selection:bg-gray-200">
 
       {/* Sticky Hero Section */}
       <section className="h-screen sticky top-0 flex flex-col items-center justify-center overflow-hidden z-0 bg-[#F5F5F7]">
-        <motion.div
+        <m.div
           style={{ scale: heroScale, opacity: heroOpacity, y: heroY }}
           className="text-center px-6"
         >
@@ -57,7 +59,7 @@ export default function CareersPage() {
           <p className="text-sm md:text-base font-bold tracking-[0.4em] text-gray-400 uppercase">
             エージェント（機動戦力）募集 <span className="mx-2">/</span> Careers
           </p>
-        </motion.div>
+        </m.div>
       </section>
 
       {/* Content Spacer to allow scrolling past sticky hero */}
@@ -67,7 +69,7 @@ export default function CareersPage() {
       <div className="relative z-10 bg-white rounded-t-[3rem] shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.1)] py-32">
         <div className="max-w-3xl mx-auto px-6">
 
-          <motion.div
+          <m.div
             initial="initial"
             whileInView="whileInView"
             viewport={{ once: true }}
@@ -218,7 +220,7 @@ export default function CareersPage() {
           </section>
 
           {/* Call to Action */}
-          <motion.div
+          <m.div
             initial="initial"
             whileInView="whileInView"
             viewport={{ once: true, margin: "-100px" }}
@@ -234,10 +236,11 @@ export default function CareersPage() {
             >
               APPLY NOW（入隊志願）
             </Link>
-          </motion.div>
+          </m.div>
 
         </div>
       </div>
     </main>
+  </ClientMotionWrapper>
   );
 }

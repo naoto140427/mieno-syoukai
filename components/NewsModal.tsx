@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { X, Trash2, Loader2, Save, Sparkles, Globe, Tags } from 'lucide-react';
 import { News as NewsType } from '@/types/database';
 import { generateNewsContent, translateNews, generateNewsMetadata } from '@/app/actions/news-ai';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface NewsModalProps {
     isOpen: boolean;
@@ -144,18 +145,20 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
 
     if (!mounted) return null;
 
-    return createPortal(
+    return (
+        <ClientMotionWrapper>
+            {createPortal(
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
                         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
                     />
-                    <motion.div
+                    <m.div
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -249,7 +252,7 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
 
                                 <AnimatePresence>
                                     {formData.category === 'TOURING' && (
-                                        <motion.div
+                                        <m.div
                                             initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
                                             animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
                                             exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
@@ -287,7 +290,7 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                                                     placeholder="Enter requirements..."
                                                 />
                                             </div>
-                                        </motion.div>
+                                        </m.div>
                                     )}
                                 </AnimatePresence>
                                 <div>
@@ -366,10 +369,12 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                                 </button>
                             </div>
                         </div>
-                    </motion.div>
+                    </m.div>
                 </div>
             )}
         </AnimatePresence>,
         document.body
+            )}
+        </ClientMotionWrapper>
     );
 }

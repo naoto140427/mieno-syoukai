@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { Archive } from '@/types/database';
-import { motion, Variants } from 'framer-motion';
+import { m, Variants } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { MapPin, Calendar, Gauge, Zap, Mountain, Users, Cloud, Sun, CloudRain, Snowflake, ArrowLeft, Clock, Activity, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { generateTacticalReport } from '@/app/actions/report';
 import { Bot } from 'lucide-react';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 const ArchiveMap = dynamic(() => import('./ArchiveMap'), {
   ssr: false,
@@ -88,6 +89,7 @@ export default function ArchiveDetailClient({ archive, isAdmin }: Props) {
   };
 
   return (
+    <ClientMotionWrapper>
     <div className="min-h-screen bg-[#F5F5F7] text-gray-900 selection:bg-gray-200">
       {/* Navigation Bar */}
       <div className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between pointer-events-none">
@@ -119,7 +121,7 @@ export default function ArchiveDetailClient({ archive, isAdmin }: Props) {
       {/* Content Container */}
       <div className="max-w-4xl mx-auto px-6 py-16 -mt-10 relative z-10">
 
-        <motion.div
+        <m.div
           initial="hidden"
           animate="visible"
           variants={fadeUpVariants}
@@ -239,10 +241,10 @@ export default function ArchiveDetailClient({ archive, isAdmin }: Props) {
               <ElevationChart routeData={archive.route_data as [number, number, number][]} />
             )}
 
-        </motion.div>
+        </m.div>
 
         {/* Mission Report */}
-        <motion.div
+        <m.div
           initial="hidden"
           animate="visible"
           variants={fadeUpVariants}
@@ -258,12 +260,12 @@ export default function ArchiveDetailClient({ archive, isAdmin }: Props) {
               </p>
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
 
         {/* AI Tactical Report Section */}
         {isAdmin && (
-          <motion.div
+          <m.div
             initial="hidden"
             animate="visible"
             variants={fadeUpVariants}
@@ -294,7 +296,7 @@ export default function ArchiveDetailClient({ archive, isAdmin }: Props) {
               )}
 
               {aiReport ? (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
@@ -303,7 +305,7 @@ export default function ArchiveDetailClient({ archive, isAdmin }: Props) {
                   <p className="text-lg text-gray-800 leading-loose whitespace-pre-wrap font-serif">
                     {aiReport}
                   </p>
-                </motion.div>
+                </m.div>
               ) : (
                 !isGeneratingAi && (
                   <div className="flex flex-col items-center justify-center py-12 text-gray-400">
@@ -313,10 +315,11 @@ export default function ArchiveDetailClient({ archive, isAdmin }: Props) {
                 )
               )}
             </div>
-          </motion.div>
+          </m.div>
         )}
 
       </div>
     </div>
+  </ClientMotionWrapper>
   );
 }
