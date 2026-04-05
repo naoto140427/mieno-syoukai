@@ -139,6 +139,7 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                             fill
                             sizes="(max-width: 896px) 100vw, 896px"
                             className="object-cover"
+                            priority
                         />
                     </motion.div>
                 )}
