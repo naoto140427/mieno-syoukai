@@ -233,6 +233,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
   };
 
   return (
+<ClientMotionWrapper>
     <div className="min-h-screen bg-[#F5F5F7] text-gray-900 font-sans p-6 lg:p-12">
       <div className="max-w-6xl mx-auto space-y-12">
 
@@ -482,7 +483,6 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                     } : null;
 
                     return (
-    <ClientMotionWrapper>
                     <Link href={`/archives/${archive.id}`} prefetch={false} key={archive.id} className="block group">
                     <m.div
                     initial={{ opacity: 0, y: 20 }}
@@ -616,7 +616,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
             )}
         </div>
       </div>
-    </div>
-  </ClientMotionWrapper>
+      </div>
+</ClientMotionWrapper>
   );
 }

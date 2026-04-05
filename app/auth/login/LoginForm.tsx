@@ -1,5 +1,5 @@
-import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 "use client"
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 import { useState, useActionState } from 'react'
 import { m, AnimatePresence } from 'framer-motion'
