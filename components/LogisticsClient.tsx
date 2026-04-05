@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { Consumable, Tool } from '@/types/database';
 import { updateConsumableQuantity, updateToolStatus } from '@/app/actions/logistics';
 import { RefreshCw, Plus, Minus, AlertTriangle, CheckCircle, User, Wrench, Package } from 'lucide-react';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface LogisticsClientProps {
   consumables: Consumable[];
@@ -86,7 +87,7 @@ function ConsumableItem({ item, isAdmin }: { item: Consumable; isAdmin: boolean 
 
       {/* Progress Bar */}
       <div className="h-2 bg-gray-800 rounded-full overflow-hidden relative z-10 mt-2">
-        <motion.div
+        <m.div
           className={`h-full ${isLow ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]'}`}
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
@@ -144,6 +145,7 @@ function ToolItem({ tool, isAdmin }: { tool: Tool; isAdmin: boolean }) {
   };
 
   return (
+    <ClientMotionWrapper>
     <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 hover:border-gray-700 transition-colors">
       <div className="flex justify-between items-start">
         <div>
@@ -178,7 +180,7 @@ function ToolItem({ tool, isAdmin }: { tool: Tool; isAdmin: boolean }) {
       {/* Admin Edit Mode */}
       <AnimatePresence>
         {isEditing && (
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -229,9 +231,10 @@ function ToolItem({ tool, isAdmin }: { tool: Tool; isAdmin: boolean }) {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
+  </ClientMotionWrapper>
   );
 }

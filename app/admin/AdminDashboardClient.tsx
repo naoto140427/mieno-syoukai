@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { LogOut, Activity, Archive, Megaphone, Clock, Mail, Settings } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -11,6 +11,7 @@ import TransmissionControl from '@/components/admin/TransmissionControl';
 import LiveEditor from '@/components/admin/LiveEditor';
 import OperationBoard from '@/components/admin/OperationBoard';
 import GlobalOverride from '@/components/admin/GlobalOverride';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 const supabase = createClient();
 
@@ -68,6 +69,7 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
   };
 
   return (
+    <ClientMotionWrapper>
     <div className="min-h-screen bg-[#F5F5F7] text-gray-900 pb-24 font-sans selection:bg-gray-200">
       <header className="sticky top-0 z-30 bg-[#F5F5F7]/80 backdrop-blur-md border-b border-gray-200/50 px-6 py-4 flex justify-between items-center">
         <div>
@@ -92,14 +94,14 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <motion.div
+        <m.div
             variants={containerVariants}
             initial="hidden"
             animate="show"
             className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"
         >
             {/* Top Left: Clock & Status */}
-            <motion.div variants={itemVariants} className="col-span-1 md:col-span-2 lg:col-span-2 bg-white/5 backdrop-blur-2xl border border-white/50 rounded-3xl p-8 shadow-sm flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-white to-gray-50">
+            <m.div variants={itemVariants} className="col-span-1 md:col-span-2 lg:col-span-2 bg-white/5 backdrop-blur-2xl border border-white/50 rounded-3xl p-8 shadow-sm flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-white to-gray-50">
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                     <Activity size={160} />
                 </div>
@@ -118,10 +120,10 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
                         </p>
                     </div>
                 </div>
-            </motion.div>
+            </m.div>
 
             {/* Top Right: Stat Cards */}
-            <motion.div variants={itemVariants} className="col-span-1 md:col-span-1 lg:col-span-1 flex flex-col gap-6">
+            <m.div variants={itemVariants} className="col-span-1 md:col-span-1 lg:col-span-1 flex flex-col gap-6">
                 <button onClick={() => setOperationBoardOpen(true)} className="text-left bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex flex-col justify-center relative overflow-hidden group hover:border-gray-300 transition-colors">
                      <div className="absolute right-[-10px] top-1/2 -translate-y-1/2 opacity-5 group-hover:opacity-10 transition-opacity">
                          <Archive size={100} />
@@ -136,10 +138,10 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
                      <h3 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">Live Editor</h3>
                      <p className="text-5xl font-bold tracking-tighter text-gray-900">{stats.news}</p>
                 </button>
-            </motion.div>
+            </m.div>
 
             {/* Unread Intel (Transmission Control) */}
-            <motion.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-1 flex flex-col gap-6">
+            <m.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-1 flex flex-col gap-6">
                 <button onClick={() => setTransmissionOpen(true)} className="text-left bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-6 shadow-md border border-blue-500 flex-1 flex flex-col justify-center relative overflow-hidden group hover:from-blue-700 hover:to-blue-900 transition-colors">
                      <div className="absolute right-0 top-0 opacity-10 group-hover:opacity-20 transition-opacity">
                          <Mail size={120} />
@@ -150,10 +152,10 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
                         Open Transmission Control →
                      </p>
                 </button>
-            </motion.div>
+            </m.div>
 
             {/* Middle Full: Area Chart */}
-            <motion.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-4 bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+            <m.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-4 bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
                  <h2 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-8">Operation Activity Trends</h2>
                  <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -168,10 +170,10 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
                         </AreaChart>
                     </ResponsiveContainer>
                  </div>
-            </motion.div>
+            </m.div>
 
             {/* Bottom: Latest Transmissions */}
-            <motion.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <m.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 {/* Inquiries */}
                 <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
@@ -224,9 +226,9 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
                     </div>
                 </div>
 
-            </motion.div>
+            </m.div>
 
-        </motion.div>
+        </m.div>
       </main>
 
       {/* Admin Modals */}
@@ -253,5 +255,6 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
       />
 
     </div>
+  </ClientMotionWrapper>
   );
 }

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { X, Settings, AlertTriangle, Shield, Save } from 'lucide-react';
 import { saveGlobalSettings, getGlobalSettings } from '@/app/actions/admin';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface GlobalOverrideProps {
   isOpen: boolean;
@@ -37,17 +38,18 @@ export default function GlobalOverride({ isOpen, onClose }: GlobalOverrideProps)
   };
 
   return (
+    <ClientMotionWrapper>
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -148,10 +150,11 @@ export default function GlobalOverride({ isOpen, onClose }: GlobalOverrideProps)
                    )}
                  </button>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>
+  </ClientMotionWrapper>
   );
 }

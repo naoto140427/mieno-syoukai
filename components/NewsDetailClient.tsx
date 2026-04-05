@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Share2, Printer, MapPin, Calendar, ClipboardCheck, Send, CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { submitSurvey } from '@/app/actions/survey';
@@ -8,6 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { News as NewsType } from '@/types/database';
 import ReactMarkdown from 'react-markdown';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface NewsDetailClientProps {
     news: NewsType;
@@ -76,8 +77,9 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
     };
 
     return (
+    <ClientMotionWrapper>
         <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
+            <m.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
@@ -106,9 +108,9 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                         <Printer className="w-4 h-4" />
                     </button>
                 </div>
-            </motion.div>
+            </m.div>
 
-            <motion.header
+            <m.header
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
@@ -127,7 +129,7 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                 </h1>
 
                 {news.image_url && (
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
@@ -141,11 +143,11 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                             className="object-cover"
                             priority
                         />
-                    </motion.div>
+                    </m.div>
                 )}
-            </motion.header>
+            </m.header>
 
-            <motion.div
+            <m.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
@@ -156,7 +158,7 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                 </div>
 
                 {(news.category === 'TOURING' && !hideLegacySurvey) && (news.event_date || news.location || news.requirements) && (
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -207,7 +209,7 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                             )}
 
                             {news.event_date && (
-                                <motion.div
+                                <m.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.3 }}
@@ -222,16 +224,16 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                                         📅 ADD TO CALENDAR
                                         <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">(カレンダーに追加)</span>
                                     </a>
-                                </motion.div>
+                                </m.div>
                             )}
                         </div>
-                    </motion.div>
+                    </m.div>
                 )}
 
 
 
                 {(news.category === 'TOURING' && !hideLegacySurvey) && (
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true, margin: "-100px" }}
@@ -248,7 +250,7 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
 
 
                         {hasSentPreviously || isSubmitted ? (
-                            <motion.div
+                            <m.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="relative z-10 flex flex-col items-center justify-center p-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-center shadow-[0_0_40px_-10px_rgba(59,130,246,0.2)]"
@@ -261,7 +263,7 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                                 <p className="text-emerald-300/80 font-mono text-xs md:text-sm tracking-widest uppercase mb-6 px-4 py-2 bg-emerald-900/30 rounded-lg border border-emerald-500/20">あなたが送信したステータスは司令部に記録されました</p>
                                 <div className="w-16 h-[1px] bg-white/20 mb-6"></div>
                                 <p className="text-gray-500 font-mono text-[10px] tracking-[0.2em] uppercase">Mieno Corp. Strategic HQ</p>
-                            </motion.div>
+                            </m.div>
                         ) : (
                             <form onSubmit={handleSurveySubmit} className="relative z-10 space-y-8">
                                 <div className="flex p-1 bg-white/5 rounded-2xl border border-white/10">
@@ -286,7 +288,7 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
 
                                 <AnimatePresence>
                                     {rsvpStatus && (
-                                        <motion.div
+                                        <m.div
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
                                             exit={{ opacity: 0, height: 0 }}
@@ -307,7 +309,7 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
 
                                             <AnimatePresence>
                                                 {(rsvpStatus === 'JOIN' || rsvpStatus === 'PENDING') && (
-                                                    <motion.div
+                                                    <m.div
                                                         initial={{ opacity: 0, height: 0 }}
                                                         animate={{ opacity: 1, height: 'auto' }}
                                                         exit={{ opacity: 0, height: 0 }}
@@ -324,7 +326,7 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                                                                 placeholder="e.g. CBR600RR"
                                                             />
                                                         </div>
-                                                    </motion.div>
+                                                    </m.div>
                                                 )}
                                             </AnimatePresence>
 
@@ -353,12 +355,12 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                                                     </>
                                                 )}
                                             </button>
-                                        </motion.div>
+                                        </m.div>
                                     )}
                                 </AnimatePresence>
                             </form>
                         )}
-                    </motion.div>
+                    </m.div>
                 )}
 
 <div className="mt-24 pt-8 border-t border-white/10 text-center flex flex-col items-center">
@@ -366,7 +368,8 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
                     <p className="font-mono text-xs text-gray-600 tracking-[0.3em] uppercase">END OF TRANSMISSION</p>
                     <p className="font-bold text-sm text-gray-500 mt-2 tracking-widest">MIENO CORP. STRATEGIC INTELLIGENCE</p>
                 </div>
-            </motion.div>
+            </m.div>
         </article>
-    );
+    </ClientMotionWrapper>
+  );
 }

@@ -1,8 +1,9 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import Link from 'next/link';
 import { Flag, Activity, Globe } from 'lucide-react';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface HistoryEvent {
   year: string;
@@ -38,6 +39,7 @@ const historyData: HistoryEvent[] = [
 
 export default function History() {
   return (
+    <ClientMotionWrapper>
     <section className="py-24 bg-white overflow-hidden relative min-h-screen">
       <div className="mx-auto max-w-7xl px-6 lg:px-8 relative">
         <div className="mx-auto max-w-2xl text-center mb-24">
@@ -52,7 +54,7 @@ export default function History() {
 
         {/* Central Line */}
         <div className="absolute left-6 md:left-1/2 top-32 bottom-24 w-0.5 bg-gray-200 transform -translate-x-1/2">
-          <motion.div
+          <m.div
             initial={{ height: 0 }}
             whileInView={{ height: '100%' }}
             viewport={{ once: true }}
@@ -63,7 +65,7 @@ export default function History() {
 
         <div className="space-y-24 mb-16">
           {historyData.map((event, index) => (
-            <motion.div
+            <m.div
               key={index}
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -100,7 +102,7 @@ export default function History() {
 
               {/* Empty Side for Desktop Balance */}
               <div className="hidden md:block md:w-1/2" />
-            </motion.div>
+            </m.div>
           ))}
         </div>
 
@@ -116,5 +118,6 @@ export default function History() {
 
       </div>
     </section>
+  </ClientMotionWrapper>
   );
 }

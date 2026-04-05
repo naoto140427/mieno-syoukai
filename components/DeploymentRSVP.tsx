@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { upsertSurvey } from '@/app/actions/survey';
 import { CheckCircle2, Loader2, ShieldAlert } from 'lucide-react';
 import type { TouringSurvey } from '@/types/database';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface DeploymentRSVPProps {
     newsId: number;
@@ -57,6 +58,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
     };
 
     return (
+    <ClientMotionWrapper>
         <div className="w-full max-w-2xl mx-auto mt-12 mb-8 bg-[#F5F5F7] rounded-3xl p-6 md:p-8 border border-gray-200/50 shadow-sm relative overflow-hidden">
             {/* Cyber / Tactical accents */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-mieno-navy via-mieno-blue to-mieno-gray opacity-50"></div>
@@ -78,7 +80,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                                 ${status === option ? 'text-white shadow-md' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
                         >
                             {status === option && (
-                                <motion.div
+                                <m.div
                                     layoutId="rsvp-active-pill"
                                     className={`absolute inset-0 rounded-lg -z-10 ${
                                         option === 'JOIN' ? 'bg-emerald-500' :
@@ -101,7 +103,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                 {/* Optional Vehicle Selection for JOIN */}
                 <AnimatePresence>
                     {status === 'JOIN' && (
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
@@ -120,7 +122,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                                     ))}
                                 </select>
                             </div>
-                        </motion.div>
+                        </m.div>
                     )}
                 </AnimatePresence>
 
@@ -147,7 +149,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
 
                     <AnimatePresence>
                         {showSuccess && (
-                            <motion.div
+                            <m.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0 }}
@@ -155,11 +157,12 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                             >
                                 <CheckCircle2 size={16} />
                                 <span className="text-xs font-bold tracking-wider">STATUS UPDATED</span>
-                            </motion.div>
+                            </m.div>
                         )}
                     </AnimatePresence>
                 </div>
             </div>
         </div>
-    );
+    </ClientMotionWrapper>
+  );
 }

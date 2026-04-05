@@ -1,12 +1,13 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
 import { Agent } from '@/types/database';
 import { ExtendedSurvey, ExtendedRequest } from '@/app/actions/agent';
 import { Package, Calendar, MapPin, Activity, ShieldCheck, LogOut, User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface AgentDashboardClientProps {
   user: SupabaseUser;
@@ -39,9 +40,10 @@ export default function AgentDashboardClient({ user, agentProfile, surveys, requ
   };
 
   return (
+    <ClientMotionWrapper>
     <div className="max-w-6xl mx-auto p-6 lg:p-12">
       {/* Header */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex justify-between items-center mb-12"
@@ -62,9 +64,9 @@ export default function AgentDashboardClient({ user, agentProfile, surveys, requ
         >
            <LogOut size={20} />
         </button>
-      </motion.div>
+      </m.div>
 
-      <motion.div
+      <m.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
@@ -72,7 +74,7 @@ export default function AgentDashboardClient({ user, agentProfile, surveys, requ
       >
 
         {/* Profile Card */}
-        <motion.div variants={itemVariants} className="lg:col-span-1 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 relative overflow-hidden flex flex-col items-center justify-center min-h-[300px]">
+        <m.div variants={itemVariants} className="lg:col-span-1 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 relative overflow-hidden flex flex-col items-center justify-center min-h-[300px]">
            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6 border-4 border-white shadow-lg">
               <User size={40} className="text-gray-400" />
@@ -91,10 +93,10 @@ export default function AgentDashboardClient({ user, agentProfile, surveys, requ
                  <span className="font-bold font-mono">{requests.filter(r => r.status === 'APPROVED').length}</span>
               </div>
            </div>
-        </motion.div>
+        </m.div>
 
         {/* Operations Bento */}
-        <motion.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col">
+        <m.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col">
           <div className="flex items-center gap-3 mb-6">
              <div className="p-2 bg-gray-50 rounded-lg"><MapPin size={20} className="text-gray-600" /></div>
              <h3 className="text-lg font-bold text-gray-900 tracking-tight">UPCOMING DEPLOYMENTS</h3>
@@ -132,10 +134,10 @@ export default function AgentDashboardClient({ user, agentProfile, surveys, requ
                ))
              )}
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Gear Bento */}
-        <motion.div variants={itemVariants} className="lg:col-span-3 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mt-2">
+        <m.div variants={itemVariants} className="lg:col-span-3 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mt-2">
           <div className="flex items-center gap-3 mb-6">
              <div className="p-2 bg-gray-50 rounded-lg"><Package size={20} className="text-gray-600" /></div>
              <h3 className="text-lg font-bold text-gray-900 tracking-tight">TACTICAL GEAR</h3>
@@ -180,9 +182,10 @@ export default function AgentDashboardClient({ user, agentProfile, surveys, requ
                 ))
              )}
           </div>
-        </motion.div>
+        </m.div>
 
-      </motion.div>
+      </m.div>
     </div>
+  </ClientMotionWrapper>
   );
 }

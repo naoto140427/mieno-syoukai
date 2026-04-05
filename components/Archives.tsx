@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from 'next/link';
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Users, CloudRain, Calendar, Plus, Save, FileJson, Gauge, Cloud, Sun, Edit2, Trash2, Upload, Activity, Loader2, MapPin, Zap, Mountain } from "lucide-react";
 import { Archive } from "@/types/database";
 import type * as GeoJSON from 'geojson';
@@ -13,6 +13,7 @@ import TacticalDropzoneModal from "./TacticalDropzoneModal";
 // @ts-expect-error react-map-gl/mapbox types mismatch in v8
 import Map, { Source, Layer, LineLayer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 const WeatherIcon = ({ condition }: { condition: string }) => {
   switch (condition) {
@@ -232,6 +233,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
   };
 
   return (
+<ClientMotionWrapper>
     <div className="min-h-screen bg-[#F5F5F7] text-gray-900 font-sans p-6 lg:p-12">
       <div className="max-w-6xl mx-auto space-y-12">
 
@@ -285,7 +287,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
         {/* Form Area (Add/Edit) */}
         <AnimatePresence>
           {showForm && isAdmin && (
-            <motion.div
+            <m.div
               initial={{ height: 0, opacity: 0, y: -20 }}
               animate={{ height: "auto", opacity: 1, y: 0 }}
               exit={{ height: 0, opacity: 0, y: -20 }}
@@ -454,7 +456,7 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                   </button>
                 </div>
               </form>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -481,8 +483,8 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                     } : null;
 
                     return (
-                    <Link href={`/archives/${archive.id}`} key={archive.id} className="block group">
-                    <motion.div
+                    <Link href={`/archives/${archive.id}`} prefetch={false} key={archive.id} className="block group">
+                    <m.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -608,12 +610,13 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                             </div>
                         </div>
                     </div>
-                    </motion.div>
+                    </m.div>
                     </Link>
                 )})
             )}
         </div>
       </div>
-    </div>
+      </div>
+</ClientMotionWrapper>
   );
 }
