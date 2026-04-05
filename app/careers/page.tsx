@@ -34,7 +34,7 @@ export default function CareersPage() {
         {children}
       </motion.div>
     );
-  };
+  }
 
   const fadeInUp = {
     initial: { opacity: 0, y: 40 },
