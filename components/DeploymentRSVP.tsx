@@ -37,22 +37,27 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
         }
     };
 
+    const [message, setMessage] = useState(initialSurvey?.message || '');
+
     const handleSubmit = async () => {
         setIsSubmitting(true);
         setErrorMsg('');
         try {
-            await upsertSurvey({
+            const result = await upsertSurvey({
                 news_id: newsId,
                 attendance_status: status,
                 vehicle_info: status === 'JOIN' ? vehicle : undefined,
-                message: ''
+                message: message
             });
+
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to submit RSVP');
+            }
+
             setShowSuccess(true);
-            setTimeout(() => setShowSuccess(false), 3000);
         } catch (error: unknown) {
             console.error('RSVP Submission failed', error);
             setErrorMsg(error instanceof Error ? error.message : 'Unknown error occurred');
-        } finally {
             setIsSubmitting(false);
         }
     };
@@ -68,6 +73,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                 <h3 className="text-sm font-bold tracking-widest text-gray-800 uppercase">Deployment RSVP</h3>
             </div>
 
+            {!showSuccess ? (
             <div className="space-y-6">
                 {/* Segmented Control */}
                 <div className="flex p-1 bg-white rounded-xl shadow-inner border border-gray-100">
@@ -126,11 +132,24 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                     )}
                 </AnimatePresence>
 
+                {/* Message Input */}
+                <div className="pt-2">
+                    <label className="block text-xs font-bold text-gray-500 tracking-wider mb-2">COMMUNICATION / MESSAGE (OPTIONAL)</label>
+                    <textarea
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        disabled={isSubmitting}
+                        rows={3}
+                        placeholder="Any requirements or notes for the operation..."
+                        className="w-full bg-white border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-mieno-blue focus:border-transparent resize-none"
+                    />
+                </div>
+
                 {/* Submit Action */}
                 <div className="pt-4 flex flex-col items-center">
                     <button
                         onClick={handleSubmit}
-                        disabled={isSubmitting || (status === initialSurvey?.attendance_status && vehicle === initialSurvey?.vehicle_info)}
+                        disabled={isSubmitting || (status === initialSurvey?.attendance_status && vehicle === initialSurvey?.vehicle_info && message === (initialSurvey?.message || ''))}
                         className="w-full md:w-auto min-w-[200px] bg-mieno-navy hover:bg-mieno-blue disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-full transition-colors flex items-center justify-center gap-2"
                     >
                         {isSubmitting ? (
@@ -146,22 +165,21 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                     {errorMsg && (
                         <p className="text-rose-500 text-xs mt-3 font-mono">{errorMsg}</p>
                     )}
-
-                    <AnimatePresence>
-                        {showSuccess && (
-                            <m.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                className="absolute bottom-4 right-4 bg-emerald-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
-                            >
-                                <CheckCircle2 size={16} />
-                                <span className="text-xs font-bold tracking-wider">STATUS UPDATED</span>
-                            </m.div>
-                        )}
-                    </AnimatePresence>
                 </div>
             </div>
+            ) : (
+                <m.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center justify-center py-12 text-center"
+                >
+                    <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+                        <CheckCircle2 className="text-emerald-500 w-8 h-8" />
+                    </div>
+                    <h4 className="text-lg font-bold text-gray-900 tracking-wider mb-2 uppercase">Transmission Complete</h4>
+                    <p className="text-sm text-gray-500">Your deployment status has been recorded.</p>
+                </m.div>
+            )}
         </div>
     </ClientMotionWrapper>
   );
