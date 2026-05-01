@@ -151,3 +151,55 @@ export async function deleteSurvey(id: number) {
     }
     return { success: true };
 }
+
+export async function getAllTouringSurveys() {
+    try {
+        const supabase = await createClient();
+
+        // Admin Auth check
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            console.error('Unauthorized: No user session');
+            return [];
+        }
+
+        const { data: profile } = await supabase
+            .from('agents')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        const role = profile?.role;
+        const adminRoles = ['CTO', 'CEO', 'CMO', 'Admin'];
+
+        if (!role || !adminRoles.includes(role)) {
+            console.error('Unauthorized: Not an admin');
+            return [];
+        }
+
+        // Fetch all surveys with news title
+        const { data, error } = await supabase
+            .from('touring_surveys')
+            .select(`
+                *,
+                news (
+                    title
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching all surveys:', error);
+            return [];
+        }
+
+        // Map data to handle relation smoothly
+        return (data || []).map((item: any) => ({
+            ...item,
+            news_title: item.news?.title || 'Unknown Operation'
+        }));
+    } catch (error) {
+        console.error('Action Error in getAllTouringSurveys:', error);
+        return [];
+    }
+}
