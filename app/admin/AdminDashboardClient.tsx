@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { m } from 'framer-motion';
-import { LogOut, Activity, Archive, Megaphone, Clock, Mail, Settings } from 'lucide-react';
+import { LogOut, Activity, Archive, Megaphone, Clock, Mail, Settings, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
@@ -11,6 +11,7 @@ import TransmissionControl from '@/components/admin/TransmissionControl';
 import LiveEditor from '@/components/admin/LiveEditor';
 import OperationBoard from '@/components/admin/OperationBoard';
 import GlobalOverride from '@/components/admin/GlobalOverride';
+import RSVPMonitor from '@/components/admin/RSVPMonitor';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 const supabase = createClient();
@@ -24,6 +25,7 @@ interface DashboardProps {
   };
   latestInquiries: any[];
   latestNews: any[];
+  surveys?: any[];
 }
 
 const generateTrendData = () => {
@@ -35,7 +37,7 @@ const generateTrendData = () => {
 
 const chartData = generateTrendData();
 
-export default function AdminDashboardClient({ user, stats, latestInquiries, latestNews }: DashboardProps) {
+export default function AdminDashboardClient({ user, stats, latestInquiries, latestNews, surveys = [] }: DashboardProps) {
   const router = useRouter();
   const [time, setTime] = useState(new Date());
 
@@ -44,6 +46,7 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
   const [isLiveEditorOpen, setLiveEditorOpen] = useState(false);
   const [isOperationBoardOpen, setOperationBoardOpen] = useState(false);
   const [isGlobalOverrideOpen, setGlobalOverrideOpen] = useState(false);
+  const [isRSVPOpen, setRSVPOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -139,6 +142,21 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
                      <p className="text-5xl font-bold tracking-tighter text-gray-900">{stats.news}</p>
                 </button>
             </m.div>
+
+
+                {/* RSVP Monitor */}
+                <m.div variants={itemVariants} className="col-span-1 md:col-span-1 lg:col-span-1 flex flex-col gap-6">
+                    <button onClick={() => setRSVPOpen(true)} className="text-left bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-3xl p-6 shadow-md border border-indigo-500 flex-1 flex flex-col justify-center relative overflow-hidden group hover:from-indigo-700 hover:to-indigo-900 transition-colors">
+                        <div className="absolute right-0 top-0 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Users size={120} />
+                        </div>
+                        <h3 className="text-xs font-semibold tracking-widest text-indigo-200 uppercase mb-2">RSVP Monitor</h3>
+                        <p className="text-5xl font-bold tracking-tighter text-white">{surveys.filter(s => s.attendance_status === 'JOIN' || s.attendance_status === 'PENDING').length}</p>
+                        <p className="text-xs text-indigo-200 mt-2 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                            View Deployment HUD →
+                        </p>
+                    </button>
+                </m.div>
 
             {/* Unread Intel (Transmission Control) */}
             <m.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-1 flex flex-col gap-6">
@@ -252,6 +270,12 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
       <GlobalOverride
          isOpen={isGlobalOverrideOpen}
          onClose={() => setGlobalOverrideOpen(false)}
+      />
+
+      <RSVPMonitor
+         isOpen={isRSVPOpen}
+         onClose={() => setRSVPOpen(false)}
+         surveys={surveys}
       />
 
     </div>

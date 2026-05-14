@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import AdminDashboardClient from './AdminDashboardClient';
+import { getAllTouringSurveys } from '@/app/actions/survey';
 
 export const metadata = {
   title: 'Admin Dashboard | MIENO CORP.',
@@ -35,7 +36,8 @@ export default async function AdminPage() {
     { count: archivesCount },
     { count: unreadInquiriesCount },
     { data: latestInquiries },
-    { data: latestNews }
+    { data: latestNews },
+    surveys
   ] = await Promise.all([
     supabase.from('news').select('*', { count: 'exact', head: true }),
     supabase.from('archives').select('*', { count: 'exact', head: true }),
@@ -47,7 +49,8 @@ export default async function AdminPage() {
     supabase.from('news')
       .select('*')
       .order('date', { ascending: false })
-      .limit(5)
+      .limit(5),
+    getAllTouringSurveys()
   ]);
 
   return (
@@ -60,6 +63,7 @@ export default async function AdminPage() {
       }}
       latestInquiries={latestInquiries || []}
       latestNews={latestNews || []}
+      surveys={surveys || []}
     />
   );
 }

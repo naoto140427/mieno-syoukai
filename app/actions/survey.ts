@@ -5,65 +5,70 @@ import { revalidatePath } from 'next/cache';
 import type { TouringSurvey } from '@/types/database';
 
 export async function upsertSurvey(data: { news_id: number, attendance_status: 'JOIN' | 'PENDING' | 'DECLINE', vehicle_info?: string, message?: string }) {
-    const supabase = await createClient();
+    try {
+        const supabase = await createClient();
 
-    // Auth check
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-        throw new Error('Unauthorized Agent');
-    }
+        // Auth check
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            throw new Error('Unauthorized Agent');
+        }
 
-    // Determine agent_name securely
-    let agentName = user.email || 'Unknown Agent';
-    const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
-    if (profile && profile.name) {
-        agentName = profile.name;
-    }
+        // Determine agent_name securely
+        let agentName = user.email || 'Unknown Agent';
+        const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
+        if (profile && profile.name) {
+            agentName = profile.name;
+        }
 
-    // Check if survey already exists for this agent and news_id to determine ID for upsert or do a raw upsert if unique constraint exists
-    const { data: existingSurvey } = await supabase
-        .from('touring_surveys')
-        .select('id')
-        .eq('news_id', data.news_id)
-        .eq('agent_name', agentName)
-        .single();
-
-    let resultError;
-
-    if (existingSurvey) {
-        // Update
-        const { error } = await supabase
+        // Check if survey already exists for this agent and news_id to determine ID for upsert or do a raw upsert if unique constraint exists
+        const { data: existingSurvey } = await supabase
             .from('touring_surveys')
-            .update({
-                attendance_status: data.attendance_status,
-                vehicle_info: data.vehicle_info,
-                message: data.message
-            })
-            .eq('id', existingSurvey.id);
-        resultError = error;
-    } else {
-        // Insert
-        const { error } = await supabase
-            .from('touring_surveys')
-            .insert({
-                news_id: data.news_id,
-                agent_name: agentName,
-                attendance_status: data.attendance_status,
-                vehicle_info: data.vehicle_info,
-                message: data.message
-            });
-        resultError = error;
-    }
+            .select('id')
+            .eq('news_id', data.news_id)
+            .eq('agent_name', agentName)
+            .single();
 
-    if (resultError) {
-        console.error('Error upserting survey:', resultError);
-        throw new Error('Failed to submit RSVP');
-    }
+        let resultError;
 
-    revalidatePath(`/news/${data.news_id}`);
-    revalidatePath('/agent');
-    revalidatePath('/admin');
-    return { success: true };
+        if (existingSurvey) {
+            // Update
+            const { error } = await supabase
+                .from('touring_surveys')
+                .update({
+                    attendance_status: data.attendance_status,
+                    vehicle_info: data.vehicle_info,
+                    message: data.message
+                })
+                .eq('id', existingSurvey.id);
+            resultError = error;
+        } else {
+            // Insert
+            const { error } = await supabase
+                .from('touring_surveys')
+                .insert({
+                    news_id: data.news_id,
+                    agent_name: agentName,
+                    attendance_status: data.attendance_status,
+                    vehicle_info: data.vehicle_info,
+                    message: data.message
+                });
+            resultError = error;
+        }
+
+        if (resultError) {
+            console.error('Error upserting survey:', resultError);
+            throw new Error('Failed to submit RSVP');
+        }
+
+        revalidatePath(`/news/${data.news_id}`);
+        revalidatePath('/agent');
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (error) {
+        console.error('Action Error in upsertSurvey:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown Server Error' };
+    }
 }
 
 export async function submitSurvey(data: Omit<TouringSurvey, 'id' | 'created_at'>) {
@@ -145,4 +150,56 @@ export async function deleteSurvey(id: number) {
         throw new Error('Failed to delete survey');
     }
     return { success: true };
+}
+
+export async function getAllTouringSurveys() {
+    try {
+        const supabase = await createClient();
+
+        // Admin Auth check
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            console.error('Unauthorized: No user session');
+            return [];
+        }
+
+        const { data: profile } = await supabase
+            .from('agents')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        const role = profile?.role;
+        const adminRoles = ['CTO', 'CEO', 'CMO', 'Admin'];
+
+        if (!role || !adminRoles.includes(role)) {
+            console.error('Unauthorized: Not an admin');
+            return [];
+        }
+
+        // Fetch all surveys with news title
+        const { data, error } = await supabase
+            .from('touring_surveys')
+            .select(`
+                *,
+                news (
+                    title
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching all surveys:', error);
+            return [];
+        }
+
+        // Map data to handle relation smoothly
+        return (data || []).map((item: any) => ({
+            ...item,
+            news_title: item.news?.title || 'Unknown Operation'
+        }));
+    } catch (error) {
+        console.error('Action Error in getAllTouringSurveys:', error);
+        return [];
+    }
 }
