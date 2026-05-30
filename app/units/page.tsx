@@ -1,7 +1,7 @@
 import StrategicUnits from "@/components/StrategicUnits";
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { Unit } from "@/types/database";
+import { getUnits } from "@/app/actions/units";
 
 export const metadata: Metadata = {
   title: "Strategic Units (機動戦力)",
@@ -14,11 +14,14 @@ export const metadata: Metadata = {
 };
 
 export default async function UnitsPage() {
+  // 認証チェックのみ createClient（cookiesが必要）を使用
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const isAdmin = !!user;
 
-  const { data: units } = await supabase.from('units').select('*');
+  // データ取得は createPublicClient + unstable_cache 経由でエッジキャッシュ
+  const units = await getUnits();
 
-  return <StrategicUnits units={(units as Unit[]) || []} isAdmin={isAdmin} />;
+  return <StrategicUnits units={units} isAdmin={isAdmin} />;
 }
+

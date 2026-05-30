@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import Archives from "@/components/Archives";
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { Archive } from "@/types/database";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { getArchives } from "@/app/actions/archives";
 
 export const metadata: Metadata = {
   title: "Operation Archives (作戦記録保管庫)",
@@ -11,13 +11,10 @@ export const metadata: Metadata = {
 };
 
 async function ArchivesFetcher({ isAdmin }: { isAdmin: boolean }) {
-  const supabase = await createClient();
-  const { data: archives } = await supabase
-    .from('archives')
-    .select('*')
-    .order('date', { ascending: false });
+  // createPublicClient + unstable_cache 経由でエッジキャッシュされたデータを取得
+  const archives = await getArchives();
 
-  return <Archives archives={(archives as Archive[]) || []} isAdmin={isAdmin} />;
+  return <Archives archives={archives} isAdmin={isAdmin} />;
 }
 
 function ArchivesSkeleton() {
