@@ -69,8 +69,8 @@ export interface News {
 }
 
 export interface TouringSurvey {
-  id: number;
-  news_id: number;
+  id: number | string;
+  news_id: number | string;
   agent_name: string;
   attendance_status: 'JOIN' | 'PENDING' | 'DECLINE';
   vehicle_info?: string;
