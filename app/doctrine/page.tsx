@@ -31,6 +31,7 @@ export default function DoctrinePage() {
               fill
               className="rounded-full object-cover shadow-2xl ring-1 ring-gray-900/5"
               priority
+              sizes="(max-width: 768px) 192px, 224px"
             />
           </div>
         </m.div>
