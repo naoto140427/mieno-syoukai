@@ -132,7 +132,7 @@ export default function NewsPageClient({ initialNews }: { initialNews: News[] })
                                 No updates available for this category or search query.
                             </motion.div>
                         ) : (
-                            filteredNews.map((item) => (
+                            filteredNews.map((item, index) => (
                                 <motion.div
                                     layout
                                     initial={{ opacity: 0, y: 20 }}
@@ -151,6 +151,7 @@ export default function NewsPageClient({ initialNews }: { initialNews: News[] })
                                                     fill
                                                     sizes="(max-width: 768px) 100vw, 224px"
                                                     className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                                    priority={index === 0}
                                                 />
                                             </div>
                                         )}
