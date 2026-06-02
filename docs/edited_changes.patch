@@ -1,0 +1,3118 @@
+diff --git a/app/actions/agent.ts b/app/actions/agent.ts
+index d813d5e..e69e850 100644
+--- a/app/actions/agent.ts
++++ b/app/actions/agent.ts
+@@ -65,7 +65,7 @@ export async function getAgentActiveOperations(): Promise<{ surveys: ExtendedSur
+     let agentName = user.email || 'Unknown Agent';
+     const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
+     if (profile) {
+-       agentName = profile.name;
++       agentName = profile.codename;
+     }
+ 
+     const { data, error } = await supabase
+diff --git a/app/actions/archives.ts b/app/actions/archives.ts
+index 3927a1a..074f58c 100644
+--- a/app/actions/archives.ts
++++ b/app/actions/archives.ts
+@@ -14,7 +14,8 @@ export const getArchives = unstable_cache(
+     const supabase = createPublicClient();
+     const { data, error } = await supabase
+       .from('archives')
+-      .select('*')
++      // route_data は GPX 全座標を含み 3MB+ になるため一覧では除外
++      .select('id, title, date, distance, members, weather, details, geojson, distance_km, max_speed, max_elevation, duration_time, avg_speed, elevation_gain, location_name, created_at')
+       .order('date', { ascending: false });
+ 
+     if (error) {
+diff --git a/app/actions/inventory.ts b/app/actions/inventory.ts
+index 0f630d2..6c0041a 100644
+--- a/app/actions/inventory.ts
++++ b/app/actions/inventory.ts
+@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
+ import { revalidatePath } from 'next/cache';
+ import { Consumable, Tool } from '@/types/database';
+ 
++const ADMIN_ROLES = ['CTO', 'CEO', 'CMO', 'Admin'];
++
+ export async function updateConsumableLevel(id: number, delta: number) {
+   const supabase = await createClient();
+   const { data: { user } } = await supabase.auth.getUser();
+@@ -154,7 +156,7 @@ export async function approveInventoryRequest(requestId: number, toolId: number)
+ 
+     // Check Admin role
+     const { data: profile } = await supabase.from('agents').select('role').eq('id', user.id).single();
+-    if (!profile || (profile.role !== 'CTO' && profile.role !== 'Admin' && profile.role !== 'admin' && profile.role !== 'ADMIN')) {
++    if (!profile || !ADMIN_ROLES.includes(profile.role)) {
+         throw new Error('Forbidden: Admin access required');
+     }
+ 
+@@ -189,7 +191,7 @@ export async function returnInventoryRequest(requestId: number, toolId: number)
+ 
+     // Check Admin role
+     const { data: profile } = await supabase.from('agents').select('role').eq('id', user.id).single();
+-    if (!profile || (profile.role !== 'CTO' && profile.role !== 'Admin' && profile.role !== 'admin' && profile.role !== 'ADMIN')) {
++    if (!profile || !ADMIN_ROLES.includes(profile.role)) {
+         throw new Error('Forbidden: Admin access required');
+     }
+ 
+diff --git a/app/actions/news.ts b/app/actions/news.ts
+index e731ae4..ad04d36 100644
+--- a/app/actions/news.ts
++++ b/app/actions/news.ts
+@@ -79,16 +79,17 @@ export async function addNews(data: Omit<News, 'id' | 'created_at'>) {
+     .select()
+     .single();
+ 
+-  if (!error && insertedData && insertedData.category === 'TOURING') {
+-    const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://mieno-corp.vercel.app'}/news/${insertedData.id}`;
+-    await sendLineNotification(insertedData.title, url);
+-  }
+-
+   if (error) {
+     console.error('Error adding news:', error);
+     throw new Error('Failed to add news');
+   }
+ 
++  // INSERT成功後にLINE通知送信（TOURINGカテゴリのみ）
++  if (insertedData && insertedData.category === 'TOURING') {
++    const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://mieno-corp.vercel.app'}/news/${insertedData.id}`;
++    await sendLineNotification(insertedData.title, url);
++  }
++
+   // オンデマンドキャッシュパージ
+   revalidateTag('news', 'default');
+   revalidatePath('/');
+diff --git a/app/actions/survey.ts b/app/actions/survey.ts
+index 2e8630e..b34b44b 100644
+--- a/app/actions/survey.ts
++++ b/app/actions/survey.ts
+@@ -17,8 +17,8 @@ export async function upsertSurvey(data: { news_id: number | string, attendance_
+         // Determine agent_name securely
+         let agentName = user.email || 'Unknown Agent';
+         const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
+-        if (profile && profile.name) {
+-            agentName = profile.name;
++        if (profile && profile.codename) {
++            agentName = profile.codename;
+         }
+ 
+         // Cast news_id to string to match DB column type
+@@ -120,8 +120,8 @@ export async function getUserSurveyByNewsId(newsId: number | string): Promise<To
+ 
+     let agentName = user.email || 'Unknown Agent';
+     const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
+-    if (profile && profile.name) {
+-        agentName = profile.name;
++    if (profile && profile.codename) {
++        agentName = profile.codename;
+     }
+ 
+     const { data, error } = await supabase
+diff --git a/app/admin/AdminLoginClient.tsx b/app/admin/AdminLoginClient.tsx
+index c667f85..82cf87a 100644
+--- a/app/admin/AdminLoginClient.tsx
++++ b/app/admin/AdminLoginClient.tsx
+@@ -2,10 +2,11 @@
+ 
+ import { useState, useEffect } from 'react';
+ import { m, AnimatePresence } from 'framer-motion';
+-import { Lock, User, Send, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
++import { Lock, User, Send, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+ import { createClient } from '@/lib/supabase/client';
+ import EasterEggModal from '../../components/EasterEggModal';
+ import ClientMotionWrapper from '@/components/ClientMotionWrapper';
++import { useRouter } from 'next/navigation';
+ 
+ const supabase = createClient();
+ 
+@@ -31,12 +32,30 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' |
+ };
+ 
+ export default function AdminLoginClient() {
++  const router = useRouter();
+   const [loginId, setLoginId] = useState('');
+   const [isLoggingIn, setIsLoggingIn] = useState(false);
+   const [magicLinkSent, setMagicLinkSent] = useState(false);
++  const [isWaitingSession, setIsWaitingSession] = useState(false);
+   const [showEasterEgg, setShowEasterEgg] = useState(false);
++  const [errorDetail, setErrorDetail] = useState<string | null>(null);
+   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
+ 
++  // 別タブでmagic linkがクリックされた瞬間にここも検知してリダイレクト
++  useEffect(() => {
++    if (!magicLinkSent) return;
++
++    setIsWaitingSession(true);
++    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
++      if (event === 'SIGNED_IN' && session) {
++        router.push('/admin');
++        router.refresh();
++      }
++    });
++
++    return () => subscription.unsubscribe();
++  }, [magicLinkSent, router]);
++
+   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+     setToast({ show: true, message, type });
+   };
+@@ -47,10 +66,13 @@ export default function AdminLoginClient() {
+ 
+     setIsLoggingIn(true);
+     try {
++      const redirectTo = `${window.location.origin}/auth/callback?next=/admin`;
++      console.log('Sending magic link to:', loginId, 'redirectTo:', redirectTo);
++
+       const { error } = await supabase.auth.signInWithOtp({
+         email: loginId,
+         options: {
+-         emailRedirectTo: `${location.origin}/auth/callback?next=/admin`
++          emailRedirectTo: redirectTo,
+         },
+       });
+ 
+@@ -60,8 +82,11 @@ export default function AdminLoginClient() {
+       showToast('認証メールを送信しました。メールを確認してください。', 'success');
+ 
+     } catch (err: unknown) {
+-      console.error(err);
+-      const message = err instanceof Error ? err.message : 'Authentication failed';
++      console.error('Magic link error:', err);
++      const message = err instanceof Error
++        ? `${err.message}`
++        : `Error: ${JSON.stringify(err)}`;
++      setErrorDetail(message);
+       showToast(message, 'error');
+     } finally {
+       setIsLoggingIn(false);
+@@ -99,10 +124,19 @@ export default function AdminLoginClient() {
+                       認証用のリンクを送信しました。<br />
+                       メール内のリンクをクリックして<br />ログインを完了してください。
+                   </p>
++
++                  {/* 別タブでのログイン待機インジケーター */}
++                  {isWaitingSession && (
++                    <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400 font-mono">
++                      <Loader2 size={12} className="animate-spin" />
++                      <span>ログイン待機中...</span>
++                    </div>
++                  )}
++
+                   <button
+                       type="button"
+-                      onClick={() => setMagicLinkSent(false)}
+-                      className="mt-6 text-sm text-blue-500 font-bold hover:underline"
++                      onClick={() => { setMagicLinkSent(false); setIsWaitingSession(false); }}
++                      className="mt-4 text-sm text-blue-500 font-bold hover:underline"
+                   >
+                       メールアドレスを再入力する
+                   </button>
+@@ -128,6 +162,14 @@ export default function AdminLoginClient() {
+                       </div>
+                   </div>
+ 
++                  {/* Error detail */}
++                  {errorDetail && (
++                    <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-left">
++                      <p className="text-xs font-bold text-red-600 mb-1">エラー詳細:</p>
++                      <p className="text-xs text-red-500 font-mono break-all">{errorDetail}</p>
++                    </div>
++                  )}
++
+                   <button
+                       type="submit"
+                       disabled={isLoggingIn || !loginId}
+diff --git a/app/agent/AgentDashboardClient.tsx b/app/agent/AgentDashboardClient.tsx
+index b3ace85..bbfe8e2 100644
+--- a/app/agent/AgentDashboardClient.tsx
++++ b/app/agent/AgentDashboardClient.tsx
+@@ -1,12 +1,17 @@
+ 'use client';
+ 
+-import { m } from 'framer-motion';
++import { m, AnimatePresence } from 'framer-motion';
+ import { type User as SupabaseUser } from '@supabase/supabase-js';
+ import { Agent } from '@/types/database';
+ import { ExtendedSurvey, ExtendedRequest } from '@/app/actions/agent';
+-import { Package, Calendar, MapPin, Activity, ShieldCheck, LogOut, User } from 'lucide-react';
++import {
++  Package, Calendar, MapPin, Activity,
++  ShieldCheck, LogOut, User, Newspaper,
++  ChevronRight, Clock, CheckCircle2, XCircle, RotateCcw
++} from 'lucide-react';
+ import { createClient } from '@/lib/supabase/client';
+ import { useRouter } from 'next/navigation';
++import Link from 'next/link';
+ import ClientMotionWrapper from '@/components/ClientMotionWrapper';
+ 
+ interface AgentDashboardClientProps {
+@@ -16,176 +21,312 @@ interface AgentDashboardClientProps {
+   requests: ExtendedRequest[];
+ }
+ 
++const containerVariants = {
++  hidden: { opacity: 0 },
++  show: {
++    opacity: 1,
++    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
++  }
++};
++
++const itemVariants = {
++  hidden: { opacity: 0, y: 24 },
++  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 280, damping: 26 } }
++};
++
++const STATUS_CONFIG = {
++  APPROVED: { label: 'APPROVED', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', bar: 'bg-emerald-500' },
++  PENDING:  { label: 'PENDING',  icon: Clock,         color: 'text-amber-600',   bg: 'bg-amber-50',   bar: 'bg-amber-400' },
++  REJECTED: { label: 'REJECTED', icon: XCircle,        color: 'text-rose-600',    bg: 'bg-rose-50',    bar: 'bg-rose-500' },
++  RETURNED: { label: 'RETURNED', icon: RotateCcw,      color: 'text-gray-500',    bg: 'bg-gray-100',   bar: 'bg-gray-300' },
++} as const;
++
+ export default function AgentDashboardClient({ user, agentProfile, surveys, requests }: AgentDashboardClientProps) {
+   const router = useRouter();
+   const supabase = createClient();
+-  const containerVariants = {
+-    hidden: { opacity: 0 },
+-    show: {
+-      opacity: 1,
+-      transition: {
+-        staggerChildren: 0.1
+-      }
+-    }
+-  };
+-
+-  const itemVariants = {
+-    hidden: { opacity: 0, y: 20 },
+-    show: { opacity: 1, y: 0, transition: { type: 'spring' as any, stiffness: 300, damping: 24 } }
+-  };
+ 
+   const handleSignOut = async () => {
+     await supabase.auth.signOut();
+     router.push('/auth/login');
+   };
+ 
++  const approvedCount = requests.filter(r => r.status === 'APPROVED').length;
++  const pendingCount  = requests.filter(r => r.status === 'PENDING').length;
++  const displayName   = agentProfile?.codename || user.email?.split('@')[0].toUpperCase() || 'AGENT';
++
+   return (
+     <ClientMotionWrapper>
+-    <div className="max-w-6xl mx-auto p-6 lg:p-12">
+-      {/* Header */}
+-      <m.div
+-        initial={{ opacity: 0, y: -20 }}
+-        animate={{ opacity: 1, y: 0 }}
+-        className="flex justify-between items-center mb-12"
+-      >
+-        <div>
+-          <h1 className="text-3xl font-bold tracking-tight text-mieno-navy flex items-center gap-3">
+-             <ShieldCheck size={32} className="text-mieno-blue" />
+-             AGENT PORTAL
+-          </h1>
+-          <p className="text-gray-500 font-mono text-sm mt-2 tracking-widest uppercase">
+-            AGENT CLEARANCE: <span className="text-emerald-500 font-bold">AUTHORIZED</span> // {agentProfile?.role || 'FIELD AGENT'}
+-          </p>
+-        </div>
+-        <button
+-           onClick={handleSignOut}
+-           className="p-3 bg-white rounded-full shadow-sm hover:shadow-md transition-all text-gray-500 hover:text-red-500 border border-gray-100"
+-           title="Sign Out"
++      <div className="min-h-screen bg-[#F5F5F7]">
++
++        {/* ── Top Bar ─────────────────────────────────────── */}
++        <m.div
++          initial={{ opacity: 0, y: -16 }}
++          animate={{ opacity: 1, y: 0 }}
++          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
++          className="sticky top-0 z-30 w-full bg-white/80 backdrop-blur-xl border-b border-gray-200/60"
+         >
+-           <LogOut size={20} />
+-        </button>
+-      </m.div>
+-
+-      <m.div
+-        variants={containerVariants}
+-        initial="hidden"
+-        animate="show"
+-        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+-      >
+-
+-        {/* Profile Card */}
+-        <m.div variants={itemVariants} className="lg:col-span-1 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 relative overflow-hidden flex flex-col items-center justify-center min-h-[300px]">
+-           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+-           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6 border-4 border-white shadow-lg">
+-              <User size={40} className="text-gray-400" />
+-           </div>
+-           <h2 className="text-2xl font-bold text-gray-900 mb-1">{agentProfile?.name || user.email?.split('@')[0].toUpperCase()}</h2>
+-           <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full tracking-widest uppercase mb-4">
+-              ACTIVE
+-           </span>
+-           <div className="w-full bg-gray-50 p-4 rounded-xl border border-gray-100 mt-auto">
+-              <div className="flex justify-between text-sm mb-2">
+-                 <span className="text-gray-500">Operations Joined</span>
+-                 <span className="font-bold font-mono">{surveys.length}</span>
+-              </div>
+-              <div className="flex justify-between text-sm">
+-                 <span className="text-gray-500">Active Gear</span>
+-                 <span className="font-bold font-mono">{requests.filter(r => r.status === 'APPROVED').length}</span>
+-              </div>
+-           </div>
++          <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
++            <div className="flex items-center gap-2.5">
++              <ShieldCheck size={18} className="text-mieno-blue" />
++              <span className="text-sm font-bold tracking-widest text-mieno-navy uppercase">Agent Portal</span>
++              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded-full text-[10px] font-bold text-emerald-600 tracking-wider ml-2">
++                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
++                AUTHORIZED
++              </span>
++            </div>
++            <div className="flex items-center gap-3">
++              <Link href="/news" className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-mieno-navy transition-colors tracking-wider">
++                <Newspaper size={14} />
++                <span className="hidden sm:inline">通達 / NEWS</span>
++              </Link>
++              <button
++                onClick={handleSignOut}
++                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-gray-500 hover:text-rose-500 hover:bg-rose-50 transition-all border border-gray-200 hover:border-rose-200"
++                title="Sign Out"
++              >
++                <LogOut size={14} />
++                <span className="hidden sm:inline">SIGN OUT</span>
++              </button>
++            </div>
++          </div>
+         </m.div>
+ 
+-        {/* Operations Bento */}
+-        <m.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col">
+-          <div className="flex items-center gap-3 mb-6">
+-             <div className="p-2 bg-gray-50 rounded-lg"><MapPin size={20} className="text-gray-600" /></div>
+-             <h3 className="text-lg font-bold text-gray-900 tracking-tight">UPCOMING DEPLOYMENTS</h3>
+-          </div>
++        {/* ── Main Content ─────────────────────────────────── */}
++        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
++          <m.div
++            variants={containerVariants}
++            initial="hidden"
++            animate="show"
++            className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5"
++          >
++
++            {/* ── [1] Profile Card ── */}
++            <m.div
++              variants={itemVariants}
++              className="lg:col-span-4 bg-white rounded-3xl p-7 shadow-sm border border-gray-100/80 relative overflow-hidden"
++            >
++              {/* accent bar */}
++              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
++
++              <div className="flex flex-col items-center text-center pt-2">
++                {/* Avatar */}
++                <div className="relative mb-5">
++                  <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
++                    <User size={32} className="text-indigo-400" />
++                  </div>
++                  <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white" />
++                </div>
++
++                {/* Name & Role */}
++                <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-1">{displayName}</h2>
++                <p className="text-xs font-bold text-gray-400 tracking-widest uppercase mb-1">{agentProfile?.role || 'FIELD AGENT'}</p>
++                <p className="text-[11px] font-mono text-gray-400 mb-5 truncate max-w-full">{user.email}</p>
++
++                {/* Stats row */}
++                <div className="w-full grid grid-cols-2 gap-3">
++                  <div className="bg-[#F5F5F7] rounded-2xl p-4 text-center">
++                    <p className="text-2xl font-black text-gray-900">{surveys.length}</p>
++                    <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mt-0.5">Ops Joined</p>
++                  </div>
++                  <div className="bg-[#F5F5F7] rounded-2xl p-4 text-center">
++                    <p className="text-2xl font-black text-gray-900">{approvedCount}</p>
++                    <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mt-0.5">Active Gear</p>
++                  </div>
++                </div>
++
++                {/* Quick links */}
++                <div className="w-full mt-4 space-y-2">
++                  <Link
++                    href="/news"
++                    className="flex items-center justify-between w-full px-4 py-3 bg-[#F5F5F7] hover:bg-blue-50 rounded-2xl transition-colors group"
++                  >
++                    <span className="text-xs font-bold text-gray-600 group-hover:text-blue-600 tracking-wider uppercase">最新通達を確認</span>
++                    <ChevronRight size={14} className="text-gray-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" />
++                  </Link>
++                  <Link
++                    href="/inventory"
++                    className="flex items-center justify-between w-full px-4 py-3 bg-[#F5F5F7] hover:bg-blue-50 rounded-2xl transition-colors group"
++                  >
++                    <span className="text-xs font-bold text-gray-600 group-hover:text-blue-600 tracking-wider uppercase">備品をリクエスト</span>
++                    <ChevronRight size={14} className="text-gray-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" />
++                  </Link>
++                </div>
++              </div>
++            </m.div>
+ 
+-          <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+-             {surveys.length === 0 ? (
+-               <div className="h-full flex flex-col items-center justify-center text-gray-400 min-h-[150px]">
+-                 <Activity size={32} className="mb-3 opacity-20" />
+-                 <p className="font-mono text-sm">NO PENDING OPERATIONS.</p>
+-               </div>
+-             ) : (
+-               surveys.map(survey => (
+-                 <div key={survey.id} className="group relative overflow-hidden bg-[#F5F5F7] hover:bg-white rounded-2xl p-5 border border-transparent hover:border-gray-200 transition-all">
+-                    <div className="flex justify-between items-start">
+-                       <div>
+-                         <span className="text-[10px] font-bold text-mieno-blue uppercase tracking-widest mb-1 block">CONFIRMED (JOIN)</span>
+-                         <h4 className="text-lg font-bold text-gray-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors">
+-                            {survey.news?.title || 'Unknown Operation'}
+-                         </h4>
+-                         {survey.news?.event_date && (
+-                           <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono">
+-                              <Calendar size={12} />
+-                              {new Date(survey.news.event_date).toLocaleDateString()}
+-                           </div>
+-                         )}
+-                       </div>
+-                       {survey.vehicle_info && (
+-                          <div className="bg-white px-3 py-1.5 rounded-lg border border-gray-100 text-xs font-mono text-gray-600 shadow-sm">
+-                             {survey.vehicle_info}
++            {/* ── [2] Upcoming Deployments ── */}
++            <m.div
++              variants={itemVariants}
++              className="lg:col-span-8 bg-white rounded-3xl p-7 shadow-sm border border-gray-100/80 flex flex-col min-h-[320px]"
++            >
++              <div className="flex items-center justify-between mb-5">
++                <div className="flex items-center gap-2.5">
++                  <div className="p-2 bg-blue-50 rounded-xl">
++                    <MapPin size={16} className="text-blue-600" />
++                  </div>
++                  <div>
++                    <h3 className="text-sm font-black text-gray-900 tracking-widest uppercase">Upcoming Deployments</h3>
++                    <p className="text-[10px] text-gray-400 font-mono tracking-wider">参加確定の作戦一覧</p>
++                  </div>
++                </div>
++                <span className="text-xs font-bold font-mono text-gray-400">{surveys.length} OPS</span>
++              </div>
++
++              <div className="flex-1 overflow-y-auto">
++                <AnimatePresence>
++                  {surveys.length === 0 ? (
++                    <m.div
++                      initial={{ opacity: 0 }}
++                      animate={{ opacity: 1 }}
++                      className="h-full flex flex-col items-center justify-center py-12 text-center"
++                    >
++                      <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
++                        <Activity size={24} className="text-gray-300" />
++                      </div>
++                      <p className="text-xs font-bold font-mono text-gray-300 tracking-widest uppercase">No Pending Operations</p>
++                      <Link
++                        href="/news"
++                        className="mt-4 text-xs font-bold text-mieno-blue hover:underline tracking-wider"
++                      >
++                        通達 / NEWS でツーリングに参加 →
++                      </Link>
++                    </m.div>
++                  ) : (
++                    <div className="space-y-3 pr-1">
++                      {surveys.map((survey, i) => (
++                        <m.div
++                          key={survey.id}
++                          initial={{ opacity: 0, x: -16 }}
++                          animate={{ opacity: 1, x: 0 }}
++                          transition={{ delay: i * 0.07, type: 'spring', stiffness: 300, damping: 28 }}
++                          className="group relative bg-[#F5F5F7] hover:bg-white rounded-2xl p-4 border border-transparent hover:border-blue-100 hover:shadow-sm transition-all cursor-default"
++                        >
++                          <div className="flex items-start justify-between gap-3">
++                            <div className="flex-1 min-w-0">
++                              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1 block">
++                                ● CONFIRMED — JOIN
++                              </span>
++                              <h4 className="text-base font-bold text-gray-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors truncate">
++                                {survey.news?.title || 'Unknown Operation'}
++                              </h4>
++                              <div className="flex flex-wrap items-center gap-3">
++                                {survey.news?.event_date && (
++                                  <span className="flex items-center gap-1 text-[11px] text-gray-500 font-mono">
++                                    <Calendar size={11} />
++                                    {new Date(survey.news.event_date).toLocaleDateString('ja-JP')}
++                                  </span>
++                                )}
++                                {survey.news?.location && (
++                                  <span className="flex items-center gap-1 text-[11px] text-gray-500 font-mono">
++                                    <MapPin size={11} />
++                                    {survey.news.location}
++                                  </span>
++                                )}
++                              </div>
++                            </div>
++                            {survey.vehicle_info && (
++                              <div className="shrink-0 bg-white px-3 py-1.5 rounded-xl border border-gray-100 text-[11px] font-mono text-gray-600 shadow-sm whitespace-nowrap">
++                                {survey.vehicle_info}
++                              </div>
++                            )}
+                           </div>
+-                       )}
++                          {survey.message && (
++                            <p className="mt-2.5 text-[11px] text-gray-400 italic border-t border-gray-100 pt-2.5 line-clamp-1">
++                              "{survey.message}"
++                            </p>
++                          )}
++                        </m.div>
++                      ))}
+                     </div>
+-                 </div>
+-               ))
+-             )}
+-          </div>
+-        </m.div>
++                  )}
++                </AnimatePresence>
++              </div>
++            </m.div>
+ 
+-        {/* Gear Bento */}
+-        <m.div variants={itemVariants} className="lg:col-span-3 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mt-2">
+-          <div className="flex items-center gap-3 mb-6">
+-             <div className="p-2 bg-gray-50 rounded-lg"><Package size={20} className="text-gray-600" /></div>
+-             <h3 className="text-lg font-bold text-gray-900 tracking-tight">TACTICAL GEAR</h3>
+-          </div>
++            {/* ── [3] Tactical Gear (Inventory Requests) ── */}
++            <m.div
++              variants={itemVariants}
++              className="lg:col-span-12 bg-white rounded-3xl p-7 shadow-sm border border-gray-100/80"
++            >
++              <div className="flex items-center justify-between mb-5">
++                <div className="flex items-center gap-2.5">
++                  <div className="p-2 bg-gray-50 rounded-xl">
++                    <Package size={16} className="text-gray-600" />
++                  </div>
++                  <div>
++                    <h3 className="text-sm font-black text-gray-900 tracking-widest uppercase">Tactical Gear</h3>
++                    <p className="text-[10px] text-gray-400 font-mono tracking-wider">装備リクエスト状況</p>
++                  </div>
++                </div>
++                <div className="flex items-center gap-2">
++                  {pendingCount > 0 && (
++                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
++                      {pendingCount} PENDING
++                    </span>
++                  )}
++                  <span className="text-xs font-bold font-mono text-gray-400">{requests.length} ITEMS</span>
++                </div>
++              </div>
+ 
+-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+-             {requests.length === 0 ? (
+-                <div className="col-span-full py-12 text-center text-gray-400 font-mono text-sm border-2 border-dashed border-gray-100 rounded-2xl">
+-                   NO EQUIPMENT ISSUED.
++              {requests.length === 0 ? (
++                <div className="py-16 text-center border-2 border-dashed border-gray-100 rounded-2xl">
++                  <Package size={28} className="text-gray-200 mx-auto mb-3" />
++                  <p className="text-xs font-bold font-mono text-gray-300 tracking-widest uppercase">No Equipment Issued</p>
++                  <Link
++                    href="/inventory"
++                    className="mt-3 inline-block text-xs font-bold text-mieno-blue hover:underline tracking-wider"
++                  >
++                    備品リストを見る →
++                  </Link>
+                 </div>
+-             ) : (
+-                requests.map(req => (
+-                   <div key={req.id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+-                      {req.status === 'APPROVED' && <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>}
+-                      {req.status === 'PENDING' && <div className="absolute top-0 left-0 w-1 h-full bg-amber-400"></div>}
+-                      {req.status === 'RETURNED' && <div className="absolute top-0 left-0 w-1 h-full bg-gray-300"></div>}
+-                      {req.status === 'REJECTED' && <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>}
+-
+-                      <div className="flex justify-between items-start mb-3">
+-                         <h4 className="font-bold text-gray-900">{req.tool?.name || 'Unknown Tool'}</h4>
+-                         <span className={`text-[10px] font-bold px-2 py-1 rounded-md tracking-wider ${
+-                            req.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700' :
+-                            req.status === 'PENDING' ? 'bg-amber-50 text-amber-700' :
+-                            req.status === 'RETURNED' ? 'bg-gray-100 text-gray-600' :
+-                            'bg-rose-50 text-rose-700'
+-                         }`}>
+-                            {req.status}
+-                         </span>
+-                      </div>
++              ) : (
++                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
++                  {requests.map((req, i) => {
++                    const cfg = STATUS_CONFIG[req.status] ?? STATUS_CONFIG.PENDING;
++                    const StatusIcon = cfg.icon;
++                    return (
++                      <m.div
++                        key={req.id}
++                        initial={{ opacity: 0, scale: 0.96 }}
++                        animate={{ opacity: 1, scale: 1 }}
++                        transition={{ delay: i * 0.05, type: 'spring', stiffness: 320, damping: 28 }}
++                        className="relative bg-[#F5F5F7] rounded-2xl p-5 border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all overflow-hidden"
++                      >
++                        {/* Status bar */}
++                        <div className={`absolute top-0 left-0 right-0 h-0.5 ${cfg.bar}`} />
+ 
+-                      <div className="text-xs text-gray-500 font-mono space-y-1">
+-                         <div className="flex justify-between">
+-                            <span>From:</span>
+-                            <span className="text-gray-700">{new Date(req.start_date).toLocaleDateString()}</span>
+-                         </div>
+-                         <div className="flex justify-between">
+-                            <span>To:</span>
+-                            <span className="text-gray-700">{new Date(req.end_date).toLocaleDateString()}</span>
+-                         </div>
+-                      </div>
+-                   </div>
+-                ))
+-             )}
+-          </div>
+-        </m.div>
++                        <div className="flex justify-between items-start mb-3">
++                          <h4 className="font-bold text-sm text-gray-900 leading-tight pr-2">{req.tool?.name || 'Unknown Tool'}</h4>
++                          <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg tracking-wider shrink-0 ${cfg.bg} ${cfg.color}`}>
++                            <StatusIcon size={10} />
++                            {cfg.label}
++                          </span>
++                        </div>
++
++                        {req.tool?.spec && (
++                          <p className="text-[11px] text-gray-400 mb-3 line-clamp-1">{req.tool.spec}</p>
++                        )}
+ 
+-      </m.div>
+-    </div>
+-  </ClientMotionWrapper>
++                        <div className="text-[11px] text-gray-500 font-mono space-y-1 border-t border-gray-100/80 pt-3">
++                          <div className="flex justify-between">
++                            <span>FROM</span>
++                            <span className="text-gray-700">{new Date(req.start_date).toLocaleDateString('ja-JP')}</span>
++                          </div>
++                          <div className="flex justify-between">
++                            <span>TO</span>
++                            <span className="text-gray-700">{new Date(req.end_date).toLocaleDateString('ja-JP')}</span>
++                          </div>
++                        </div>
++                      </m.div>
++                    );
++                  })}
++                </div>
++              )}
++            </m.div>
++
++          </m.div>
++        </div>
++      </div>
++    </ClientMotionWrapper>
+   );
+ }
+diff --git a/app/auth/login/LoginForm.tsx b/app/auth/login/LoginForm.tsx
+index 49c6bcc..d5fddac 100644
+--- a/app/auth/login/LoginForm.tsx
++++ b/app/auth/login/LoginForm.tsx
+@@ -1,10 +1,12 @@
+ "use client"
+ import ClientMotionWrapper from '@/components/ClientMotionWrapper';
+ 
+-import { useState, useActionState } from 'react'
++import { useState, useActionState, useEffect } from 'react'
+ import { m, AnimatePresence } from 'framer-motion'
+ import { Mail, ArrowRight, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react'
+ import { signInWithEmail } from '@/app/actions/auth'
++import { createClient } from '@/lib/supabase/client'
++import { useRouter } from 'next/navigation'
+ 
+ const initialState = {
+   success: false,
+@@ -14,6 +16,22 @@ const initialState = {
+ export default function LoginForm() {
+   const [state, formAction, isPending] = useActionState(signInWithEmail, initialState)
+   const [email, setEmail] = useState('')
++  const [isWaiting, setIsWaiting] = useState(false)
++  const router = useRouter()
++  const supabase = createClient()
++
++  // 別タブでmagic linkがクリックされた場合にこのタブも自動リダイレクト
++  useEffect(() => {
++    if (!state.success) return
++    setIsWaiting(true)
++    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
++      if (event === 'SIGNED_IN' && session) {
++        router.push('/agent')
++        router.refresh()
++      }
++    })
++    return () => subscription.unsubscribe()
++  }, [state.success]) // eslint-disable-line react-hooks/exhaustive-deps
+ 
+   return (
+     <ClientMotionWrapper>
+@@ -51,31 +69,37 @@ export default function LoginForm() {
+           <AnimatePresence mode="wait">
+             {state.success ? (
+               <m.div
+-                key="success"
+-                initial={{ opacity: 0, scale: 0.95 }}
+-                animate={{ opacity: 1, scale: 1 }}
+-                exit={{ opacity: 0, scale: 0.95 }}
+-                transition={{ duration: 0.4 }}
+-                className="text-center py-6"
+-              >
+-                <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+-                  <CheckCircle2 className="w-8 h-8 text-green-500" />
+-                </div>
+-                <h3 className="text-xl font-medium text-[#1D1D1F] mb-2">
+-                  リンクを送信しました
+-                </h3>
+-                <p className="text-[#86868B] text-sm leading-relaxed mb-6">
+-                  {email} 宛に認証用リンクを送信しました。<br />
+-                  メール内のリンクをクリックして<br />システムにアクセスしてください。
+-                </p>
+-                <button
+-                  type="button"
+-                  onClick={() => window.location.reload()}
+-                  className="text-sm text-blue-500 hover:text-blue-600 font-medium transition-colors"
++                  key="success"
++                  initial={{ opacity: 0, scale: 0.95 }}
++                  animate={{ opacity: 1, scale: 1 }}
++                  exit={{ opacity: 0, scale: 0.95 }}
++                  transition={{ duration: 0.4 }}
++                  className="text-center py-6"
+                 >
+-                  別のアカウントでログイン
+-                </button>
+-              </m.div>
++                  <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
++                    <CheckCircle2 className="w-8 h-8 text-green-500" />
++                  </div>
++                  <h3 className="text-xl font-medium text-[#1D1D1F] mb-2">
++                    リンクを送信しました
++                  </h3>
++                  <p className="text-[#86868B] text-sm leading-relaxed mb-4">
++                    {email} 宛に認証用リンクを送信しました。<br />
++                    メール内のリンクをクリックすると<br />この画面が自動で遷移します。
++                  </p>
++                  {isWaiting && (
++                    <div className="flex items-center justify-center gap-2 text-xs text-[#86868B] font-mono mb-4">
++                      <Loader2 size={12} className="animate-spin" />
++                      <span>ログイン待機中...</span>
++                    </div>
++                  )}
++                  <button
++                    type="button"
++                    onClick={() => window.location.reload()}
++                    className="text-sm text-blue-500 hover:text-blue-600 font-medium transition-colors"
++                  >
++                    別のアカウントでログイン
++                  </button>
++                </m.div>
+             ) : (
+               <m.form
+                 key="form"
+diff --git a/app/news/NewsPageClient.tsx b/app/news/NewsPageClient.tsx
+index f31b0f8..9eebd39 100644
+--- a/app/news/NewsPageClient.tsx
++++ b/app/news/NewsPageClient.tsx
+@@ -1,197 +1,275 @@
+ 'use client';
+ 
+-import { useState, useEffect } from "react";
++import { useState, useEffect, useMemo } from "react";
+ import Link from "next/link";
+ import Image from "next/image";
+-import { ArrowRight, Search, Sparkles, Loader2 } from "lucide-react";
++import { ArrowRight, Search, Sparkles, Loader2, Pin, Calendar, MapPin } from "lucide-react";
+ import { motion, AnimatePresence } from "framer-motion";
+ import { News } from "@/types/database";
+ import { semanticSearch } from "@/app/actions/news-ai";
+ 
++const TABS = [
++  { key: 'ALL',     label: '全て',    en: 'ALL' },
++  { key: 'TOURING', label: 'ツーリング', en: 'TOURING' },
++  { key: 'UPDATE',  label: '更新',    en: 'UPDATE' },
++  { key: 'NOTICE',  label: 'その他',  en: 'OTHER' },
++] as const;
++
++type TabKey = typeof TABS[number]['key'];
++
++const CATEGORY_STYLE: Record<string, { bg: string; text: string; label: string }> = {
++  TOURING: { bg: 'bg-blue-50',   text: 'text-blue-700',  label: 'TOURING' },
++  UPDATE:  { bg: 'bg-gray-100',  text: 'text-gray-600',  label: 'UPDATE'  },
++  PRESS:   { bg: 'bg-purple-50', text: 'text-purple-700', label: 'PRESS'  },
++  REPORT:  { bg: 'bg-green-50',  text: 'text-green-700', label: 'REPORT'  },
++  OTHER:   { bg: 'bg-gray-100',  text: 'text-gray-500',  label: 'OTHER'   },
++};
++
++const isUpcoming = (dateStr?: string) => {
++  if (!dateStr) return false;
++  const d = new Date(dateStr);
++  d.setHours(23, 59, 59, 999);
++  return d >= new Date();
++};
++
+ export default function NewsPageClient({ initialNews }: { initialNews: News[] }) {
+-    const [activeTab, setActiveTab] = useState('ALL');
+-    const [searchQuery, setSearchQuery] = useState('');
+-    const [isSearching, setIsSearching] = useState(false);
+-    const [aiMatchedIds, setAiMatchedIds] = useState<number[] | null>(null);
+-    const tabs = ['ALL', 'UPDATE', 'NOTICE', 'TOURING'];
+-
+-    useEffect(() => {
+-        const performSearch = async () => {
+-            if (!searchQuery.trim()) {
+-                setAiMatchedIds(null);
+-                setIsSearching(false);
+-                return;
+-            }
+-
+-            setIsSearching(true);
+-            try {
+-                const ids = await semanticSearch(searchQuery, initialNews);
+-                setAiMatchedIds(ids);
+-            } catch (error) {
+-                console.error("AI Search failed", error);
+-                setAiMatchedIds(null); // Fallback to local search
+-            } finally {
+-                setIsSearching(false);
+-            }
+-        };
+-
+-        const timer = setTimeout(performSearch, 500); // 500ms debounce
+-        return () => clearTimeout(timer);
+-    }, [searchQuery, initialNews]);
+-
+-    const filteredNews = initialNews.filter(item => {
+-        // Tab filter
+-        let tabMatch = false;
+-        if (activeTab === 'ALL') tabMatch = true;
+-        else if (activeTab === 'NOTICE') tabMatch = ['PRESS', 'REPORT', 'OTHER'].includes(item.category);
+-        else tabMatch = item.category === activeTab;
+-
+-        if (!tabMatch) return false;
+-
+-        // Search filter
+-        if (!searchQuery) return true;
+-
+-        if (aiMatchedIds !== null && aiMatchedIds.length > 0) {
+-            return aiMatchedIds.includes(item.id);
+-        }
+-
+-        // Fallback or empty AI results local search
+-        const query = searchQuery.toLowerCase();
+-        return item.title.toLowerCase().includes(query) ||
+-               item.content.toLowerCase().includes(query);
++  const [activeTab, setActiveTab] = useState<TabKey>('ALL');
++  const [searchQuery, setSearchQuery] = useState('');
++  const [isSearching, setIsSearching] = useState(false);
++  const [aiMatchedIds, setAiMatchedIds] = useState<number[] | null>(null);
++
++  // AI semantic search (debounced 500ms)
++  useEffect(() => {
++    if (!searchQuery.trim()) {
++      setAiMatchedIds(null);
++      setIsSearching(false);
++      return;
++    }
++    setIsSearching(true);
++    const timer = setTimeout(async () => {
++      try {
++        const ids = await semanticSearch(searchQuery, initialNews);
++        setAiMatchedIds(ids);
++      } catch {
++        setAiMatchedIds(null);
++      } finally {
++        setIsSearching(false);
++      }
++    }, 500);
++    return () => clearTimeout(timer);
++  }, [searchQuery, initialNews]);
++
++  const filteredNews = useMemo(() => {
++    return initialNews.filter(item => {
++      // Tab filter
++      const tabMatch =
++        activeTab === 'ALL' ? true :
++        activeTab === 'TOURING' ? item.category === 'TOURING' :
++        activeTab === 'UPDATE'  ? item.category === 'UPDATE'  :
++        activeTab === 'NOTICE'  ? ['PRESS', 'REPORT', 'OTHER'].includes(item.category) :
++        false;
++      if (!tabMatch) return false;
++
++      // Search filter
++      if (!searchQuery.trim()) return true;
++      if (aiMatchedIds !== null) return aiMatchedIds.includes(item.id);
++      const q = searchQuery.toLowerCase();
++      return item.title.toLowerCase().includes(q) || item.content.toLowerCase().includes(q);
+     });
++  }, [initialNews, activeTab, searchQuery, aiMatchedIds]);
+ 
+-    const isUpcoming = (dateStr?: string) => {
+-        if (!dateStr) return false;
+-        const eventDate = new Date(dateStr);
+-        eventDate.setHours(23, 59, 59, 999);
+-        return eventDate >= new Date();
+-    };
+-
+-    return (
+-        <div className="min-h-screen bg-black text-white pt-32 pb-24">
+-            <div className="mx-auto max-w-5xl px-6 lg:px-8">
+-                <div className="mb-12 border-b border-white/10 pb-8">
+-                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4" style={{ fontFamily: "var(--font-sf-pro-display), sans-serif" }}>
+-                        最新通達および作戦記録
+-                    </h1>
+-                    <p className="text-gray-400 text-lg uppercase tracking-widest font-mono">
+-                        ALL UPDATES & OPERATIONS
+-                    </p>
+-                </div>
+-
+-                {/* Tabs & Search */}
+-
+-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+-                    <div className="flex overflow-x-auto no-scrollbar gap-2 pb-2 md:pb-0 md:flex-wrap">
+-                        {tabs.map(tab => (
+-                            <button
+-                                key={tab}
+-                                onClick={() => setActiveTab(tab)}
+-                                className={`px-6 py-2 rounded-full text-sm font-bold tracking-widest transition-all whitespace-nowrap ${
+-                                    activeTab === tab
+-                                        ? 'bg-white text-black'
+-                                        : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+-                                }`}
+-                            >
+-                                {tab}
+-                            </button>
+-                        ))}
+-                    </div>
+-                    <div className="relative w-full md:w-72 shrink-0 group">
+-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+-                            {isSearching ? (
+-                                <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />
+-                            ) : (
+-                                <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-400 transition-colors" />
+-                            )}
+-                        </div>
+-                        <input
+-                            type="text"
+-                            value={searchQuery}
+-                            onChange={(e) => setSearchQuery(e.target.value)}
+-                            placeholder="AI Search..."
+-                            className="w-full bg-white/5 border border-white/10 rounded-full py-3 pl-10 pr-10 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all backdrop-blur-sm"
+-                        />
+-                         <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
+-                             <Sparkles className="h-4 w-4 text-blue-500/50" />
+-                        </div>
+-                    </div>
+-                </div>
+-
+-
+-                <motion.div layout className="space-y-6">
+-                    <AnimatePresence mode="popLayout">
+-                        {filteredNews.length === 0 ? (
+-                            <motion.div
+-                                initial={{ opacity: 0 }}
+-                                animate={{ opacity: 1 }}
+-                                exit={{ opacity: 0 }}
+-                                className="text-gray-500 text-center py-16 border border-white/10 rounded-2xl bg-white/5"
+-                            >
+-                                No updates available for this category or search query.
+-                            </motion.div>
+-                        ) : (
+-                            filteredNews.map((item, index) => (
+-                                <motion.div
+-                                    layout
+-                                    initial={{ opacity: 0, y: 20 }}
+-                                    animate={{ opacity: 1, y: 0 }}
+-                                    exit={{ opacity: 0, scale: 0.95 }}
+-                                    transition={{ duration: 0.4 }}
+-                                    key={item.id}
+-                                    className={`group relative overflow-hidden rounded-2xl bg-white/5 border p-6 hover:bg-white/10 transition-colors duration-300 ${item.is_pinned ? "border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "border-white/10"}`}
+-                                >
+-                                    <Link href={`/news/${item.id}`} prefetch={false} className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8 relative z-10">
+-                                        {item.image_url && (
+-                                            <div className="w-full md:w-56 h-48 md:h-32 flex-shrink-0 relative overflow-hidden rounded-xl bg-white/5 border border-white/10">
+-                                                <Image
+-                                                    src={item.image_url}
+-                                                    alt={item.title}
+-                                                    fill
+-                                                    sizes="(max-width: 768px) 100vw, 224px"
+-                                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+-                                                    priority={index === 0}
+-                                                />
+-                                            </div>
+-                                        )}
+-                                        <div className="flex flex-col gap-3 flex-1">
+-                                            <div className="flex items-center gap-4 flex-wrap">
+-                                                <time className="font-mono text-sm text-gray-400">{item.date.replace(/-/g, '.')}</time>
+-                                                <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-gray-300 ring-1 ring-inset ring-white/20 tracking-widest">
+-                                                    {item.category}
+-                                                </span>
+-                                                {item.is_pinned && (
+-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-3 py-1 text-xs font-bold text-red-400 ring-1 ring-inset ring-red-500/20 tracking-widest">
+-                                                        📌 IMPORTANT
+-                                                    </span>
+-                                                )}
+-                                                {item.category === 'TOURING' && item.event_date && (
+-                                                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold tracking-widest ring-1 ring-inset ${
+-                                                        isUpcoming(item.event_date)
+-                                                            ? 'bg-green-500/10 text-green-400 ring-green-500/20'
+-                                                            : 'bg-gray-500/10 text-gray-400 ring-gray-500/20'
+-                                                    }`}>
+-                                                        <span className={`w-1.5 h-1.5 rounded-full ${isUpcoming(item.event_date) ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
+-                                                        {isUpcoming(item.event_date) ? '🟢 作戦待機 (Upcoming)' : '⚪️ 作戦完了 (Completed)'}
+-                                                    </span>
+-                                                )}
+-                                            </div>
+-                                            <h3 className="text-xl font-bold leading-7 text-white group-hover:text-blue-400 transition-colors">
+-                                                {item.title}
+-                                            </h3>
+-                                        </div>
+-                                        <div className="hidden md:flex items-center">
+-                                            <ArrowRight className="h-6 w-6 text-gray-500 group-hover:text-blue-400 transition-colors transform group-hover:translate-x-1" />
+-                                        </div>
+-                                    </Link>
+-                                    <Link href={`/news/${item.id}`} prefetch={false} className="absolute inset-0 z-0"></Link>
+-                                </motion.div>
+-                            ))
+-                        )}
+-                    </AnimatePresence>
+-                </motion.div>
++  const pinnedItems   = filteredNews.filter(n => n.is_pinned);
++  const regularItems  = filteredNews.filter(n => !n.is_pinned);
++
++  return (
++    <div className="min-h-screen bg-[#F5F5F7]">
++      {/* ── Page Header ─────────────────────────────── */}
++      <div className="bg-white border-b border-gray-200/60">
++        <div className="max-w-5xl mx-auto px-6 pt-12 pb-8">
++          <motion.div
++            initial={{ opacity: 0, y: -12 }}
++            animate={{ opacity: 1, y: 0 }}
++            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
++          >
++            <p className="text-[11px] font-bold text-gray-400 tracking-[0.2em] uppercase mb-2">MIENO CORP. — 最新通達</p>
++            <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-none mb-3">
++              NEWS
++            </h1>
++            <p className="text-gray-500 text-base">組織からの最新通達・作戦情報</p>
++          </motion.div>
++        </div>
++      </div>
++
++      {/* ── Sticky Filter Bar ────────────────────────── */}
++      <div className="sticky top-14 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-200/60">
++        <div className="max-w-5xl mx-auto px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
++          {/* Tab pills */}
++          <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
++            {TABS.map(tab => (
++              <button
++                key={tab.key}
++                onClick={() => setActiveTab(tab.key)}
++                className={`relative px-4 py-2 rounded-full text-xs font-bold tracking-widest whitespace-nowrap transition-all ${
++                  activeTab === tab.key
++                    ? 'bg-mieno-navy text-white shadow-sm'
++                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
++                }`}
++              >
++                {tab.en}
++              </button>
++            ))}
++          </div>
++
++          {/* AI Search */}
++          <div className="relative shrink-0 w-full sm:w-64 group">
++            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
++              {isSearching
++                ? <Loader2 className="h-3.5 w-3.5 text-blue-400 animate-spin" />
++                : <Search className="h-3.5 w-3.5 text-gray-400 group-focus-within:text-mieno-blue transition-colors" />
++              }
++            </div>
++            <input
++              type="text"
++              value={searchQuery}
++              onChange={e => setSearchQuery(e.target.value)}
++              placeholder="AI Search..."
++              className="w-full bg-[#F5F5F7] border border-gray-200 rounded-full py-2 pl-9 pr-9 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mieno-blue/30 focus:border-mieno-blue transition-all"
++            />
++            <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none z-10">
++              <Sparkles className="h-3.5 w-3.5 text-blue-400/60" />
+             </div>
++          </div>
++        </div>
++      </div>
++
++      {/* ── Content ──────────────────────────────────── */}
++      <div className="max-w-5xl mx-auto px-6 py-8 lg:py-10">
++
++        {/* Result count */}
++        <div className="flex items-center justify-between mb-5">
++          <p className="text-xs font-bold font-mono text-gray-400 tracking-widest">
++            {filteredNews.length} RESULT{filteredNews.length !== 1 ? 'S' : ''}
++            {searchQuery && <span className="text-mieno-blue ml-2">— AI SEARCH</span>}
++          </p>
++        </div>
++
++        <motion.div layout className="space-y-3">
++          <AnimatePresence mode="popLayout">
++            {filteredNews.length === 0 ? (
++              <motion.div
++                key="empty"
++                initial={{ opacity: 0 }}
++                animate={{ opacity: 1 }}
++                exit={{ opacity: 0 }}
++                className="py-20 text-center bg-white rounded-2xl border border-gray-100"
++              >
++                <Search className="w-8 h-8 text-gray-200 mx-auto mb-3" />
++                <p className="text-sm font-bold text-gray-300 tracking-widest uppercase">No results found</p>
++              </motion.div>
++            ) : (
++              <>
++                {/* Pinned items */}
++                {pinnedItems.map((item, i) => (
++                  <NewsCard key={`pinned-${item.id}`} item={item} index={i} isPinned />
++                ))}
++                {/* Regular items */}
++                {regularItems.map((item, i) => (
++                  <NewsCard key={item.id} item={item} index={pinnedItems.length + i} />
++                ))}
++              </>
++            )}
++          </AnimatePresence>
++        </motion.div>
++      </div>
++    </div>
++  );
++}
++
++// ── NewsCard ─────────────────────────────────────────────────────
++function NewsCard({ item, index, isPinned = false }: { item: News; index: number; isPinned?: boolean }) {
++  const catStyle = CATEGORY_STYLE[item.category] ?? CATEGORY_STYLE.OTHER;
++  const upcoming = isUpcoming(item.event_date);
++
++  return (
++    <motion.div
++      layout
++      initial={{ opacity: 0, y: 16 }}
++      animate={{ opacity: 1, y: 0 }}
++      exit={{ opacity: 0, scale: 0.97 }}
++      transition={{ duration: 0.3, delay: index * 0.04 }}
++    >
++      <Link
++        href={`/news/${item.id}`}
++        prefetch={false}
++        className={`group flex gap-5 bg-white rounded-2xl p-5 border transition-all hover:shadow-md hover:-translate-y-0.5 ${
++          isPinned
++            ? 'border-rose-200 shadow-[0_0_0_1px_rgba(239,68,68,0.1)] hover:border-rose-300'
++            : 'border-gray-100 hover:border-gray-200'
++        }`}
++      >
++        {/* Thumbnail */}
++        {item.image_url && (
++          <div className="hidden sm:block w-24 h-20 shrink-0 relative overflow-hidden rounded-xl bg-gray-50">
++            <Image
++              src={item.image_url}
++              alt={item.title}
++              fill
++              sizes="96px"
++              className="object-cover transition-transform duration-500 group-hover:scale-105"
++              priority={index === 0}
++            />
++          </div>
++        )}
++
++        {/* Body */}
++        <div className="flex-1 min-w-0">
++          {/* Badges row */}
++          <div className="flex flex-wrap items-center gap-2 mb-2">
++            {isPinned && (
++              <span className="flex items-center gap-1 text-[10px] font-bold text-rose-500 tracking-widest uppercase">
++                <Pin size={10} className="fill-rose-400" />
++                PINNED
++              </span>
++            )}
++            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full tracking-widest ${catStyle.bg} ${catStyle.text}`}>
++              {catStyle.label}
++            </span>
++            {item.category === 'TOURING' && item.event_date && (
++              <span className={`flex items-center gap-1 text-[10px] font-bold tracking-widest ${upcoming ? 'text-emerald-600' : 'text-gray-400'}`}>
++                <span className={`w-1.5 h-1.5 rounded-full ${upcoming ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
++                {upcoming ? 'UPCOMING' : 'COMPLETED'}
++              </span>
++            )}
++          </div>
++
++          {/* Title */}
++          <h3 className="text-base font-bold text-gray-900 group-hover:text-mieno-blue transition-colors leading-snug mb-1.5 line-clamp-2">
++            {item.title}
++          </h3>
++
++          {/* Meta row */}
++          <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-400 font-mono">
++            <time>{item.date.replace(/-/g, '.')}</time>
++            {item.event_date && (
++              <span className="flex items-center gap-1">
++                <Calendar size={10} />
++                {item.event_date.replace(/-/g, '.')}
++              </span>
++            )}
++            {item.location && (
++              <span className="flex items-center gap-1">
++                <MapPin size={10} />
++                {item.location}
++              </span>
++            )}
++          </div>
++        </div>
++
++        {/* Arrow */}
++        <div className="hidden sm:flex items-center self-center shrink-0">
++          <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-mieno-blue group-hover:translate-x-0.5 transition-all" />
+         </div>
+-    );
++      </Link>
++    </motion.div>
++  );
+ }
+diff --git a/app/news/[id]/page.tsx b/app/news/[id]/page.tsx
+index bf20d90..5f1611d 100644
+--- a/app/news/[id]/page.tsx
++++ b/app/news/[id]/page.tsx
+@@ -45,12 +45,12 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ id:
+     }
+ 
+     return (
+-        <main className="min-h-screen bg-black pt-24 pb-32">
++        <main className="min-h-screen bg-[#F5F5F7] pt-14">
+             <NewsDetailClient news={news} hideLegacySurvey={!!user} />
+ 
+-            {/* Deployment RSVP Segment */}
++            {/* Deployment RSVP Segment (logged-in agents) */}
+             {news.category === 'TOURING' && user && (
+-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
++                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+                      <DeploymentRSVP newsId={news.id} initialSurvey={initialSurvey} />
+                 </div>
+             )}
+diff --git a/components/Archives.tsx b/components/Archives.tsx
+index 99c13a6..f33199b 100644
+--- a/components/Archives.tsx
++++ b/components/Archives.tsx
+@@ -45,12 +45,14 @@ interface ArchivesProps {
+ }
+ 
+ export default function Archives({ archives = [], isAdmin = false }: ArchivesProps) {
+-  const [showForm, setShowForm] = useState(false);
+-  const [submitting, setSubmitting] = useState(false);
+-  const [analyzing, setAnalyzing] = useState(false);
+-  const [analysisStatus, setAnalysisStatus] = useState("");
+-  const [editingId, setEditingId] = useState<number | null>(null);
++  const [showForm, setShowForm]           = useState(false);
++  const [submitting, setSubmitting]       = useState(false);
++  const [analyzing, setAnalyzing]         = useState(false);
++  const [analysisStatus, setAnalysisStatus] = useState('');
++  const [editingId, setEditingId]         = useState<number | null>(null);
+   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
++  const [deletingId, setDeletingId]       = useState<number | null>(null);
++  const [saveError, setSaveError]         = useState<string | null>(null);
+   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+ 
+   // Form State
+@@ -117,13 +119,14 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
+   };
+ 
+   const handleDeleteClick = async (id: number) => {
+-      if (!confirm("Are you sure you want to delete this mission log?")) return;
+-      try {
+-          await deleteArchive(id);
+-      } catch (e) {
+-          console.error(e);
+-          alert("Failed to delete archive");
+-      }
++    setDeletingId(id);
++    try {
++      await deleteArchive(id);
++    } catch (e) {
++      console.error(e);
++    } finally {
++      setDeletingId(null);
++    }
+   };
+ 
+   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+@@ -201,12 +204,12 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
+ 
+     try {
+         const payload: Partial<Archive> = {
+-            title: formData.title || "Untitled Operation",
++            title: formData.title || 'Untitled Operation',
+             date: formData.date || new Date().toISOString().split('T')[0],
+-            distance: formData.distance || "0km",
++            distance: formData.distance || '0km',
+             members: Array.isArray(formData.members) ? formData.members : [],
+-            weather: (formData.weather as "Clear" | "Rainy" | "Cloudy" | "Snow") || "Clear",
+-            details: formData.details || "",
++            weather: (formData.weather as 'Clear' | 'Rainy' | 'Cloudy' | 'Snow') || 'Clear',
++            details: formData.details || '',
+             geojson: formData.geojson || null,
+             distance_km: formData.distance_km,
+             max_speed: formData.max_speed,
+@@ -214,19 +217,18 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
+             route_data: formData.route_data,
+             location_name: formData.location_name
+         };
+-
+         if (editingId) {
+             await updateArchive(editingId, payload);
+         } else {
+             // @ts-expect-error Partial<Archive> is compatible with Omit<Archive, 'id'> for our purposes here
+             await addArchive(payload);
+         }
+-
++        setSaveError(null);
+         resetForm();
+     } catch (err: unknown) {
+         console.error('Error submitting log:', err);
+         const message = err instanceof Error ? err.message : 'Unknown error';
+-        alert('Failed to save log: ' + message);
++        setSaveError('保存に失敗しました: ' + message);
+     } finally {
+         setSubmitting(false);
+     }
+@@ -455,6 +457,11 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
+                     )}
+                   </button>
+                 </div>
++              {saveError && (
++                <div className="col-span-1 md:col-span-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600">
++                  {saveError}
++                </div>
++              )}
+               </form>
+             </m.div>
+           )}
+@@ -549,10 +556,13 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
+                                     </button>
+                                     <button
+                                         onClick={(e) => { e.preventDefault(); handleDeleteClick(archive.id); }}
+-                                        className="p-2 bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
++                                        disabled={deletingId === archive.id}
++                                        className="p-2 bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors disabled:opacity-40"
+                                         title="Delete"
+                                     >
+-                                        <Trash2 size={16} />
++                                        {deletingId === archive.id
++                                          ? <Loader2 size={16} className="animate-spin" />
++                                          : <Trash2 size={16} />}
+                                     </button>
+                                 </div>
+                             )}
+diff --git a/components/DeploymentRSVP.tsx b/components/DeploymentRSVP.tsx
+index bbbf0c8..70e3bf1 100644
+--- a/components/DeploymentRSVP.tsx
++++ b/components/DeploymentRSVP.tsx
+@@ -58,6 +58,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
+         } catch (error: unknown) {
+             console.error('RSVP Submission failed', error);
+             setErrorMsg(error instanceof Error ? error.message : 'Unknown error occurred');
++        } finally {
+             setIsSubmitting(false);
+         }
+     };
+@@ -177,7 +178,13 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
+                         <CheckCircle2 className="text-emerald-500 w-8 h-8" />
+                     </div>
+                     <h4 className="text-lg font-bold text-gray-900 tracking-wider mb-2 uppercase">Transmission Complete</h4>
+-                    <p className="text-sm text-gray-500">Your deployment status has been recorded.</p>
++                    <p className="text-sm text-gray-500 mb-6">Your deployment status has been recorded.</p>
++                    <button
++                        onClick={() => setShowSuccess(false)}
++                        className="text-xs font-bold text-mieno-blue tracking-widest uppercase hover:underline"
++                    >
++                        ← MODIFY STATUS
++                    </button>
+                 </m.div>
+             )}
+         </div>
+diff --git a/components/Header.tsx b/components/Header.tsx
+index 584637f..c144014 100644
+--- a/components/Header.tsx
++++ b/components/Header.tsx
+@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
+ import { Menu, X, ShieldCheck } from "lucide-react";
+ 
+ const navItems = [
++  { name: "通達", en: "NEWS", href: "/news" },
+   { name: "機動戦力", en: "UNITS", href: "/units" },
+   { name: "事業領域", en: "SERVICES", href: "/services" },
+   { name: "備品管理", en: "INVENTORY", href: "/inventory" },
+@@ -152,11 +153,11 @@ export default function Header() {
+                     Contact Us
+                   </Link>
+                   <Link
+-                     href="/admin"
++                     href="/agent"
+                      className="flex items-center justify-center rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-mieno-text hover:bg-gray-200 border border-gray-200"
+                      onClick={() => setIsMenuOpen(false)}
+                   >
+-                    Admin Console
++                    Agent Portal
+                   </Link>
+                 </div>
+               </div>
+diff --git a/components/News.tsx b/components/News.tsx
+index 266184c..922763c 100644
+--- a/components/News.tsx
++++ b/components/News.tsx
+@@ -1,37 +1,31 @@
+ 'use client';
+ 
+ import { useState, useEffect } from 'react';
+-import { m, Variants } from 'framer-motion';
+-import { ArrowRight, Plus, Edit2, Trash2 } from 'lucide-react';
++import { m, AnimatePresence, Variants } from 'framer-motion';
++import { ArrowRight, Plus, Edit2, Trash2, Calendar, MapPin, Pin } from 'lucide-react';
+ import Link from 'next/link';
+ import Image from 'next/image';
+ import { News as NewsType } from '@/types/database';
+-import { addNews, updateNews, deleteNews } from '@/app/actions/news';
++import { deleteNews } from '@/app/actions/news';
+ import NewsModal from './NewsModal';
+ import ClientMotionWrapper from '@/components/ClientMotionWrapper';
+ 
+ const containerVariants: Variants = {
+   hidden: { opacity: 0 },
+-  visible: {
+-    opacity: 1,
+-    transition: {
+-      staggerChildren: 0.1,
+-      delayChildren: 0.2,
+-    },
+-  },
++  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+ };
+ 
+ const itemVariants: Variants = {
+-  hidden: { opacity: 0, y: 20 },
+-  visible: {
+-    opacity: 1,
+-    y: 0,
+-    transition: {
+-      type: 'spring',
+-      stiffness: 100,
+-      damping: 15,
+-    },
+-  },
++  hidden: { opacity: 0, y: 16 },
++  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 24 } },
++};
++
++const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
++  TOURING: { bg: 'bg-blue-50',   text: 'text-blue-700'  },
++  UPDATE:  { bg: 'bg-gray-100',  text: 'text-gray-600'  },
++  PRESS:   { bg: 'bg-purple-50', text: 'text-purple-700' },
++  REPORT:  { bg: 'bg-green-50',  text: 'text-green-700' },
++  OTHER:   { bg: 'bg-gray-100',  text: 'text-gray-500'  },
+ };
+ 
+ interface NewsProps {
+@@ -40,204 +34,225 @@ interface NewsProps {
+ }
+ 
+ export default function News({ news = [], isAdmin = false }: NewsProps) {
+-  const [isModalOpen, setIsModalOpen] = useState(false);
+-  const [currentNews, setCurrentNews] = useState<NewsType | null>(null);
+-  const [mounted, setMounted] = useState(false);
++  const [isModalOpen, setIsModalOpen]   = useState(false);
++  const [currentNews, setCurrentNews]   = useState<NewsType | null>(null);
++  const [deletingId, setDeletingId]     = useState<number | null>(null);
++  const [mounted, setMounted]           = useState(false);
++
++  useEffect(() => { setMounted(true); }, []);
+ 
+   const isUpcoming = (dateStr?: string) => {
+-      if (!dateStr) return false;
+-      const eventDate = new Date(dateStr);
+-      eventDate.setHours(23, 59, 59, 999);
+-      return eventDate >= new Date();
++    if (!dateStr) return false;
++    const d = new Date(dateStr);
++    d.setHours(23, 59, 59, 999);
++    return d >= new Date();
+   };
+ 
+-  useEffect(() => {
+-    setMounted(true);
+-  }, []);
+-
+   const openModal = (item?: NewsType) => {
+-      if (item) {
+-          setCurrentNews(item);
+-      } else {
+-          setCurrentNews(null);
+-      }
+-      setIsModalOpen(true);
++    setCurrentNews(item ?? null);
++    setIsModalOpen(true);
+   };
+ 
+   const handleSave = async (formData: Omit<NewsType, 'id' | 'created_at'>) => {
+-      try {
+-          if (currentNews) {
+-              await updateNews(currentNews.id, formData);
+-          } else {
+-              await addNews(formData);
+-          }
+-      } catch (error) {
+-          console.error("Failed to save news", error);
+-          throw error; // Re-throw to be handled by modal
+-      }
++    const { addNews, updateNews } = await import('@/app/actions/news');
++    if (currentNews) {
++      await updateNews(currentNews.id, formData);
++    } else {
++      await addNews(formData);
++    }
+   };
+ 
+   const handleDelete = async () => {
+-      if (!currentNews) return;
+-      try {
+-          await deleteNews(currentNews.id);
+-      } catch (error) {
+-          console.error("Failed to delete news", error);
+-          throw error;
+-      }
++    if (!currentNews) return;
++    await deleteNews(currentNews.id);
++  };
++
++  const handleQuickDelete = async (e: React.MouseEvent, id: number) => {
++    e.preventDefault();
++    e.stopPropagation();
++    setDeletingId(id);
++    try {
++      await deleteNews(id);
++    } catch (err) {
++      console.error(err);
++    } finally {
++      setDeletingId(null);
++    }
+   };
+ 
+   return (
+     <ClientMotionWrapper>
+-    <section id="news" className="bg-black py-24 text-white border-t border-white/10 relative z-10">
+-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+-          <m.div
+-            initial={{ opacity: 0, x: -20 }}
+-            whileInView={{ opacity: 1, x: 0 }}
+-            viewport={{ once: true }}
+-            transition={{ duration: 0.6 }}
+-          >
+-            <div className="flex flex-col gap-4">
+-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+-                Latest Updates
+-              </h2>
++      <section id="news" className="bg-[#F5F5F7] py-20 border-t border-gray-100 relative z-10">
++        <div className="mx-auto max-w-5xl px-6 lg:px-8">
++
++          {/* Section header */}
++          <div className="flex items-end justify-between mb-10">
++            <m.div
++              initial={{ opacity: 0, y: 12 }}
++              whileInView={{ opacity: 1, y: 0 }}
++              viewport={{ once: true }}
++              transition={{ duration: 0.5 }}
++            >
++              <p className="text-[10px] font-black text-gray-400 tracking-[0.25em] uppercase mb-1">MIENO CORP.</p>
++              <h2 className="text-2xl font-black text-gray-900 tracking-tight">最新通達</h2>
++              <p className="text-xs text-gray-400 mt-1 font-medium">Latest Updates</p>
++            </m.div>
++
++            <m.div
++              initial={{ opacity: 0, x: 12 }}
++              whileInView={{ opacity: 1, x: 0 }}
++              viewport={{ once: true }}
++              transition={{ duration: 0.5 }}
++              className="flex items-center gap-3"
++            >
+               {isAdmin && mounted && (
+-                <m.button
++                <button
+                   onClick={() => openModal()}
+-                  whileHover={{ scale: 1.05 }}
+-                  whileTap={{ scale: 0.95 }}
+-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors shadow-lg shadow-blue-900/20 w-fit"
++                  className="flex items-center gap-1.5 px-4 py-2 bg-mieno-navy text-white text-[11px] font-bold rounded-full tracking-widest hover:bg-mieno-blue transition-all shadow-sm active:scale-95"
+                 >
+-                  <Plus className="w-4 h-4" />
+-                  <span>＋ NEW UPDATE (新規通達を発令)</span>
+-                </m.button>
++                  <Plus size={13} /> 新規通達
++                </button>
+               )}
+-            </div>
+-            <p className="mt-2 text-gray-400">
+-              組織からの最新通達事項
+-            </p>
+-          </m.div>
+-          <m.div
+-             initial={{ opacity: 0, x: 20 }}
+-             whileInView={{ opacity: 1, x: 0 }}
+-             viewport={{ once: true }}
+-             transition={{ duration: 0.6 }}
+-          >
+-             <Link href="/news" className="text-sm font-semibold leading-6 text-gray-300 hover:text-white flex items-center gap-1">
+-               View All <ArrowRight className="h-4 w-4" />
+-             </Link>
+-          </m.div>
+-        </div>
++              <Link
++                href="/news"
++                className="flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-mieno-navy transition-colors tracking-widest"
++              >
++                すべて見る <ArrowRight size={13} />
++              </Link>
++            </m.div>
++          </div>
+ 
+-        <m.div
+-            variants={containerVariants}
+-            initial="hidden"
+-            whileInView="visible"
+-            viewport={{ once: true, margin: "-50px" }}
+-            className="space-y-4"
+-        >
+-        {news.length === 0 ? (
+-                <div className="text-gray-500 text-center py-8 border border-white/10 rounded-xl bg-white/5 backdrop-blur-md">No updates available.</div>
+-        ) : (
+-            news.map((item) => (
+-                <m.div
++          {/* News cards */}
++          {news.length === 0 ? (
++            <div className="text-gray-400 text-sm text-center py-12 bg-white rounded-2xl border border-gray-100">
++              通達はありません
++            </div>
++          ) : (
++            <m.div
++              variants={containerVariants}
++              initial="hidden"
++              whileInView="visible"
++              viewport={{ once: true, margin: '-40px' }}
++              className="space-y-3"
++            >
++              {news.map((item) => {
++                const catStyle = CATEGORY_STYLE[item.category] ?? CATEGORY_STYLE.OTHER;
++                return (
++                  <m.div
+                     key={item.id}
+                     variants={itemVariants}
+-                    className={`group relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-md border p-6 hover:bg-white/10 transition-colors duration-300 ${item.is_pinned ? "border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "border-white/10"}`}
+-                >
+-                    <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 relative">
+-                        {/* Interactive Area Link */}
+-                        <Link href={`/news/${item.id}`} prefetch={false} className="absolute inset-0 z-0"></Link>
+-
+-                        {item.image_url && (
+-                            <div className="w-full md:w-48 h-32 md:h-28 flex-shrink-0 relative overflow-hidden rounded-lg border border-white/10 bg-white/5 z-10 pointer-events-none">
+-                                <Image
+-                                    src={item.image_url}
+-                                    alt={item.title}
+-                                    fill
+-                                    sizes="(max-width: 768px) 100vw, 192px"
+-                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+-                                />
+-                            </div>
+-                        )}
+-                        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 flex-1 z-10 pointer-events-none">
+-                            <div className="flex items-center gap-4 min-w-fit flex-wrap">
+-                            <time className="font-mono text-sm text-gray-400">{item.date.replace(/-/g, '.')}</time>
+-                            <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-gray-300 ring-1 ring-inset ring-white/20 tracking-widest">
+-                                {item.category}
++                    className={`group relative bg-white rounded-2xl border transition-all overflow-hidden ${
++                      item.is_pinned
++                        ? 'border-rose-100 shadow-sm'
++                        : 'border-gray-100 hover:border-gray-200 hover:shadow-sm'
++                    }`}
++                  >
++                    <Link href={`/news/${item.id}`} prefetch={false} className="absolute inset-0 z-0" />
++
++                    <div className="flex items-center gap-4 p-5 relative">
++                      {/* Thumbnail */}
++                      {item.image_url && (
++                        <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 relative overflow-hidden rounded-xl bg-gray-50 border border-gray-100 z-10 pointer-events-none">
++                          <Image
++                            src={item.image_url}
++                            alt={item.title}
++                            fill
++                            sizes="80px"
++                            className="object-cover group-hover:scale-105 transition-transform duration-500"
++                          />
++                        </div>
++                      )}
++
++                      {/* Content */}
++                      <div className="flex-1 min-w-0 z-10 pointer-events-none">
++                        {/* Badges row */}
++                        <div className="flex flex-wrap items-center gap-2 mb-2">
++                          <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full tracking-widest ${catStyle.bg} ${catStyle.text}`}>
++                            {item.category}
++                          </span>
++                          {item.is_pinned && (
++                            <span className="text-[9px] font-bold text-rose-500 flex items-center gap-0.5">
++                              <Pin size={9} className="fill-current" /> PINNED
+                             </span>
+-                            {item.is_pinned && (
+-                                <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-1 text-xs font-bold text-red-400 ring-1 ring-inset ring-red-500/20 tracking-widest">
+-                                    📌 IMPORTANT
+-                                </span>
+-                            )}
+-                            {item.category === 'TOURING' && item.event_date && (
+-                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-bold tracking-widest ring-1 ring-inset ${
+-                                    isUpcoming(item.event_date)
+-                                        ? 'bg-green-500/10 text-green-400 ring-green-500/20'
+-                                        : 'bg-gray-500/10 text-gray-400 ring-gray-500/20'
+-                                }`}>
+-                                    <span className={`w-1.5 h-1.5 rounded-full ${isUpcoming(item.event_date) ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
+-                                    {isUpcoming(item.event_date) ? '🟢 作戦待機 (Upcoming)' : '⚪️ 作戦完了 (Completed)'}
+-                                </span>
+-                            )}
+-                            </div>
+-                            <h3 className="text-lg font-medium leading-6 text-white group-hover:text-blue-400 transition-colors flex-1">
+-                            {item.title}
+-                            </h3>
++                          )}
++                          {item.category === 'TOURING' && item.event_date && (
++                            <span className={`text-[9px] font-bold tracking-widest flex items-center gap-1 ${
++                              isUpcoming(item.event_date) ? 'text-emerald-600' : 'text-gray-400'
++                            }`}>
++                              <span className={`w-1.5 h-1.5 rounded-full ${isUpcoming(item.event_date) ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
++                              {isUpcoming(item.event_date) ? 'UPCOMING' : 'COMPLETED'}
++                            </span>
++                          )}
++                          <time className="text-[9px] font-mono text-gray-400 ml-auto">
++                            {item.date.replace(/-/g, '.')}
++                          </time>
+                         </div>
+-                        <div className="hidden md:flex items-center gap-4 z-20">
+-                            {isAdmin && mounted && (
+-                                <div className="flex items-center gap-2">
+-                                    <button
+-                                        onClick={(e) => {
+-                                            e.preventDefault();
+-                                            e.stopPropagation();
+-                                            openModal(item);
+-                                        }}
+-                                        className="p-2 bg-white/10 rounded-full hover:bg-blue-600 hover:text-white transition-colors"
+-                                    >
+-                                        <Edit2 className="w-4 h-4" />
+-                                    </button>
+-                                    <button
+-                                        onClick={async (e) => {
+-                                            e.preventDefault();
+-                                            e.stopPropagation();
+-                                            if (confirm("Are you sure you want to delete this news item?")) {
+-                                                try {
+-                                                    await deleteNews(item.id);
+-                                                } catch (err) {
+-                                                    console.error(err);
+-                                                }
+-                                            }
+-                                        }}
+-                                        className="p-2 bg-white/10 rounded-full hover:bg-red-600 hover:text-white transition-colors text-red-400"
+-                                    >
+-                                        <Trash2 className="w-4 h-4" />
+-                                    </button>
+-                                </div>
++
++                        {/* Title */}
++                        <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-mieno-blue transition-colors">
++                          {item.title}
++                        </h3>
++
++                        {/* TOURING meta */}
++                        {item.category === 'TOURING' && (item.event_date || item.location) && (
++                          <div className="flex flex-wrap gap-3 mt-1.5">
++                            {item.event_date && (
++                              <span className="flex items-center gap-1 text-[10px] text-gray-400 font-mono">
++                                <Calendar size={10} /> {item.event_date.replace(/-/g, '.')}
++                              </span>
++                            )}
++                            {item.location && (
++                              <span className="flex items-center gap-1 text-[10px] text-gray-400">
++                                <MapPin size={10} /> {item.location}
++                              </span>
+                             )}
+-                            <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-white transition-colors transform group-hover:translate-x-1" />
++                          </div>
++                        )}
++                      </div>
++
++                      {/* Admin actions */}
++                      {isAdmin && mounted && (
++                        <div className="hidden sm:flex items-center gap-2 z-20 shrink-0">
++                          <button
++                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openModal(item); }}
++                            className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
++                          >
++                            <Edit2 size={14} />
++                          </button>
++                          <button
++                            onClick={(e) => handleQuickDelete(e, item.id)}
++                            disabled={deletingId === item.id}
++                            className="p-2 rounded-full hover:bg-rose-50 text-gray-400 hover:text-rose-500 transition-colors disabled:opacity-40"
++                          >
++                            {deletingId === item.id
++                              ? <div className="w-3.5 h-3.5 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" />
++                              : <Trash2 size={14} />
++                            }
++                          </button>
+                         </div>
++                      )}
++
++                      {/* Arrow */}
++                      <ArrowRight size={16} className="text-gray-300 group-hover:text-mieno-blue group-hover:translate-x-0.5 transition-all z-10 pointer-events-none shrink-0" />
+                     </div>
+-                </m.div>
+-            ))
+-        )}
+-        </m.div>
+-      </div>
++                  </m.div>
++                );
++              })}
++            </m.div>
++          )}
++        </div>
++      </section>
+ 
+       {/* Admin Modal */}
+       {mounted && (
+-          <NewsModal
+-              isOpen={isModalOpen}
+-              onClose={() => setIsModalOpen(false)}
+-              onSave={handleSave}
+-              onDelete={currentNews ? handleDelete : undefined}
+-              initialData={currentNews}
+-          />
++        <NewsModal
++          isOpen={isModalOpen}
++          onClose={() => setIsModalOpen(false)}
++          onSave={handleSave}
++          onDelete={currentNews ? handleDelete : undefined}
++          initialData={currentNews}
++        />
+       )}
+-    </section>
+-  </ClientMotionWrapper>
++    </ClientMotionWrapper>
+   );
+ }
+diff --git a/components/NewsDetailClient.tsx b/components/NewsDetailClient.tsx
+index dfd0ab2..6d3cb69 100644
+--- a/components/NewsDetailClient.tsx
++++ b/components/NewsDetailClient.tsx
+@@ -1,375 +1,350 @@
+ 'use client';
+ 
+ import { m, AnimatePresence } from 'framer-motion';
+-import { ArrowLeft, Share2, Printer, MapPin, Calendar, ClipboardCheck, Send, CheckCircle2 } from 'lucide-react';
++import {
++  ArrowLeft, Share2, Calendar, MapPin,
++  ClipboardCheck, Send, CheckCircle2, Link2
++} from 'lucide-react';
+ import { useState, useEffect } from 'react';
+ import { submitSurvey } from '@/app/actions/survey';
+ import Link from 'next/link';
+ import Image from 'next/image';
+ import { News as NewsType } from '@/types/database';
+ import ReactMarkdown from 'react-markdown';
++import remarkGfm from 'remark-gfm';
+ import ClientMotionWrapper from '@/components/ClientMotionWrapper';
+ 
+ interface NewsDetailClientProps {
+-    news: NewsType;
++  news: NewsType;
++  hideLegacySurvey?: boolean;
+ }
+ 
+-export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailClientProps & { hideLegacySurvey?: boolean }) {
+-    const [rsvpStatus, setRsvpStatus] = useState<'JOIN' | 'PENDING' | 'DECLINE' | null>(null);
+-    const [agentName, setAgentName] = useState('');
+-    const [vehicleInfo, setVehicleInfo] = useState('');
+-    const [notes, setNotes] = useState('');
+-    const [isSubmitting, setIsSubmitting] = useState(false);
+-    const [isSubmitted, setIsSubmitted] = useState(false);
+-    const [hasSentPreviously, setHasSentPreviously] = useState(false);
++const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
++  TOURING: { bg: 'bg-blue-50',   text: 'text-blue-700'  },
++  UPDATE:  { bg: 'bg-gray-100',  text: 'text-gray-600'  },
++  PRESS:   { bg: 'bg-purple-50', text: 'text-purple-700' },
++  REPORT:  { bg: 'bg-green-50',  text: 'text-green-700' },
++  OTHER:   { bg: 'bg-gray-100',  text: 'text-gray-500'  },
++};
+ 
+-    useEffect(() => {
+-        const sent = localStorage.getItem(`rsvp_sent_${news.id}`);
+-        if (sent) {
+-            setHasSentPreviously(true);
+-        }
+-    }, [news.id]);
++export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailClientProps) {
++  const [rsvpStatus, setRsvpStatus]   = useState<'JOIN' | 'PENDING' | 'DECLINE' | null>(null);
++  const [agentName, setAgentName]     = useState('');
++  const [vehicleInfo, setVehicleInfo] = useState('');
++  const [notes, setNotes]             = useState('');
++  const [isSubmitting, setIsSubmitting] = useState(false);
++  const [isSubmitted, setIsSubmitted]   = useState(false);
++  const [hasSentPreviously, setHasSentPreviously] = useState(false);
++  const [submitError, setSubmitError] = useState<string | null>(null);
++  const [copied, setCopied]           = useState(false);
+ 
+-    const handleSurveySubmit = async (e: React.FormEvent) => {
+-        e.preventDefault();
+-        if (!rsvpStatus || !agentName.trim()) return;
++  useEffect(() => {
++    if (localStorage.getItem(`rsvp_sent_${news.id}`)) {
++      setHasSentPreviously(true);
++    }
++  }, [news.id]);
+ 
+-        setIsSubmitting(true);
+-        try {
+-            await submitSurvey({
+-                news_id: news.id,
+-                agent_name: agentName,
+-                attendance_status: rsvpStatus,
+-                vehicle_info: vehicleInfo,
+-                message: notes,
+-            });
+-            setIsSubmitted(true);
+-            setHasSentPreviously(true);
+-            localStorage.setItem(`rsvp_sent_${news.id}`, 'true');
+-        } catch (error) {
+-            console.error('Failed to submit RSVP:', error);
+-            alert('通信エラーが発生しました。再度お試しください。');
+-        } finally {
+-            setIsSubmitting(false);
+-        }
+-    };
++  const handleSurveySubmit = async (e: React.FormEvent) => {
++    e.preventDefault();
++    if (!rsvpStatus || !agentName.trim()) return;
++    setIsSubmitting(true);
++    setSubmitError(null);
++    try {
++      await submitSurvey({
++        news_id: news.id,
++        agent_name: agentName,
++        attendance_status: rsvpStatus,
++        vehicle_info: vehicleInfo,
++        message: notes,
++      });
++      setIsSubmitted(true);
++      setHasSentPreviously(true);
++      localStorage.setItem(`rsvp_sent_${news.id}`, 'true');
++    } catch (error) {
++      console.error('Failed to submit RSVP:', error);
++      setSubmitError('送信に失敗しました。再度お試しください。');
++    } finally {
++      setIsSubmitting(false);
++    }
++  };
+ 
+-    const handlePrint = () => {
+-        window.print();
+-    };
++  const handleShare = async () => {
++    if (navigator.share) {
++      try {
++        await navigator.share({ title: `${news.title} | MIENO CORP.`, url: window.location.href });
++      } catch { /* user cancelled */ }
++    } else {
++      await navigator.clipboard.writeText(window.location.href);
++      setCopied(true);
++      setTimeout(() => setCopied(false), 2000);
++    }
++  };
+ 
+-    const handleShare = async () => {
+-        if (navigator.share) {
+-            try {
+-                await navigator.share({
+-                    title: `${news.title} | MIENO CORP.`,
+-                    text: news.content.substring(0, 100),
+-                    url: window.location.href,
+-                });
+-            } catch (err) {
+-                console.error('Error sharing:', err);
+-            }
+-        } else {
+-            // Fallback: Copy to clipboard
+-            navigator.clipboard.writeText(window.location.href);
+-            alert('URL copied to clipboard.');
+-        }
+-    };
++  const catStyle = CATEGORY_STYLE[news.category] ?? CATEGORY_STYLE.OTHER;
+ 
+-    return (
++  return (
+     <ClientMotionWrapper>
+-        <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+-            <m.div
+-                initial={{ opacity: 0, y: -20 }}
+-                animate={{ opacity: 1, y: 0 }}
+-                transition={{ duration: 0.5, ease: "easeOut" }}
+-                className="mb-12 flex items-center justify-between border-b border-white/10 pb-6 print:hidden"
+-            >
+-                <Link
+-                    href="/news"
+-                    className="group flex items-center gap-2 text-sm font-bold tracking-widest text-gray-400 hover:text-white transition-colors uppercase"
+-                >
+-                    <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+-                    ← 通達一覧へ戻る
+-                </Link>
+-                <div className="flex gap-4">
+-                    <button
+-                        onClick={handleShare}
+-                        className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+-                        title="Share Document"
+-                    >
+-                        <Share2 className="w-4 h-4" />
+-                    </button>
+-                    <button
+-                        onClick={handlePrint}
+-                        className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+-                        title="Print Document"
+-                    >
+-                        <Printer className="w-4 h-4" />
+-                    </button>
+-                </div>
+-            </m.div>
++      <div className="min-h-screen bg-[#F5F5F7]">
+ 
+-            <m.header
+-                initial={{ opacity: 0, y: 30 }}
+-                animate={{ opacity: 1, y: 0 }}
+-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+-                className="mb-16 text-center"
++        {/* ── Sticky top bar ───────────────────────── */}
++        <div className="sticky top-14 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-200/60 print:hidden">
++          <div className="max-w-4xl mx-auto px-6 h-12 flex items-center justify-between">
++            <Link
++              href="/news"
++              className="group flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-mieno-navy transition-colors tracking-widest uppercase"
+             >
+-                <div className="flex items-center justify-center gap-4 mb-6">
+-                    <span className="inline-flex items-center rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400 ring-1 ring-inset ring-blue-500/20 tracking-widest">
+-                        {news.category}
+-                    </span>
+-                    <time className="font-mono text-sm text-gray-500 tracking-wider">
+-                        {news.date.replace(/-/g, '.')}
+-                    </time>
+-                </div>
+-                <h1 className="text-2xl md:text-5xl font-bold tracking-tight text-white mb-8 leading-tight">
+-                    {news.title}
+-                </h1>
+-
+-                {news.image_url && (
+-                    <m.div
+-                        initial={{ opacity: 0, scale: 0.95 }}
+-                        animate={{ opacity: 1, scale: 1 }}
+-                        transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+-                        className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 mt-12 bg-white/5"
+-                    >
+-                        <Image
+-                            src={news.image_url}
+-                            alt={news.title}
+-                            fill
+-                            sizes="(max-width: 896px) 100vw, 896px"
+-                            className="object-cover"
+-                            priority
+-                        />
+-                    </m.div>
+-                )}
+-            </m.header>
+-
+-            <m.div
+-                initial={{ opacity: 0, y: 20 }}
+-                animate={{ opacity: 1, y: 0 }}
+-                transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+-                className="max-w-3xl mx-auto"
++              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
++              通達一覧
++            </Link>
++            <button
++              onClick={handleShare}
++              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-gray-500 hover:text-mieno-navy hover:bg-gray-100 transition-all border border-gray-200"
+             >
+-                <div className="prose prose-invert prose-lg max-w-none text-gray-300 leading-[2.2] tracking-wide prose-p:mb-6 prose-p:font-medium prose-p:text-lg prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline">
+-                    <ReactMarkdown>{news.content}</ReactMarkdown>
+-                </div>
++              {copied ? <CheckCircle2 size={13} className="text-emerald-500" /> : <Link2 size={13} />}
++              {copied ? 'Copied!' : 'Share'}
++            </button>
++          </div>
++        </div>
+ 
+-                {(news.category === 'TOURING' && !hideLegacySurvey) && (news.event_date || news.location || news.requirements) && (
+-                    <m.div
+-                        initial={{ opacity: 0, y: 20 }}
+-                        whileInView={{ opacity: 1, y: 0 }}
+-                        viewport={{ once: true }}
+-                        transition={{ duration: 0.6, delay: 0.2 }}
+-                        className="mt-16 bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
+-                    >
+-                        <h2 className="text-xl font-bold tracking-widest text-white mb-8 flex items-center gap-3 uppercase">
+-                            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+-                            作戦詳細
+-                            <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">OPERATION DETAILS</span>
+-                        </h2>
++        {/* ── Article ──────────────────────────────── */}
++        <article className="max-w-4xl mx-auto px-4 sm:px-6 py-10 lg:py-14">
+ 
+-                        <div className="flex flex-col gap-6">
+-                            {news.event_date && (
+-                                <div className="flex items-start gap-4">
+-                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shrink-0">
+-                                        <Calendar className="w-5 h-5 text-blue-400" />
+-                                    </div>
+-                                    <div>
+-                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">開催日時</h3>
+-                                        <p className="text-lg text-white font-mono">{news.event_date}</p>
+-                                    </div>
+-                                </div>
+-                            )}
++          {/* Header */}
++          <m.header
++            initial={{ opacity: 0, y: 20 }}
++            animate={{ opacity: 1, y: 0 }}
++            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
++            className="mb-10"
++          >
++            {/* Badges */}
++            <div className="flex flex-wrap items-center gap-2 mb-5">
++              <span className={`text-[10px] font-bold px-3 py-1 rounded-full tracking-widest ${catStyle.bg} ${catStyle.text}`}>
++                {news.category}
++              </span>
++              <time className="text-[11px] font-mono text-gray-400">{news.date.replace(/-/g, '.')}</time>
++              {news.is_pinned && (
++                <span className="text-[10px] font-bold text-rose-500 tracking-widest">📌 PINNED</span>
++              )}
++            </div>
+ 
+-                            {news.location && (
+-                                <div className="flex items-start gap-4">
+-                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shrink-0">
+-                                        <MapPin className="w-5 h-5 text-blue-400" />
+-                                    </div>
+-                                    <div>
+-                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">集合場所</h3>
+-                                        <p className="text-lg text-white">{news.location}</p>
+-                                    </div>
+-                                </div>
+-                            )}
++            {/* Title */}
++            <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight mb-6">
++              {news.title}
++            </h1>
+ 
+-                            {news.requirements && (
+-                                <div className="flex items-start gap-4">
+-                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shrink-0">
+-                                        <ClipboardCheck className="w-5 h-5 text-blue-400" />
+-                                    </div>
+-                                    <div>
+-                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">参加条件</h3>
+-                                        <p className="text-lg text-white">{news.requirements}</p>
+-                                    </div>
+-                                </div>
+-                            )}
+-
+-                            {news.event_date && (
+-                                <m.div
+-                                    initial={{ opacity: 0, y: 10 }}
+-                                    animate={{ opacity: 1, y: 0 }}
+-                                    transition={{ delay: 0.3 }}
+-                                    className="pt-6 border-t border-white/10"
+-                                >
+-                                    <a
+-                                        href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(news.title)}&dates=${news.event_date.replace(/-/g, '')}T000000Z/${news.event_date.replace(/-/g, '')}T235959Z&details=${encodeURIComponent(news.content)}&location=${encodeURIComponent(news.location || '')}`}
+-                                        target="_blank"
+-                                        rel="noopener noreferrer"
+-                                        className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-bold tracking-widest rounded-full hover:bg-gray-200 transition-colors uppercase text-sm"
+-                                    >
+-                                        📅 ADD TO CALENDAR
+-                                        <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">(カレンダーに追加)</span>
+-                                    </a>
+-                                </m.div>
+-                            )}
+-                        </div>
+-                    </m.div>
++            {/* TOURING meta */}
++            {news.category === 'TOURING' && (news.event_date || news.location) && (
++              <div className="flex flex-wrap gap-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl mb-6">
++                {news.event_date && (
++                  <span className="flex items-center gap-1.5 text-xs font-bold text-blue-700">
++                    <Calendar size={13} /> {news.event_date.replace(/-/g, '.')}
++                  </span>
+                 )}
++                {news.location && (
++                  <span className="flex items-center gap-1.5 text-xs font-bold text-blue-700">
++                    <MapPin size={13} /> {news.location}
++                  </span>
++                )}
++                {news.event_date && (
++                  <a
++                    href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(news.title)}&dates=${news.event_date.replace(/-/g, '')}T000000Z/${news.event_date.replace(/-/g, '')}T235959Z&details=${encodeURIComponent(news.content)}&location=${encodeURIComponent(news.location || '')}`}
++                    target="_blank"
++                    rel="noopener noreferrer"
++                    className="ml-auto text-[10px] font-bold text-blue-600 hover:underline tracking-widest uppercase"
++                  >
++                    📅 Add to Calendar
++                  </a>
++                )}
++              </div>
++            )}
+ 
++            {/* Hero image */}
++            {news.image_url && (
++              <m.div
++                initial={{ opacity: 0, scale: 0.98 }}
++                animate={{ opacity: 1, scale: 1 }}
++                transition={{ duration: 0.6, delay: 0.15 }}
++                className="relative w-full aspect-video rounded-2xl overflow-hidden border border-gray-100 bg-gray-50"
++              >
++                <Image
++                  src={news.image_url}
++                  alt={news.title}
++                  fill
++                  sizes="(max-width: 896px) 100vw, 896px"
++                  className="object-cover"
++                  priority
++                />
++              </m.div>
++            )}
++          </m.header>
+ 
++          {/* Body */}
++          <m.div
++            initial={{ opacity: 0, y: 16 }}
++            animate={{ opacity: 1, y: 0 }}
++            transition={{ duration: 0.6, delay: 0.2 }}
++            className="bg-white rounded-3xl border border-gray-100 p-8 lg:p-12 shadow-sm mb-8"
++          >
++            <div className="prose prose-gray prose-base max-w-none
++              prose-headings:font-black prose-headings:tracking-tight
++              prose-p:leading-relaxed prose-p:text-gray-700
++              prose-a:text-mieno-blue prose-a:font-medium prose-a:no-underline hover:prose-a:underline
++              prose-strong:text-gray-900 prose-strong:font-bold
++              prose-li:text-gray-700
++              prose-hr:border-gray-100"
++            >
++              <ReactMarkdown remarkPlugins={[remarkGfm]}>{news.content}</ReactMarkdown>
++            </div>
++          </m.div>
+ 
+-                {(news.category === 'TOURING' && !hideLegacySurvey) && (
+-                    <m.div
+-                        initial={{ opacity: 0, y: 30 }}
+-                        whileInView={{ opacity: 1, y: 0 }}
+-                        viewport={{ once: true, margin: "-100px" }}
+-                        transition={{ duration: 0.8, ease: "easeOut" }}
+-                        className="mt-16 bg-[#111] border border-white/10 rounded-3xl p-8 relative overflow-hidden"
+-                    >
+-                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+-
+-                        <h2 className="text-xl font-bold tracking-widest text-white mb-8 flex items-center gap-3 uppercase relative z-10">
+-                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+-                            DEPLOYMENT RSVP
+-                            <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">参加ステータス入力</span>
+-                        </h2>
++          {/* Requirements */}
++          {news.requirements && (
++            <m.div
++              initial={{ opacity: 0, y: 12 }}
++              animate={{ opacity: 1, y: 0 }}
++              transition={{ duration: 0.5, delay: 0.3 }}
++              className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm mb-8 flex items-start gap-4"
++            >
++              <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-100 shrink-0">
++                <ClipboardCheck size={18} className="text-gray-500" />
++              </div>
++              <div>
++                <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-1">参加条件</p>
++                <p className="text-sm text-gray-700 leading-relaxed">{news.requirements}</p>
++              </div>
++            </m.div>
++          )}
+ 
++          {/* Legacy RSVP (non-logged-in) */}
++          {news.category === 'TOURING' && !hideLegacySurvey && (
++            <m.div
++              initial={{ opacity: 0, y: 20 }}
++              whileInView={{ opacity: 1, y: 0 }}
++              viewport={{ once: true }}
++              transition={{ duration: 0.5 }}
++              className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm"
++            >
++              <h2 className="text-sm font-black text-gray-900 tracking-widest uppercase mb-6 flex items-center gap-2">
++                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
++                DEPLOYMENT RSVP
++                <span className="text-[10px] text-gray-400 font-mono ml-1">参加ステータス入力</span>
++              </h2>
+ 
+-                        {hasSentPreviously || isSubmitted ? (
+-                            <m.div
+-                                initial={{ opacity: 0, scale: 0.95 }}
+-                                animate={{ opacity: 1, scale: 1 }}
+-                                className="relative z-10 flex flex-col items-center justify-center p-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-center shadow-[0_0_40px_-10px_rgba(59,130,246,0.2)]"
+-                            >
+-                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-2xl pointer-events-none"></div>
+-                                <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6 ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+-                                    <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+-                                </div>
+-                                <h3 className="text-xl md:text-2xl font-bold text-white tracking-widest mb-3 uppercase">Deployment Status:<br/>Transmitted</h3>
+-                                <p className="text-emerald-300/80 font-mono text-xs md:text-sm tracking-widest uppercase mb-6 px-4 py-2 bg-emerald-900/30 rounded-lg border border-emerald-500/20">あなたが送信したステータスは司令部に記録されました</p>
+-                                <div className="w-16 h-[1px] bg-white/20 mb-6"></div>
+-                                <p className="text-gray-500 font-mono text-[10px] tracking-[0.2em] uppercase">Mieno Corp. Strategic HQ</p>
+-                            </m.div>
+-                        ) : (
+-                            <form onSubmit={handleSurveySubmit} className="relative z-10 space-y-8">
+-                                <div className="flex p-1 bg-white/5 rounded-2xl border border-white/10">
+-                                    {[
+-                                        { value: 'JOIN', label: '🟢 JOIN', sub: '参加' },
+-                                        { value: 'PENDING', label: '🟡 PENDING', sub: '未定' },
+-                                        { value: 'DECLINE', label: '🔴 DECLINE', sub: '不参加' }
+-                                    ].map((opt) => (
+-                                        <button
+-                                            key={opt.value}
+-                                            type="button"
+-                                            onClick={() => setRsvpStatus(opt.value as any)}
+-                                            className={`flex-1 py-3 px-2 rounded-xl text-sm font-bold tracking-widest transition-all ${rsvpStatus === opt.value ? 'bg-white text-black shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+-                                        >
+-                                            <div className="flex flex-col items-center gap-1">
+-                                                <span>{opt.label}</span>
+-                                                <span className={`text-[10px] ${rsvpStatus === opt.value ? 'text-gray-600' : 'text-gray-500'}`}>{opt.sub}</span>
+-                                            </div>
+-                                        </button>
+-                                    ))}
+-                                </div>
++              {hasSentPreviously || isSubmitted ? (
++                <div className="flex flex-col items-center py-10 text-center">
++                  <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4 border border-emerald-100">
++                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
++                  </div>
++                  <h3 className="text-lg font-bold text-gray-900 mb-2">ステータス送信完了</h3>
++                  <p className="text-xs font-mono text-gray-400 tracking-widest uppercase">Transmitted to MIENO HQ</p>
++                </div>
++              ) : (
++                <form onSubmit={handleSurveySubmit} className="space-y-6">
++                  {/* Status selector */}
++                  <div className="flex p-1 bg-[#F5F5F7] rounded-2xl gap-1">
++                    {[
++                      { value: 'JOIN',    label: 'JOIN',    sub: '参加',  color: 'text-emerald-600' },
++                      { value: 'PENDING', label: 'PENDING', sub: '未定',  color: 'text-amber-600'   },
++                      { value: 'DECLINE', label: 'DECLINE', sub: '不参加', color: 'text-rose-600'    },
++                    ].map((opt) => (
++                      <button
++                        key={opt.value}
++                        type="button"
++                        onClick={() => setRsvpStatus(opt.value as 'JOIN' | 'PENDING' | 'DECLINE')}
++                        className={`flex-1 py-3 rounded-xl text-xs font-bold tracking-widest transition-all ${
++                          rsvpStatus === opt.value
++                            ? 'bg-white shadow-sm text-gray-900'
++                            : 'text-gray-400 hover:text-gray-600'
++                        }`}
++                      >
++                        <div className="flex flex-col items-center gap-0.5">
++                          <span className={rsvpStatus === opt.value ? opt.color : ''}>{opt.label}</span>
++                          <span className="text-[9px] font-medium">{opt.sub}</span>
++                        </div>
++                      </button>
++                    ))}
++                  </div>
+ 
+-                                <AnimatePresence>
+-                                    {rsvpStatus && (
+-                                        <m.div
+-                                            initial={{ opacity: 0, height: 0 }}
+-                                            animate={{ opacity: 1, height: 'auto' }}
+-                                            exit={{ opacity: 0, height: 0 }}
+-                                            transition={{ duration: 0.4, ease: "easeOut" }}
+-                                            className="space-y-6 overflow-hidden"
+-                                        >
+-                                            <div>
+-                                                <label className="block text-xs font-bold text-gray-500 tracking-widest uppercase mb-2">Agent Name (名前) *</label>
+-                                                <input
+-                                                    type="text"
+-                                                    required
+-                                                    value={agentName}
+-                                                    onChange={(e) => setAgentName(e.target.value)}
+-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
+-                                                    placeholder="e.g. Maverick"
+-                                                />
+-                                            </div>
++                  <AnimatePresence>
++                    {rsvpStatus && (
++                      <m.div
++                        initial={{ opacity: 0, height: 0 }}
++                        animate={{ opacity: 1, height: 'auto' }}
++                        exit={{ opacity: 0, height: 0 }}
++                        className="space-y-4 overflow-hidden"
++                      >
++                        <div>
++                          <label className="block text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-1.5">名前 *</label>
++                          <input
++                            type="text"
++                            required
++                            value={agentName}
++                            onChange={e => setAgentName(e.target.value)}
++                            className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mieno-blue/30 transition-all"
++                            placeholder="例: 三重野太郎"
++                          />
++                        </div>
+ 
+-                                            <AnimatePresence>
+-                                                {(rsvpStatus === 'JOIN' || rsvpStatus === 'PENDING') && (
+-                                                    <m.div
+-                                                        initial={{ opacity: 0, height: 0 }}
+-                                                        animate={{ opacity: 1, height: 'auto' }}
+-                                                        exit={{ opacity: 0, height: 0 }}
+-                                                        transition={{ duration: 0.4, ease: "easeOut" }}
+-                                                        className="space-y-6 overflow-hidden"
+-                                                    >
+-                                                        <div>
+-                                                            <label className="block text-xs font-bold text-gray-500 tracking-widest uppercase mb-2">Vehicle (搭乗機体)</label>
+-                                                            <input
+-                                                                type="text"
+-                                                                value={vehicleInfo}
+-                                                                onChange={(e) => setVehicleInfo(e.target.value)}
+-                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
+-                                                                placeholder="e.g. CBR600RR"
+-                                                            />
+-                                                        </div>
+-                                                    </m.div>
+-                                                )}
+-                                            </AnimatePresence>
++                        {(rsvpStatus === 'JOIN' || rsvpStatus === 'PENDING') && (
++                          <div>
++                            <label className="block text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-1.5">搭乗機体</label>
++                            <input
++                              type="text"
++                              value={vehicleInfo}
++                              onChange={e => setVehicleInfo(e.target.value)}
++                              className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mieno-blue/30 transition-all"
++                              placeholder="例: CBR600RR"
++                            />
++                          </div>
++                        )}
+ 
+-                                            <div>
+-                                                <label className="block text-xs font-bold text-gray-500 tracking-widest uppercase mb-2">Notes (特記事項)</label>
+-                                                <textarea
+-                                                    value={notes}
+-                                                    onChange={(e) => setNotes(e.target.value)}
+-                                                    rows={3}
+-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-y font-mono"
+-                                                    placeholder="合流場所の希望や遅刻・早退の予定など..."
+-                                                />
+-                                            </div>
++                        <div>
++                          <label className="block text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-1.5">特記事項</label>
++                          <textarea
++                            value={notes}
++                            onChange={e => setNotes(e.target.value)}
++                            rows={3}
++                            className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mieno-blue/30 transition-all resize-y"
++                            placeholder="合流場所の希望や遅刻・早退の予定など"
++                          />
++                        </div>
+ 
+-                                            <button
+-                                                type="submit"
+-                                                disabled={isSubmitting || !agentName.trim()}
+-                                                className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold tracking-widest uppercase transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+-                                            >
+-                                                {isSubmitting ? (
+-                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+-                                                ) : (
+-                                                    <>
+-                                                        <Send className="w-5 h-5" />
+-                                                        TRANSMIT STATUS
+-                                                    </>
+-                                                )}
+-                                            </button>
+-                                        </m.div>
+-                                    )}
+-                                </AnimatePresence>
+-                            </form>
++                        {submitError && (
++                          <p className="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
++                            {submitError}
++                          </p>
+                         )}
+-                    </m.div>
+-                )}
+ 
+-<div className="mt-24 pt-8 border-t border-white/10 text-center flex flex-col items-center">
+-                    <div className="w-12 h-1 bg-blue-600 rounded-full mb-8 opacity-50"></div>
+-                    <p className="font-mono text-xs text-gray-600 tracking-[0.3em] uppercase">END OF TRANSMISSION</p>
+-                    <p className="font-bold text-sm text-gray-500 mt-2 tracking-widest">MIENO CORP. STRATEGIC INTELLIGENCE</p>
+-                </div>
++                        <button
++                          type="submit"
++                          disabled={isSubmitting || !agentName.trim()}
++                          className="w-full py-3.5 bg-mieno-navy text-white rounded-xl text-xs font-bold tracking-widest uppercase hover:bg-mieno-blue transition-all flex items-center justify-center gap-2 disabled:opacity-50"
++                        >
++                          {isSubmitting
++                            ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
++                            : <><Send size={14} /> TRANSMIT STATUS</>
++                          }
++                        </button>
++                      </m.div>
++                    )}
++                  </AnimatePresence>
++                </form>
++              )}
+             </m.div>
++          )}
++
++          {/* Footer */}
++          <div className="mt-12 pt-6 border-t border-gray-100 flex items-center justify-between">
++            <Link
++              href="/news"
++              className="text-xs font-bold text-gray-400 hover:text-mieno-navy transition-colors tracking-widest uppercase flex items-center gap-1.5"
++            >
++              <ArrowLeft size={12} /> 通達一覧へ戻る
++            </Link>
++            <p className="text-[10px] font-mono text-gray-300 tracking-widest uppercase">MIENO CORP.</p>
++          </div>
+         </article>
++      </div>
+     </ClientMotionWrapper>
+   );
+ }
+diff --git a/components/StrategicUnits.tsx b/components/StrategicUnits.tsx
+index 15a7648..8772fde 100644
+--- a/components/StrategicUnits.tsx
++++ b/components/StrategicUnits.tsx
+@@ -277,9 +277,10 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
+ 
+ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }: { units?: Unit[], isAdmin?: boolean }) {
+   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+-  const [editForm, setEditForm] = useState<Partial<Unit>>({});
+-  const [isSaving, setIsSaving] = useState(false);
+-  const [mounted, setMounted] = useState(false);
++  const [editForm, setEditForm]       = useState<Partial<Unit>>({});
++  const [isSaving, setIsSaving]       = useState(false);
++  const [saveError, setSaveError]     = useState<string | null>(null);
++  const [mounted, setMounted]         = useState(false);
+ 
+   useEffect(() => {
+     setMounted(true);
+@@ -297,14 +298,15 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
+   const handleSave = async () => {
+     if (!editingUnit) return;
+     setIsSaving(true);
++    setSaveError(null);
+     try {
+-        await updateUnit(editingUnit.id, editForm);
+-        setEditingUnit(null);
++      await updateUnit(editingUnit.id, editForm);
++      setEditingUnit(null);
+     } catch (e) {
+-        console.error(e);
+-        alert('Failed to update');
++      console.error(e);
++      setSaveError('更新に失敗しました。再度お試しください。');
+     } finally {
+-        setIsSaving(false);
++      setIsSaving(false);
+     }
+   };
+ 
+@@ -403,6 +405,10 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
+                             </div>
+                         </div>
+ 
++                        {saveError && (
++                          <p className="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">{saveError}</p>
++                        )}
++
+                         {/* Footer */}
+                         <div className="mt-6 flex justify-end gap-3">
+                             <button
+diff --git a/components/admin/LiveEditor.tsx b/components/admin/LiveEditor.tsx
+index f76859a..f863345 100644
+--- a/components/admin/LiveEditor.tsx
++++ b/components/admin/LiveEditor.tsx
+@@ -1,11 +1,14 @@
+ 'use client';
+ 
+-import { useState } from 'react';
++import { useState, useTransition } from 'react';
+ import { m, AnimatePresence } from 'framer-motion';
+-import { X, Save, Pin, FileText, Image as ImageIcon } from 'lucide-react';
++import { X, Save, Pin, FileText, CheckCircle2, Loader2, AlertTriangle, Calendar, MapPin } from 'lucide-react';
+ import ReactMarkdown from 'react-markdown';
+ import remarkGfm from 'remark-gfm';
+ import ClientMotionWrapper from '@/components/ClientMotionWrapper';
++import { addNews } from '@/app/actions/news';
++
++type Category = 'UPDATE' | 'PRESS' | 'REPORT' | 'TOURING';
+ 
+ interface LiveEditorProps {
+   isOpen: boolean;
+@@ -13,119 +16,254 @@ interface LiveEditorProps {
+ }
+ 
+ export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
+-  const [content, setContent] = useState('# 新規通達\n\nここにマークダウンで内容を入力します。\n\n- リスト1\n- リスト2');
+-  const [title, setTitle] = useState('');
++  const [isPending, startTransition] = useTransition();
++  const [content, setContent]   = useState('# 新規通達\n\nここにマークダウンで内容を入力します。\n\n- リスト1\n- リスト2');
++  const [title, setTitle]       = useState('');
+   const [isPinned, setIsPinned] = useState(false);
+-  const [category, setCategory] = useState<'UPDATE' | 'PRESS' | 'REPORT' | 'TOURING'>('UPDATE');
++  const [category, setCategory] = useState<Category>('UPDATE');
++  const [eventDate, setEventDate] = useState('');
++  const [location, setLocation]   = useState('');
++  const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
++
++  const showToast = (type: 'success' | 'error', msg: string) => {
++    setToast({ type, msg });
++    setTimeout(() => setToast(null), 3500);
++  };
++
++  const handleDeploy = () => {
++    if (!title.trim()) {
++      showToast('error', 'タイトルを入力してください');
++      return;
++    }
++    if (!content.trim()) {
++      showToast('error', '本文を入力してください');
++      return;
++    }
++
++    startTransition(async () => {
++      try {
++        await addNews({
++          title:      title.trim(),
++          content:    content.trim(),
++          category,
++          date:       new Date().toISOString().split('T')[0],
++          is_pinned:  isPinned,
++          event_date: eventDate || undefined,
++          location:   location  || undefined,
++        });
++
++        showToast('success', '通達を発令しました');
++        // Reset form
++        setTimeout(() => {
++          setTitle('');
++          setContent('# 新規通達\n\nここにマークダウンで内容を入力します。');
++          setIsPinned(false);
++          setCategory('UPDATE');
++          setEventDate('');
++          setLocation('');
++          onClose();
++        }, 1200);
++      } catch (err) {
++        console.error(err);
++        showToast('error', '保存に失敗しました。再度お試しください。');
++      }
++    });
++  };
+ 
+   return (
+     <ClientMotionWrapper>
+     <AnimatePresence>
+       {isOpen && (
+         <m.div
+-          initial={{ opacity: 0, scale: 0.95 }}
++          initial={{ opacity: 0, scale: 0.97 }}
+           animate={{ opacity: 1, scale: 1 }}
+-          exit={{ opacity: 0, scale: 0.95 }}
++          exit={{ opacity: 0, scale: 0.97 }}
+           transition={{ duration: 0.2 }}
+           className="fixed inset-0 bg-[#F5F5F7] z-50 flex flex-col overflow-hidden"
+         >
+-          {/* Header */}
++          {/* ── Header ─────────────────────────────── */}
+           <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
+-            <div className="flex items-center gap-6">
++            <div className="flex items-center gap-4">
+               <button
+                 onClick={onClose}
+                 className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+               >
+-                <X size={20} />
++                <X size={18} />
+               </button>
+               <div className="flex items-center gap-2">
+-                <FileText size={18} className="text-gray-400" />
++                <FileText size={16} className="text-gray-400" />
+                 <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Strategic Live Editor</h2>
+               </div>
+             </div>
+ 
+-            <div className="flex items-center gap-4">
+-               {/* Category Toggles */}
+-               <div className="flex bg-gray-100 p-1 rounded-xl">
+-                 {(['UPDATE', 'PRESS', 'REPORT', 'TOURING'] as const).map((cat) => (
+-                   <button
+-                     key={cat}
+-                     onClick={() => setCategory(cat)}
+-                     className={`px-3 py-1 text-[10px] font-bold tracking-wider rounded-lg transition-all ${
+-                       category === cat ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+-                     }`}
+-                   >
+-                     {cat}
+-                   </button>
+-                 ))}
+-               </div>
+-
+-               {/* Pin Toggle */}
+-               <button
+-                 onClick={() => setIsPinned(!isPinned)}
+-                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+-                   isPinned ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+-                 }`}
+-               >
+-                 <Pin size={16} className={isPinned ? 'fill-current' : ''} />
+-                 Pinned
+-               </button>
+-
+-               {/* Save */}
+-               <button
+-                 onClick={() => alert('保存処理を実装')}
+-                 className="flex items-center gap-2 px-6 py-2 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-all shadow-sm active:scale-95"
+-               >
+-                 <Save size={16} />
+-                 Deploy
+-               </button>
++            <div className="flex items-center gap-2 sm:gap-3">
++              {/* Category Toggles */}
++              <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
++                {(['UPDATE', 'PRESS', 'REPORT', 'TOURING'] as const).map((cat) => (
++                  <button
++                    key={cat}
++                    onClick={() => setCategory(cat)}
++                    className={`px-3 py-1 text-[10px] font-bold tracking-wider rounded-lg transition-all ${
++                      category === cat ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
++                    }`}
++                  >
++                    {cat}
++                  </button>
++                ))}
++              </div>
++
++              {/* Pin Toggle */}
++              <button
++                onClick={() => setIsPinned(!isPinned)}
++                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
++                  isPinned ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
++                }`}
++              >
++                <Pin size={14} className={isPinned ? 'fill-current' : ''} />
++                <span className="hidden sm:inline">PIN</span>
++              </button>
++
++              {/* Deploy Button */}
++              <button
++                onClick={handleDeploy}
++                disabled={isPending}
++                className="flex items-center gap-2 px-5 py-2 bg-mieno-navy text-white rounded-xl text-xs font-bold hover:bg-mieno-blue disabled:opacity-50 transition-all shadow-sm active:scale-95"
++              >
++                {isPending ? (
++                  <Loader2 size={14} className="animate-spin" />
++                ) : (
++                  <Save size={14} />
++                )}
++                {isPending ? 'DEPLOYING...' : 'DEPLOY'}
++              </button>
+             </div>
+           </header>
+ 
+-          {/* Split View */}
++          {/* ── TOURING extra fields ─────────────────── */}
++          <AnimatePresence>
++            {category === 'TOURING' && (
++              <m.div
++                initial={{ height: 0, opacity: 0 }}
++                animate={{ height: 'auto', opacity: 1 }}
++                exit={{ height: 0, opacity: 0 }}
++                className="overflow-hidden bg-blue-50 border-b border-blue-100"
++              >
++                <div className="flex flex-wrap items-center gap-4 px-6 py-3">
++                  <div className="flex items-center gap-2">
++                    <Calendar size={14} className="text-blue-500" />
++                    <label className="text-[11px] font-bold text-blue-600 tracking-widest uppercase">開催日</label>
++                    <input
++                      type="date"
++                      value={eventDate}
++                      onChange={e => setEventDate(e.target.value)}
++                      className="bg-white border border-blue-200 rounded-lg px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
++                    />
++                  </div>
++                  <div className="flex items-center gap-2">
++                    <MapPin size={14} className="text-blue-500" />
++                    <label className="text-[11px] font-bold text-blue-600 tracking-widest uppercase">集合場所</label>
++                    <input
++                      type="text"
++                      value={location}
++                      onChange={e => setLocation(e.target.value)}
++                      placeholder="例: 道の駅○○"
++                      className="bg-white border border-blue-200 rounded-lg px-3 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300"
++                    />
++                  </div>
++                  <span className="text-[10px] text-blue-400 font-mono">※ TOURING発令時はLINE通知が自動送信されます</span>
++                </div>
++              </m.div>
++            )}
++          </AnimatePresence>
++
++          {/* Mobile category selector */}
++          <div className="sm:hidden flex bg-white border-b border-gray-100 px-4 py-2 gap-1 overflow-x-auto">
++            {(['UPDATE', 'PRESS', 'REPORT', 'TOURING'] as const).map((cat) => (
++              <button
++                key={cat}
++                onClick={() => setCategory(cat)}
++                className={`px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-lg transition-all whitespace-nowrap ${
++                  category === cat ? 'bg-mieno-navy text-white' : 'bg-gray-100 text-gray-400'
++                }`}
++              >
++                {cat}
++              </button>
++            ))}
++          </div>
++
++          {/* ── Split View ──────────────────────────── */}
+           <div className="flex-1 flex overflow-hidden">
+-             {/* Left: Editor */}
+-             <div className="w-1/2 border-r border-gray-200 flex flex-col bg-white">
+-                <input
+-                  type="text"
+-                  placeholder="Title..."
+-                  value={title}
+-                  onChange={(e) => setTitle(e.target.value)}
+-                  className="w-full p-6 text-3xl font-bold text-gray-900 placeholder:text-gray-300 border-none focus:outline-none focus:ring-0"
+-                />
+-                <textarea
+-                  value={content}
+-                  onChange={(e) => setContent(e.target.value)}
+-                  placeholder="Markdown format supported..."
+-                  className="flex-1 w-full p-6 text-base text-gray-700 font-mono placeholder:text-gray-300 border-none focus:outline-none focus:ring-0 resize-none bg-transparent"
+-                />
+-             </div>
+-
+-             {/* Right: Preview */}
+-             <div className="w-1/2 bg-[#F5F5F7] overflow-y-auto p-12 flex justify-center">
+-                 <div className="w-full max-w-[600px] bg-white rounded-3xl p-10 shadow-sm border border-gray-100">
+-                    <div className="flex items-center gap-3 mb-6">
+-                        <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-bold tracking-widest uppercase">
+-                            {category}
+-                        </span>
+-                        {isPinned && <Pin size={16} className="text-amber-500 fill-current" />}
+-                        <span className="text-xs text-gray-400 font-mono ml-auto">
+-                            {new Date().toLocaleDateString('ja-JP')}
+-                        </span>
+-                    </div>
+-
+-                    <h1 className="text-3xl font-bold text-gray-900 mb-8 leading-tight">
+-                        {title || 'Untitled'}
+-                    </h1>
+-
+-                    <div className="prose prose-gray max-w-none">
+-                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
+-                          {content}
+-                       </ReactMarkdown>
+-                    </div>
+-                 </div>
+-             </div>
++            {/* Left: Editor */}
++            <div className="w-full md:w-1/2 border-r border-gray-200 flex flex-col bg-white">
++              <input
++                type="text"
++                placeholder="タイトルを入力..."
++                value={title}
++                onChange={e => setTitle(e.target.value)}
++                className="w-full px-8 pt-8 pb-4 text-2xl font-bold text-gray-900 placeholder:text-gray-300 border-none focus:outline-none focus:ring-0"
++              />
++              <textarea
++                value={content}
++                onChange={e => setContent(e.target.value)}
++                placeholder="Markdownで内容を入力..."
++                className="flex-1 w-full px-8 py-4 text-sm text-gray-700 font-mono placeholder:text-gray-300 border-none focus:outline-none focus:ring-0 resize-none bg-transparent leading-relaxed"
++              />
++            </div>
++
++            {/* Right: Preview (hidden on mobile) */}
++            <div className="hidden md:block w-1/2 bg-[#F5F5F7] overflow-y-auto p-10 flex justify-center">
++              <div className="w-full max-w-[600px] bg-white rounded-3xl p-10 shadow-sm border border-gray-100 mx-auto">
++                <div className="flex items-center gap-3 mb-6">
++                  <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-[10px] font-bold tracking-widest uppercase">
++                    {category}
++                  </span>
++                  {isPinned && <Pin size={14} className="text-amber-500 fill-current" />}
++                  <span className="text-[11px] text-gray-400 font-mono ml-auto">
++                    {new Date().toLocaleDateString('ja-JP')}
++                  </span>
++                </div>
++
++                <h1 className="text-2xl font-bold text-gray-900 mb-6 leading-tight">
++                  {title || 'Untitled'}
++                </h1>
++
++                {eventDate && (
++                  <div className="flex items-center gap-2 mb-2 text-xs text-blue-600 font-mono">
++                    <Calendar size={12} /> {eventDate}
++                    {location && <><MapPin size={12} className="ml-2" /> {location}</>}
++                  </div>
++                )}
++
++                <div className="prose prose-gray prose-sm max-w-none">
++                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
++                    {content}
++                  </ReactMarkdown>
++                </div>
++              </div>
++            </div>
+           </div>
++
++          {/* ── Toast ───────────────────────────────── */}
++          <AnimatePresence>
++            {toast && (
++              <m.div
++                initial={{ opacity: 0, y: 16, scale: 0.96 }}
++                animate={{ opacity: 1, y: 0,  scale: 1 }}
++                exit={{ opacity: 0, y: 16, scale: 0.96 }}
++                className={`fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3.5 rounded-2xl shadow-lg text-sm font-bold z-[60] ${
++                  toast.type === 'success'
++                    ? 'bg-emerald-600 text-white'
++                    : 'bg-rose-600 text-white'
++                }`}
++              >
++                {toast.type === 'success'
++                  ? <CheckCircle2 size={16} />
++                  : <AlertTriangle size={16} />
++                }
++                {toast.msg}
++              </m.div>
++            )}
++          </AnimatePresence>
+         </m.div>
+       )}
+     </AnimatePresence>
+diff --git a/components/admin/TransmissionControl.tsx b/components/admin/TransmissionControl.tsx
+index 3740e9c..f43da2f 100644
+--- a/components/admin/TransmissionControl.tsx
++++ b/components/admin/TransmissionControl.tsx
+@@ -22,6 +22,8 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
+   const [urgency, setUrgency] = useState<number | null>(null);
+   const [sentiment, setSentiment] = useState<string | null>(null);
+   const [category, setCategory] = useState<string | null>(null);
++  const [errorMsg, setErrorMsg] = useState<string | null>(null);
++  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+ 
+   const unreadInquiries = inquiries.filter(i => i.status === 'unread');
+ 
+@@ -33,11 +35,12 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
+   const handleGenerateAI = async () => {
+     if (!selectedInquiry) return;
+     setIsGenerating(true);
++    setErrorMsg(null);
+     const result = await generateAiReplyDraft(selectedInquiry.name, selectedInquiry.message, aiStrictness);
+     if (result.success && result.html) {
+       setDraftHtml(result.html);
+     } else {
+-      alert('AI Draft generation failed.');
++      setErrorMsg('AI返信案の生成に失敗しました。');
+     }
+     setIsGenerating(false);
+   };
+@@ -45,12 +48,17 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
+   const handleSend = async () => {
+     if (!selectedInquiry || !draftHtml) return;
+     setIsSending(true);
++    setErrorMsg(null);
+     const result = await sendReplyAndUpdateInquiry(selectedInquiry.id, selectedInquiry.email, draftHtml);
+     if (result.success) {
+-      setSelectedInquiry(null);
+-      setDraftHtml('');
++      setSuccessMsg('返信を送信しました！');
++      setTimeout(() => {
++        setSelectedInquiry(null);
++        setDraftHtml('');
++        setSuccessMsg(null);
++      }, 1500);
+     } else {
+-      alert('Failed to send reply.');
++      setErrorMsg('送信に失敗しました。再度お試しください。');
+     }
+     setIsSending(false);
+   };
+@@ -155,20 +163,32 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
+                   </div>
+ 
+                   <div className="space-y-4">
+-                    <button
+-                      onClick={handleGenerateAI}
+-                      disabled={isGenerating}
+-                      className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-2xl font-bold text-sm hover:from-gray-800 hover:to-gray-700 disabled:opacity-50 transition-all shadow-md active:scale-[0.98]"
+-                    >
+-                      {isGenerating ? (
+-                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+-                      ) : (
+-                        <>
+-                           <Bot size={18} />
+-                           🤖 AIで返信案を作成
+-                        </>
+-                      )}
+-                    </button>
++                    {/* Error / Success */}
++                  {errorMsg && (
++                    <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600">
++                      <AlertTriangle size={14} /> {errorMsg}
++                    </div>
++                  )}
++                  {successMsg && (
++                    <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-600">
++                      ✓ {successMsg}
++                    </div>
++                  )}
++
++                  <button
++                    onClick={handleGenerateAI}
++                    disabled={isGenerating}
++                    className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-2xl font-bold text-sm hover:from-gray-800 hover:to-gray-700 disabled:opacity-50 transition-all shadow-md active:scale-[0.98]"
++                  >
++                    {isGenerating ? (
++                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
++                    ) : (
++                      <>
++                         <Bot size={18} />
++                         🤖 AIで返信案を作成
++                      </>
++                    )}
++                  </button>
+ 
+                     {draftHtml && (
+                       <m.div
+diff --git a/types/database.ts b/types/database.ts
+index a247e29..16ca876 100644
+--- a/types/database.ts
++++ b/types/database.ts
+@@ -114,7 +114,7 @@ export interface Unit {
+ export interface Agent {
+   id: string; // uuid from auth.users
+   email: string;
+-  name: string;
++  codename: string; // DB column: codename (not name)
+   role: string;
+   created_at?: string;
+ }

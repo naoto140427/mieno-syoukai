@@ -1,37 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { m, Variants } from 'framer-motion';
-import { ArrowRight, Plus, Edit2, Trash2 } from 'lucide-react';
+import { m, AnimatePresence, Variants } from 'framer-motion';
+import { ArrowRight, Plus, Edit2, Trash2, Calendar, MapPin, Pin } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { News as NewsType } from '@/types/database';
-import { addNews, updateNews, deleteNews } from '@/app/actions/news';
+import { deleteNews } from '@/app/actions/news';
 import NewsModal from './NewsModal';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
-    },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
 };
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: 'spring',
-      stiffness: 100,
-      damping: 15,
-    },
-  },
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 24 } },
+};
+
+const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
+  TOURING: { bg: 'bg-blue-50',   text: 'text-blue-700'  },
+  UPDATE:  { bg: 'bg-gray-100',  text: 'text-gray-600'  },
+  PRESS:   { bg: 'bg-purple-50', text: 'text-purple-700' },
+  REPORT:  { bg: 'bg-green-50',  text: 'text-green-700' },
+  OTHER:   { bg: 'bg-gray-100',  text: 'text-gray-500'  },
 };
 
 interface NewsProps {
@@ -40,204 +34,225 @@ interface NewsProps {
 }
 
 export default function News({ news = [], isAdmin = false }: NewsProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentNews, setCurrentNews] = useState<NewsType | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [isModalOpen, setIsModalOpen]   = useState(false);
+  const [currentNews, setCurrentNews]   = useState<NewsType | null>(null);
+  const [deletingId, setDeletingId]     = useState<number | null>(null);
+  const [mounted, setMounted]           = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const isUpcoming = (dateStr?: string) => {
-      if (!dateStr) return false;
-      const eventDate = new Date(dateStr);
-      eventDate.setHours(23, 59, 59, 999);
-      return eventDate >= new Date();
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    d.setHours(23, 59, 59, 999);
+    return d >= new Date();
   };
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const openModal = (item?: NewsType) => {
-      if (item) {
-          setCurrentNews(item);
-      } else {
-          setCurrentNews(null);
-      }
-      setIsModalOpen(true);
+    setCurrentNews(item ?? null);
+    setIsModalOpen(true);
   };
 
   const handleSave = async (formData: Omit<NewsType, 'id' | 'created_at'>) => {
-      try {
-          if (currentNews) {
-              await updateNews(currentNews.id, formData);
-          } else {
-              await addNews(formData);
-          }
-      } catch (error) {
-          console.error("Failed to save news", error);
-          throw error; // Re-throw to be handled by modal
-      }
+    const { addNews, updateNews } = await import('@/app/actions/news');
+    if (currentNews) {
+      await updateNews(currentNews.id, formData);
+    } else {
+      await addNews(formData);
+    }
   };
 
   const handleDelete = async () => {
-      if (!currentNews) return;
-      try {
-          await deleteNews(currentNews.id);
-      } catch (error) {
-          console.error("Failed to delete news", error);
-          throw error;
-      }
+    if (!currentNews) return;
+    await deleteNews(currentNews.id);
+  };
+
+  const handleQuickDelete = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDeletingId(id);
+    try {
+      await deleteNews(id);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
     <ClientMotionWrapper>
-    <section id="news" className="bg-black py-24 text-white border-t border-white/10 relative z-10">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-          <m.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="flex flex-col gap-4">
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Latest Updates
-              </h2>
-              {isAdmin && mounted && (
-                <m.button
-                  onClick={() => openModal()}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors shadow-lg shadow-blue-900/20 w-fit"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>＋ NEW UPDATE (新規通達を発令)</span>
-                </m.button>
-              )}
-            </div>
-            <p className="mt-2 text-gray-400">
-              組織からの最新通達事項
-            </p>
-          </m.div>
-          <m.div
-             initial={{ opacity: 0, x: 20 }}
-             whileInView={{ opacity: 1, x: 0 }}
-             viewport={{ once: true }}
-             transition={{ duration: 0.6 }}
-          >
-             <Link href="/news" className="text-sm font-semibold leading-6 text-gray-300 hover:text-white flex items-center gap-1">
-               View All <ArrowRight className="h-4 w-4" />
-             </Link>
-          </m.div>
-        </div>
+      <section id="news" className="bg-[#F5F5F7] py-20 border-t border-gray-100 relative z-10">
+        <div className="mx-auto max-w-5xl px-6 lg:px-8">
 
-        <m.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
-            className="space-y-4"
-        >
-        {news.length === 0 ? (
-                <div className="text-gray-500 text-center py-8 border border-white/10 rounded-xl bg-white/5 backdrop-blur-md">No updates available.</div>
-        ) : (
-            news.map((item) => (
-                <m.div
+          {/* Section header */}
+          <div className="flex items-end justify-between mb-10">
+            <m.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              <p className="text-[10px] font-black text-gray-400 tracking-[0.25em] uppercase mb-1">MIENO CORP.</p>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">最新通達</h2>
+              <p className="text-xs text-gray-400 mt-1 font-medium">Latest Updates</p>
+            </m.div>
+
+            <m.div
+              initial={{ opacity: 0, x: 12 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="flex items-center gap-3"
+            >
+              {isAdmin && mounted && (
+                <button
+                  onClick={() => openModal()}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-mieno-navy text-white text-[11px] font-bold rounded-full tracking-widest hover:bg-mieno-blue transition-all shadow-sm active:scale-95"
+                >
+                  <Plus size={13} /> 新規通達
+                </button>
+              )}
+              <Link
+                href="/news"
+                className="flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-mieno-navy transition-colors tracking-widest"
+              >
+                すべて見る <ArrowRight size={13} />
+              </Link>
+            </m.div>
+          </div>
+
+          {/* News cards */}
+          {news.length === 0 ? (
+            <div className="text-gray-400 text-sm text-center py-12 bg-white rounded-2xl border border-gray-100">
+              通達はありません
+            </div>
+          ) : (
+            <m.div
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-40px' }}
+              className="space-y-3"
+            >
+              {news.map((item) => {
+                const catStyle = CATEGORY_STYLE[item.category] ?? CATEGORY_STYLE.OTHER;
+                return (
+                  <m.div
                     key={item.id}
                     variants={itemVariants}
-                    className={`group relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-md border p-6 hover:bg-white/10 transition-colors duration-300 ${item.is_pinned ? "border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "border-white/10"}`}
-                >
-                    <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 relative">
-                        {/* Interactive Area Link */}
-                        <Link href={`/news/${item.id}`} prefetch={false} className="absolute inset-0 z-0"></Link>
+                    className={`group relative bg-white rounded-2xl border transition-all overflow-hidden ${
+                      item.is_pinned
+                        ? 'border-rose-100 shadow-sm'
+                        : 'border-gray-100 hover:border-gray-200 hover:shadow-sm'
+                    }`}
+                  >
+                    <Link href={`/news/${item.id}`} prefetch={false} className="absolute inset-0 z-0" />
 
-                        {item.image_url && (
-                            <div className="w-full md:w-48 h-32 md:h-28 flex-shrink-0 relative overflow-hidden rounded-lg border border-white/10 bg-white/5 z-10 pointer-events-none">
-                                <Image
-                                    src={item.image_url}
-                                    alt={item.title}
-                                    fill
-                                    sizes="(max-width: 768px) 100vw, 192px"
-                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                />
-                            </div>
-                        )}
-                        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8 flex-1 z-10 pointer-events-none">
-                            <div className="flex items-center gap-4 min-w-fit flex-wrap">
-                            <time className="font-mono text-sm text-gray-400">{item.date.replace(/-/g, '.')}</time>
-                            <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-gray-300 ring-1 ring-inset ring-white/20 tracking-widest">
-                                {item.category}
+                    <div className="flex items-center gap-4 p-5 relative">
+                      {/* Thumbnail */}
+                      {item.image_url && (
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 relative overflow-hidden rounded-xl bg-gray-50 border border-gray-100 z-10 pointer-events-none">
+                          <Image
+                            src={item.image_url}
+                            alt={item.title}
+                            fill
+                            sizes="80px"
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        </div>
+                      )}
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 z-10 pointer-events-none">
+                        {/* Badges row */}
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full tracking-widest ${catStyle.bg} ${catStyle.text}`}>
+                            {item.category}
+                          </span>
+                          {item.is_pinned && (
+                            <span className="text-[9px] font-bold text-rose-500 flex items-center gap-0.5">
+                              <Pin size={9} className="fill-current" /> PINNED
                             </span>
-                            {item.is_pinned && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-1 text-xs font-bold text-red-400 ring-1 ring-inset ring-red-500/20 tracking-widest">
-                                    📌 IMPORTANT
-                                </span>
-                            )}
-                            {item.category === 'TOURING' && item.event_date && (
-                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-bold tracking-widest ring-1 ring-inset ${
-                                    isUpcoming(item.event_date)
-                                        ? 'bg-green-500/10 text-green-400 ring-green-500/20'
-                                        : 'bg-gray-500/10 text-gray-400 ring-gray-500/20'
-                                }`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${isUpcoming(item.event_date) ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
-                                    {isUpcoming(item.event_date) ? '🟢 作戦待機 (Upcoming)' : '⚪️ 作戦完了 (Completed)'}
-                                </span>
-                            )}
-                            </div>
-                            <h3 className="text-lg font-medium leading-6 text-white group-hover:text-blue-400 transition-colors flex-1">
-                            {item.title}
-                            </h3>
+                          )}
+                          {item.category === 'TOURING' && item.event_date && (
+                            <span className={`text-[9px] font-bold tracking-widest flex items-center gap-1 ${
+                              isUpcoming(item.event_date) ? 'text-emerald-600' : 'text-gray-400'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${isUpcoming(item.event_date) ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
+                              {isUpcoming(item.event_date) ? 'UPCOMING' : 'COMPLETED'}
+                            </span>
+                          )}
+                          <time className="text-[9px] font-mono text-gray-400 ml-auto">
+                            {item.date.replace(/-/g, '.')}
+                          </time>
                         </div>
-                        <div className="hidden md:flex items-center gap-4 z-20">
-                            {isAdmin && mounted && (
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            openModal(item);
-                                        }}
-                                        className="p-2 bg-white/10 rounded-full hover:bg-blue-600 hover:text-white transition-colors"
-                                    >
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={async (e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            if (confirm("Are you sure you want to delete this news item?")) {
-                                                try {
-                                                    await deleteNews(item.id);
-                                                } catch (err) {
-                                                    console.error(err);
-                                                }
-                                            }
-                                        }}
-                                        className="p-2 bg-white/10 rounded-full hover:bg-red-600 hover:text-white transition-colors text-red-400"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
+
+                        {/* Title */}
+                        <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-mieno-blue transition-colors">
+                          {item.title}
+                        </h3>
+
+                        {/* TOURING meta */}
+                        {item.category === 'TOURING' && (item.event_date || item.location) && (
+                          <div className="flex flex-wrap gap-3 mt-1.5">
+                            {item.event_date && (
+                              <span className="flex items-center gap-1 text-[10px] text-gray-400 font-mono">
+                                <Calendar size={10} /> {item.event_date.replace(/-/g, '.')}
+                              </span>
                             )}
-                            <ArrowRight className="h-5 w-5 text-gray-500 group-hover:text-white transition-colors transform group-hover:translate-x-1" />
+                            {item.location && (
+                              <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                                <MapPin size={10} /> {item.location}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Admin actions */}
+                      {isAdmin && mounted && (
+                        <div className="hidden sm:flex items-center gap-2 z-20 shrink-0">
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openModal(item); }}
+                            className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => handleQuickDelete(e, item.id)}
+                            disabled={deletingId === item.id}
+                            className="p-2 rounded-full hover:bg-rose-50 text-gray-400 hover:text-rose-500 transition-colors disabled:opacity-40"
+                          >
+                            {deletingId === item.id
+                              ? <div className="w-3.5 h-3.5 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" />
+                              : <Trash2 size={14} />
+                            }
+                          </button>
                         </div>
+                      )}
+
+                      {/* Arrow */}
+                      <ArrowRight size={16} className="text-gray-300 group-hover:text-mieno-blue group-hover:translate-x-0.5 transition-all z-10 pointer-events-none shrink-0" />
                     </div>
-                </m.div>
-            ))
-        )}
-        </m.div>
-      </div>
+                  </m.div>
+                );
+              })}
+            </m.div>
+          )}
+        </div>
+      </section>
 
       {/* Admin Modal */}
       {mounted && (
-          <NewsModal
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              onSave={handleSave}
-              onDelete={currentNews ? handleDelete : undefined}
-              initialData={currentNews}
-          />
+        <NewsModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleSave}
+          onDelete={currentNews ? handleDelete : undefined}
+          initialData={currentNews}
+        />
       )}
-    </section>
-  </ClientMotionWrapper>
+    </ClientMotionWrapper>
   );
 }

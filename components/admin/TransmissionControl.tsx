@@ -22,6 +22,8 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
   const [urgency, setUrgency] = useState<number | null>(null);
   const [sentiment, setSentiment] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const unreadInquiries = inquiries.filter(i => i.status === 'unread');
 
@@ -33,11 +35,12 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
   const handleGenerateAI = async () => {
     if (!selectedInquiry) return;
     setIsGenerating(true);
+    setErrorMsg(null);
     const result = await generateAiReplyDraft(selectedInquiry.name, selectedInquiry.message, aiStrictness);
     if (result.success && result.html) {
       setDraftHtml(result.html);
     } else {
-      alert('AI Draft generation failed.');
+      setErrorMsg('AI返信案の生成に失敗しました。');
     }
     setIsGenerating(false);
   };
@@ -45,12 +48,17 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
   const handleSend = async () => {
     if (!selectedInquiry || !draftHtml) return;
     setIsSending(true);
+    setErrorMsg(null);
     const result = await sendReplyAndUpdateInquiry(selectedInquiry.id, selectedInquiry.email, draftHtml);
     if (result.success) {
-      setSelectedInquiry(null);
-      setDraftHtml('');
+      setSuccessMsg('返信を送信しました！');
+      setTimeout(() => {
+        setSelectedInquiry(null);
+        setDraftHtml('');
+        setSuccessMsg(null);
+      }, 1500);
     } else {
-      alert('Failed to send reply.');
+      setErrorMsg('送信に失敗しました。再度お試しください。');
     }
     setIsSending(false);
   };
@@ -155,20 +163,32 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
                   </div>
 
                   <div className="space-y-4">
-                    <button
-                      onClick={handleGenerateAI}
-                      disabled={isGenerating}
-                      className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-2xl font-bold text-sm hover:from-gray-800 hover:to-gray-700 disabled:opacity-50 transition-all shadow-md active:scale-[0.98]"
-                    >
-                      {isGenerating ? (
-                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      ) : (
-                        <>
-                           <Bot size={18} />
-                           🤖 AIで返信案を作成
-                        </>
-                      )}
-                    </button>
+                    {/* Error / Success */}
+                  {errorMsg && (
+                    <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600">
+                      <AlertTriangle size={14} /> {errorMsg}
+                    </div>
+                  )}
+                  {successMsg && (
+                    <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-600">
+                      ✓ {successMsg}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleGenerateAI}
+                    disabled={isGenerating}
+                    className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-2xl font-bold text-sm hover:from-gray-800 hover:to-gray-700 disabled:opacity-50 transition-all shadow-md active:scale-[0.98]"
+                  >
+                    {isGenerating ? (
+                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    ) : (
+                      <>
+                         <Bot size={18} />
+                         🤖 AIで返信案を作成
+                      </>
+                    )}
+                  </button>
 
                     {draftHtml && (
                       <m.div

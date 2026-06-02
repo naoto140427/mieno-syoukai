@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ShieldCheck } from "lucide-react";
 
 const navItems = [
+  { name: "通達", en: "NEWS", href: "/news" },
   { name: "機動戦力", en: "UNITS", href: "/units" },
   { name: "事業領域", en: "SERVICES", href: "/services" },
   { name: "備品管理", en: "INVENTORY", href: "/inventory" },
@@ -152,11 +153,11 @@ export default function Header() {
                     Contact Us
                   </Link>
                   <Link
-                     href="/admin"
+                     href="/agent"
                      className="flex items-center justify-center rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-mieno-text hover:bg-gray-200 border border-gray-200"
                      onClick={() => setIsMenuOpen(false)}
                   >
-                    Admin Console
+                    Agent Portal
                   </Link>
                 </div>
               </div>

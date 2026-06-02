@@ -79,14 +79,15 @@ export async function addNews(data: Omit<News, 'id' | 'created_at'>) {
     .select()
     .single();
 
-  if (!error && insertedData && insertedData.category === 'TOURING') {
-    const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://mieno-corp.vercel.app'}/news/${insertedData.id}`;
-    await sendLineNotification(insertedData.title, url);
-  }
-
   if (error) {
     console.error('Error adding news:', error);
     throw new Error('Failed to add news');
+  }
+
+  // INSERT成功後にLINE通知送信（TOURINGカテゴリのみ）
+  if (insertedData && insertedData.category === 'TOURING') {
+    const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://mieno-corp.vercel.app'}/news/${insertedData.id}`;
+    await sendLineNotification(insertedData.title, url);
   }
 
   // オンデマンドキャッシュパージ
