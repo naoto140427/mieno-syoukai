@@ -185,13 +185,13 @@ export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailC
             transition={{ duration: 0.6, delay: 0.2 }}
             className="bg-white rounded-3xl border border-gray-100 p-8 lg:p-12 shadow-sm mb-8"
           >
-            <div className="prose prose-gray prose-base max-w-none
-              prose-headings:font-black prose-headings:tracking-tight
-              prose-p:leading-relaxed prose-p:text-gray-700
+            <div className="prose prose-gray prose-base max-w-none whitespace-pre-wrap
+              prose-headings:font-black prose-headings:tracking-tight prose-headings:mt-8 prose-headings:mb-4
+              prose-p:leading-loose prose-p:text-gray-700 prose-p:mb-6
               prose-a:text-mieno-blue prose-a:font-medium prose-a:no-underline hover:prose-a:underline
               prose-strong:text-gray-900 prose-strong:font-bold
-              prose-li:text-gray-700
-              prose-hr:border-gray-100"
+              prose-li:text-gray-700 prose-li:mb-2
+              prose-hr:border-gray-200 prose-hr:my-8"
             >
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{news.content}</ReactMarkdown>
             </div>
