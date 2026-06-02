@@ -50,11 +50,11 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
   const [isLoadingRoster, setIsLoadingRoster] = useState(false);
 
 
-  const handleDeleteSurvey = async (id: number) => {
+  const handleDeleteSurvey = async (id: number | string) => {
     if (!confirm('このエージェントの記録を削除しますか？')) return;
     try {
-      await deleteSurvey(id);
-      setRoster(prev => prev.filter(r => r.id !== id));
+      await deleteSurvey(String(id));
+      setRoster(prev => prev.filter(r => String(r.id) !== String(id)));
     } catch (e) {
       console.error('Failed to delete survey:', e);
       alert('削除に失敗しました。');

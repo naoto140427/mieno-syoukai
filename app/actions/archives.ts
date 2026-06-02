@@ -1,8 +1,57 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
+import { createPublicClient } from '@/lib/supabase/public';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { Archive } from '@/types/database';
+
+// ─────────────────────────────────────────────────────────────
+// PUBLIC READ FUNCTIONS (Zero-Latency / Edge Cached)
+// ─────────────────────────────────────────────────────────────
+
+export const getArchives = unstable_cache(
+  async (): Promise<Archive[]> => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from('archives')
+      // route_data は GPX 全座標を含み 3MB+ になるため一覧では除外
+      .select('id, title, date, distance, members, weather, details, geojson, distance_km, max_speed, max_elevation, duration_time, avg_speed, elevation_gain, location_name, created_at')
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching archives:', error);
+      return [];
+    }
+
+    return (data as Archive[]) || [];
+  },
+  ['archives-list'],
+  { tags: ['archives'], revalidate: false }
+);
+
+export const getArchiveById = unstable_cache(
+  async (id: number): Promise<Archive | null> => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from('archives')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error(`Error fetching archive with id ${id}:`, error);
+      return null;
+    }
+
+    return data as Archive;
+  },
+  ['archive-by-id'],
+  { tags: ['archives'], revalidate: false }
+);
+
+// ─────────────────────────────────────────────────────────────
+// WRITE FUNCTIONS (Admin Only / RLS Protected)
+// ─────────────────────────────────────────────────────────────
 
 export async function addArchive(data: Omit<Archive, 'id'>) {
   const supabase = await createClient();
@@ -12,8 +61,6 @@ export async function addArchive(data: Omit<Archive, 'id'>) {
     throw new Error('Unauthorized');
   }
 
-  // The 'data' object now includes new tactical fields:
-  // distance_km, max_speed, max_elevation, duration_time, avg_speed, elevation_gain, route_data, location_name
   const payload = {
     title: data.title,
     date: data.date,
@@ -41,6 +88,8 @@ export async function addArchive(data: Omit<Archive, 'id'>) {
     throw new Error('Failed to add archive');
   }
 
+  // オンデマンドキャッシュパージ
+  revalidateTag('archives', 'default');
   revalidatePath('/archives');
   revalidatePath('/');
   return { success: true };
@@ -64,6 +113,8 @@ export async function updateArchive(id: number, data: Partial<Archive>) {
     throw new Error('Failed to update archive');
   }
 
+  // オンデマンドキャッシュパージ
+  revalidateTag('archives', 'default');
   revalidatePath('/archives');
   revalidatePath('/');
   return { success: true };
@@ -87,24 +138,9 @@ export async function deleteArchive(id: number) {
     throw new Error('Failed to delete archive');
   }
 
+  // オンデマンドキャッシュパージ
+  revalidateTag('archives', 'default');
   revalidatePath('/archives');
   revalidatePath('/');
   return { success: true };
-}
-
-export async function getArchiveById(id: number) {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('archives')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) {
-    console.error(`Error fetching archive with id ${id}:`, error);
-    return null;
-  }
-
-  return data as Archive;
 }

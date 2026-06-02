@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { TouringSurvey } from '@/types/database';
 
-export async function upsertSurvey(data: { news_id: number, attendance_status: 'JOIN' | 'PENDING' | 'DECLINE', vehicle_info?: string, message?: string }) {
+export async function upsertSurvey(data: { news_id: number | string, attendance_status: 'JOIN' | 'PENDING' | 'DECLINE', vehicle_info?: string, message?: string }) {
     try {
         const supabase = await createClient();
 
@@ -17,15 +17,18 @@ export async function upsertSurvey(data: { news_id: number, attendance_status: '
         // Determine agent_name securely
         let agentName = user.email || 'Unknown Agent';
         const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
-        if (profile && profile.name) {
-            agentName = profile.name;
+        if (profile && profile.codename) {
+            agentName = profile.codename;
         }
 
-        // Check if survey already exists for this agent and news_id to determine ID for upsert or do a raw upsert if unique constraint exists
+        // Cast news_id to string to match DB column type
+        const newsIdStr = String(data.news_id);
+
+        // Check if survey already exists for this agent and news_id
         const { data: existingSurvey } = await supabase
             .from('touring_surveys')
             .select('id')
-            .eq('news_id', data.news_id)
+            .eq('news_id', newsIdStr)
             .eq('agent_name', agentName)
             .single();
 
@@ -47,7 +50,7 @@ export async function upsertSurvey(data: { news_id: number, attendance_status: '
             const { error } = await supabase
                 .from('touring_surveys')
                 .insert({
-                    news_id: data.news_id,
+                    news_id: newsIdStr,
                     agent_name: agentName,
                     attendance_status: data.attendance_status,
                     vehicle_info: data.vehicle_info,
@@ -72,14 +75,15 @@ export async function upsertSurvey(data: { news_id: number, attendance_status: '
 }
 
 export async function submitSurvey(data: Omit<TouringSurvey, 'id' | 'created_at'>) {
-    // Legacy support, but we should secure it if we can.
-    // Usually submitSurvey was for public form maybe? But the task implies it's for agents.
-    // Leaving it as it was to avoid breaking other parts, but upsertSurvey is the new secure one.
+    // Legacy support - stringify news_id for DB compatibility
     const supabase = await createClient();
 
     const { error } = await supabase
         .from('touring_surveys')
-        .insert(data);
+        .insert({
+            ...data,
+            news_id: String(data.news_id),
+        });
 
     if (error) {
         console.error('Error submitting survey:', error);
@@ -91,13 +95,13 @@ export async function submitSurvey(data: Omit<TouringSurvey, 'id' | 'created_at'
     return { success: true };
 }
 
-export async function getSurveysByNewsId(newsId: number) {
+export async function getSurveysByNewsId(newsId: number | string) {
     const supabase = await createClient();
 
     const { data, error } = await supabase
         .from('touring_surveys')
         .select('*')
-        .eq('news_id', newsId)
+        .eq('news_id', String(newsId))
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -108,7 +112,7 @@ export async function getSurveysByNewsId(newsId: number) {
     return (data as TouringSurvey[]) || [];
 }
 
-export async function getUserSurveyByNewsId(newsId: number): Promise<TouringSurvey | null> {
+export async function getUserSurveyByNewsId(newsId: number | string): Promise<TouringSurvey | null> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -116,14 +120,14 @@ export async function getUserSurveyByNewsId(newsId: number): Promise<TouringSurv
 
     let agentName = user.email || 'Unknown Agent';
     const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
-    if (profile && profile.name) {
-        agentName = profile.name;
+    if (profile && profile.codename) {
+        agentName = profile.codename;
     }
 
     const { data, error } = await supabase
         .from('touring_surveys')
         .select('*')
-        .eq('news_id', newsId)
+        .eq('news_id', String(newsId))
         .eq('agent_name', agentName)
         .single();
 
@@ -137,7 +141,7 @@ export async function getUserSurveyByNewsId(newsId: number): Promise<TouringSurv
     return data as TouringSurvey;
 }
 
-export async function deleteSurvey(id: number) {
+export async function deleteSurvey(id: string) {
     const supabase = await createClient();
 
     const { error } = await supabase

@@ -65,7 +65,7 @@ export async function getAgentActiveOperations(): Promise<{ surveys: ExtendedSur
     let agentName = user.email || 'Unknown Agent';
     const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
     if (profile) {
-       agentName = profile.name;
+       agentName = profile.codename;
     }
 
     const { data, error } = await supabase

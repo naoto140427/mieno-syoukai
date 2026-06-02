@@ -45,12 +45,12 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ id:
     }
 
     return (
-        <main className="min-h-screen bg-black pt-24 pb-32">
+        <main className="min-h-screen bg-[#F5F5F7] pt-14">
             <NewsDetailClient news={news} hideLegacySurvey={!!user} />
 
-            {/* Deployment RSVP Segment */}
+            {/* Deployment RSVP Segment (logged-in agents) */}
             {news.category === 'TOURING' && user && (
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
                      <DeploymentRSVP newsId={news.id} initialSurvey={initialSurvey} />
                 </div>
             )}

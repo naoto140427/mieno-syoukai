@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { Consumable, Tool } from '@/types/database';
 
+const ADMIN_ROLES = ['CTO', 'CEO', 'CMO', 'Admin'];
+
 export async function updateConsumableLevel(id: number, delta: number) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -154,7 +156,7 @@ export async function approveInventoryRequest(requestId: number, toolId: number)
 
     // Check Admin role
     const { data: profile } = await supabase.from('agents').select('role').eq('id', user.id).single();
-    if (!profile || (profile.role !== 'CTO' && profile.role !== 'Admin' && profile.role !== 'admin' && profile.role !== 'ADMIN')) {
+    if (!profile || !ADMIN_ROLES.includes(profile.role)) {
         throw new Error('Forbidden: Admin access required');
     }
 
@@ -189,7 +191,7 @@ export async function returnInventoryRequest(requestId: number, toolId: number) 
 
     // Check Admin role
     const { data: profile } = await supabase.from('agents').select('role').eq('id', user.id).single();
-    if (!profile || (profile.role !== 'CTO' && profile.role !== 'Admin' && profile.role !== 'admin' && profile.role !== 'ADMIN')) {
+    if (!profile || !ADMIN_ROLES.includes(profile.role)) {
         throw new Error('Forbidden: Admin access required');
     }
 
