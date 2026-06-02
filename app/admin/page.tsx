@@ -16,7 +16,7 @@ export default async function AdminPage() {
   const { data: profile, error: dbError } = await supabase
     .from('agents')
     .select('role, email, codename')
-    .eq('id', user.id)
+    .eq('email', user.email)
     .single();
 
   const role = profile?.role;

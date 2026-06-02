@@ -147,7 +147,7 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
                         : 'border-gray-100 hover:border-gray-200 hover:shadow-sm'
                     }`}
                   >
-                    <Link href={`/news/${item.id}`} prefetch={false} className="absolute inset-0 z-0" />
+                    <Link href={`/news/${item.id}`} prefetch={false} className="absolute inset-0 z-10" />
 
                     <div className="flex items-center gap-4 p-5 relative">
                       {/* Thumbnail */}
