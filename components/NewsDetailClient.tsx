@@ -1,375 +1,350 @@
 'use client';
 
 import { m, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Share2, Printer, MapPin, Calendar, ClipboardCheck, Send, CheckCircle2 } from 'lucide-react';
+import {
+  ArrowLeft, Share2, Calendar, MapPin,
+  ClipboardCheck, Send, CheckCircle2, Link2
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { submitSurvey } from '@/app/actions/survey';
 import Link from 'next/link';
 import Image from 'next/image';
 import { News as NewsType } from '@/types/database';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface NewsDetailClientProps {
-    news: NewsType;
+  news: NewsType;
+  hideLegacySurvey?: boolean;
 }
 
-export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailClientProps & { hideLegacySurvey?: boolean }) {
-    const [rsvpStatus, setRsvpStatus] = useState<'JOIN' | 'PENDING' | 'DECLINE' | null>(null);
-    const [agentName, setAgentName] = useState('');
-    const [vehicleInfo, setVehicleInfo] = useState('');
-    const [notes, setNotes] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isSubmitted, setIsSubmitted] = useState(false);
-    const [hasSentPreviously, setHasSentPreviously] = useState(false);
+const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
+  TOURING: { bg: 'bg-blue-50',   text: 'text-blue-700'  },
+  UPDATE:  { bg: 'bg-gray-100',  text: 'text-gray-600'  },
+  PRESS:   { bg: 'bg-purple-50', text: 'text-purple-700' },
+  REPORT:  { bg: 'bg-green-50',  text: 'text-green-700' },
+  OTHER:   { bg: 'bg-gray-100',  text: 'text-gray-500'  },
+};
 
-    useEffect(() => {
-        const sent = localStorage.getItem(`rsvp_sent_${news.id}`);
-        if (sent) {
-            setHasSentPreviously(true);
-        }
-    }, [news.id]);
+export default function NewsDetailClient({ news, hideLegacySurvey }: NewsDetailClientProps) {
+  const [rsvpStatus, setRsvpStatus]   = useState<'JOIN' | 'PENDING' | 'DECLINE' | null>(null);
+  const [agentName, setAgentName]     = useState('');
+  const [vehicleInfo, setVehicleInfo] = useState('');
+  const [notes, setNotes]             = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted]   = useState(false);
+  const [hasSentPreviously, setHasSentPreviously] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [copied, setCopied]           = useState(false);
 
-    const handleSurveySubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!rsvpStatus || !agentName.trim()) return;
+  useEffect(() => {
+    if (localStorage.getItem(`rsvp_sent_${news.id}`)) {
+      setHasSentPreviously(true);
+    }
+  }, [news.id]);
 
-        setIsSubmitting(true);
-        try {
-            await submitSurvey({
-                news_id: news.id,
-                agent_name: agentName,
-                attendance_status: rsvpStatus,
-                vehicle_info: vehicleInfo,
-                message: notes,
-            });
-            setIsSubmitted(true);
-            setHasSentPreviously(true);
-            localStorage.setItem(`rsvp_sent_${news.id}`, 'true');
-        } catch (error) {
-            console.error('Failed to submit RSVP:', error);
-            alert('通信エラーが発生しました。再度お試しください。');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+  const handleSurveySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rsvpStatus || !agentName.trim()) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await submitSurvey({
+        news_id: news.id,
+        agent_name: agentName,
+        attendance_status: rsvpStatus,
+        vehicle_info: vehicleInfo,
+        message: notes,
+      });
+      setIsSubmitted(true);
+      setHasSentPreviously(true);
+      localStorage.setItem(`rsvp_sent_${news.id}`, 'true');
+    } catch (error) {
+      console.error('Failed to submit RSVP:', error);
+      setSubmitError('送信に失敗しました。再度お試しください。');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    const handlePrint = () => {
-        window.print();
-    };
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${news.title} | MIENO CORP.`, url: window.location.href });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
-    const handleShare = async () => {
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: `${news.title} | MIENO CORP.`,
-                    text: news.content.substring(0, 100),
-                    url: window.location.href,
-                });
-            } catch (err) {
-                console.error('Error sharing:', err);
-            }
-        } else {
-            // Fallback: Copy to clipboard
-            navigator.clipboard.writeText(window.location.href);
-            alert('URL copied to clipboard.');
-        }
-    };
+  const catStyle = CATEGORY_STYLE[news.category] ?? CATEGORY_STYLE.OTHER;
 
-    return (
+  return (
     <ClientMotionWrapper>
-        <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <m.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="mb-12 flex items-center justify-between border-b border-white/10 pb-6 print:hidden"
-            >
-                <Link
-                    href="/news"
-                    className="group flex items-center gap-2 text-sm font-bold tracking-widest text-gray-400 hover:text-white transition-colors uppercase"
-                >
-                    <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                    ← 通達一覧へ戻る
-                </Link>
-                <div className="flex gap-4">
-                    <button
-                        onClick={handleShare}
-                        className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                        title="Share Document"
-                    >
-                        <Share2 className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={handlePrint}
-                        className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                        title="Print Document"
-                    >
-                        <Printer className="w-4 h-4" />
-                    </button>
-                </div>
-            </m.div>
+      <div className="min-h-screen bg-[#F5F5F7]">
 
-            <m.header
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                className="mb-16 text-center"
+        {/* ── Sticky top bar ───────────────────────── */}
+        <div className="sticky top-14 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-200/60 print:hidden">
+          <div className="max-w-4xl mx-auto px-6 h-12 flex items-center justify-between">
+            <Link
+              href="/news"
+              className="group flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-mieno-navy transition-colors tracking-widest uppercase"
             >
-                <div className="flex items-center justify-center gap-4 mb-6">
-                    <span className="inline-flex items-center rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400 ring-1 ring-inset ring-blue-500/20 tracking-widest">
-                        {news.category}
-                    </span>
-                    <time className="font-mono text-sm text-gray-500 tracking-wider">
-                        {news.date.replace(/-/g, '.')}
-                    </time>
-                </div>
-                <h1 className="text-2xl md:text-5xl font-bold tracking-tight text-white mb-8 leading-tight">
-                    {news.title}
-                </h1>
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+              通達一覧
+            </Link>
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-gray-500 hover:text-mieno-navy hover:bg-gray-100 transition-all border border-gray-200"
+            >
+              {copied ? <CheckCircle2 size={13} className="text-emerald-500" /> : <Link2 size={13} />}
+              {copied ? 'Copied!' : 'Share'}
+            </button>
+          </div>
+        </div>
 
-                {news.image_url && (
-                    <m.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                        className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 mt-12 bg-white/5"
-                    >
-                        <Image
-                            src={news.image_url}
-                            alt={news.title}
-                            fill
-                            sizes="(max-width: 896px) 100vw, 896px"
-                            className="object-cover"
-                            priority
-                        />
-                    </m.div>
+        {/* ── Article ──────────────────────────────── */}
+        <article className="max-w-4xl mx-auto px-4 sm:px-6 py-10 lg:py-14">
+
+          {/* Header */}
+          <m.header
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-10"
+          >
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2 mb-5">
+              <span className={`text-[10px] font-bold px-3 py-1 rounded-full tracking-widest ${catStyle.bg} ${catStyle.text}`}>
+                {news.category}
+              </span>
+              <time className="text-[11px] font-mono text-gray-400">{news.date.replace(/-/g, '.')}</time>
+              {news.is_pinned && (
+                <span className="text-[10px] font-bold text-rose-500 tracking-widest">📌 PINNED</span>
+              )}
+            </div>
+
+            {/* Title */}
+            <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight mb-6">
+              {news.title}
+            </h1>
+
+            {/* TOURING meta */}
+            {news.category === 'TOURING' && (news.event_date || news.location) && (
+              <div className="flex flex-wrap gap-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl mb-6">
+                {news.event_date && (
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-blue-700">
+                    <Calendar size={13} /> {news.event_date.replace(/-/g, '.')}
+                  </span>
                 )}
-            </m.header>
+                {news.location && (
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-blue-700">
+                    <MapPin size={13} /> {news.location}
+                  </span>
+                )}
+                {news.event_date && (
+                  <a
+                    href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(news.title)}&dates=${news.event_date.replace(/-/g, '')}T000000Z/${news.event_date.replace(/-/g, '')}T235959Z&details=${encodeURIComponent(news.content)}&location=${encodeURIComponent(news.location || '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto text-[10px] font-bold text-blue-600 hover:underline tracking-widest uppercase"
+                  >
+                    📅 Add to Calendar
+                  </a>
+                )}
+              </div>
+            )}
 
-            <m.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                className="max-w-3xl mx-auto"
+            {/* Hero image */}
+            {news.image_url && (
+              <m.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.15 }}
+                className="relative w-full aspect-video rounded-2xl overflow-hidden border border-gray-100 bg-gray-50"
+              >
+                <Image
+                  src={news.image_url}
+                  alt={news.title}
+                  fill
+                  sizes="(max-width: 896px) 100vw, 896px"
+                  className="object-cover"
+                  priority
+                />
+              </m.div>
+            )}
+          </m.header>
+
+          {/* Body */}
+          <m.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-white rounded-3xl border border-gray-100 p-8 lg:p-12 shadow-sm mb-8"
+          >
+            <div className="prose prose-gray prose-base max-w-none
+              prose-headings:font-black prose-headings:tracking-tight
+              prose-p:leading-relaxed prose-p:text-gray-700
+              prose-a:text-mieno-blue prose-a:font-medium prose-a:no-underline hover:prose-a:underline
+              prose-strong:text-gray-900 prose-strong:font-bold
+              prose-li:text-gray-700
+              prose-hr:border-gray-100"
             >
-                <div className="prose prose-invert prose-lg max-w-none text-gray-300 leading-[2.2] tracking-wide prose-p:mb-6 prose-p:font-medium prose-p:text-lg prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline">
-                    <ReactMarkdown>{news.content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{news.content}</ReactMarkdown>
+            </div>
+          </m.div>
+
+          {/* Requirements */}
+          {news.requirements && (
+            <m.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm mb-8 flex items-start gap-4"
+            >
+              <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-100 shrink-0">
+                <ClipboardCheck size={18} className="text-gray-500" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-1">参加条件</p>
+                <p className="text-sm text-gray-700 leading-relaxed">{news.requirements}</p>
+              </div>
+            </m.div>
+          )}
+
+          {/* Legacy RSVP (non-logged-in) */}
+          {news.category === 'TOURING' && !hideLegacySurvey && (
+            <m.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm"
+            >
+              <h2 className="text-sm font-black text-gray-900 tracking-widest uppercase mb-6 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                DEPLOYMENT RSVP
+                <span className="text-[10px] text-gray-400 font-mono ml-1">参加ステータス入力</span>
+              </h2>
+
+              {hasSentPreviously || isSubmitted ? (
+                <div className="flex flex-col items-center py-10 text-center">
+                  <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4 border border-emerald-100">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">ステータス送信完了</h3>
+                  <p className="text-xs font-mono text-gray-400 tracking-widest uppercase">Transmitted to MIENO HQ</p>
                 </div>
-
-                {(news.category === 'TOURING' && !hideLegacySurvey) && (news.event_date || news.location || news.requirements) && (
-                    <m.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, delay: 0.2 }}
-                        className="mt-16 bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8"
-                    >
-                        <h2 className="text-xl font-bold tracking-widest text-white mb-8 flex items-center gap-3 uppercase">
-                            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                            作戦詳細
-                            <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">OPERATION DETAILS</span>
-                        </h2>
-
-                        <div className="flex flex-col gap-6">
-                            {news.event_date && (
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shrink-0">
-                                        <Calendar className="w-5 h-5 text-blue-400" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">開催日時</h3>
-                                        <p className="text-lg text-white font-mono">{news.event_date}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {news.location && (
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shrink-0">
-                                        <MapPin className="w-5 h-5 text-blue-400" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">集合場所</h3>
-                                        <p className="text-lg text-white">{news.location}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {news.requirements && (
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 shrink-0">
-                                        <ClipboardCheck className="w-5 h-5 text-blue-400" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-sm font-bold text-gray-400 tracking-widest uppercase mb-1">参加条件</h3>
-                                        <p className="text-lg text-white">{news.requirements}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {news.event_date && (
-                                <m.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.3 }}
-                                    className="pt-6 border-t border-white/10"
-                                >
-                                    <a
-                                        href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(news.title)}&dates=${news.event_date.replace(/-/g, '')}T000000Z/${news.event_date.replace(/-/g, '')}T235959Z&details=${encodeURIComponent(news.content)}&location=${encodeURIComponent(news.location || '')}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-bold tracking-widest rounded-full hover:bg-gray-200 transition-colors uppercase text-sm"
-                                    >
-                                        📅 ADD TO CALENDAR
-                                        <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">(カレンダーに追加)</span>
-                                    </a>
-                                </m.div>
-                            )}
+              ) : (
+                <form onSubmit={handleSurveySubmit} className="space-y-6">
+                  {/* Status selector */}
+                  <div className="flex p-1 bg-[#F5F5F7] rounded-2xl gap-1">
+                    {[
+                      { value: 'JOIN',    label: 'JOIN',    sub: '参加',  color: 'text-emerald-600' },
+                      { value: 'PENDING', label: 'PENDING', sub: '未定',  color: 'text-amber-600'   },
+                      { value: 'DECLINE', label: 'DECLINE', sub: '不参加', color: 'text-rose-600'    },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setRsvpStatus(opt.value as 'JOIN' | 'PENDING' | 'DECLINE')}
+                        className={`flex-1 py-3 rounded-xl text-xs font-bold tracking-widest transition-all ${
+                          rsvpStatus === opt.value
+                            ? 'bg-white shadow-sm text-gray-900'
+                            : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={rsvpStatus === opt.value ? opt.color : ''}>{opt.label}</span>
+                          <span className="text-[9px] font-medium">{opt.sub}</span>
                         </div>
-                    </m.div>
-                )}
+                      </button>
+                    ))}
+                  </div>
 
+                  <AnimatePresence>
+                    {rsvpStatus && (
+                      <m.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-4 overflow-hidden"
+                      >
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-1.5">名前 *</label>
+                          <input
+                            type="text"
+                            required
+                            value={agentName}
+                            onChange={e => setAgentName(e.target.value)}
+                            className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mieno-blue/30 transition-all"
+                            placeholder="例: 三重野太郎"
+                          />
+                        </div>
 
-
-                {(news.category === 'TOURING' && !hideLegacySurvey) && (
-                    <m.div
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, margin: "-100px" }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="mt-16 bg-[#111] border border-white/10 rounded-3xl p-8 relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
-
-                        <h2 className="text-xl font-bold tracking-widest text-white mb-8 flex items-center gap-3 uppercase relative z-10">
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                            DEPLOYMENT RSVP
-                            <span className="text-xs text-gray-500 font-mono tracking-widest ml-2 hidden sm:inline">参加ステータス入力</span>
-                        </h2>
-
-
-                        {hasSentPreviously || isSubmitted ? (
-                            <m.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="relative z-10 flex flex-col items-center justify-center p-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-center shadow-[0_0_40px_-10px_rgba(59,130,246,0.2)]"
-                            >
-                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-2xl pointer-events-none"></div>
-                                <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6 ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-                                    <CheckCircle2 className="w-10 h-10 text-emerald-400" />
-                                </div>
-                                <h3 className="text-xl md:text-2xl font-bold text-white tracking-widest mb-3 uppercase">Deployment Status:<br/>Transmitted</h3>
-                                <p className="text-emerald-300/80 font-mono text-xs md:text-sm tracking-widest uppercase mb-6 px-4 py-2 bg-emerald-900/30 rounded-lg border border-emerald-500/20">あなたが送信したステータスは司令部に記録されました</p>
-                                <div className="w-16 h-[1px] bg-white/20 mb-6"></div>
-                                <p className="text-gray-500 font-mono text-[10px] tracking-[0.2em] uppercase">Mieno Corp. Strategic HQ</p>
-                            </m.div>
-                        ) : (
-                            <form onSubmit={handleSurveySubmit} className="relative z-10 space-y-8">
-                                <div className="flex p-1 bg-white/5 rounded-2xl border border-white/10">
-                                    {[
-                                        { value: 'JOIN', label: '🟢 JOIN', sub: '参加' },
-                                        { value: 'PENDING', label: '🟡 PENDING', sub: '未定' },
-                                        { value: 'DECLINE', label: '🔴 DECLINE', sub: '不参加' }
-                                    ].map((opt) => (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            onClick={() => setRsvpStatus(opt.value as any)}
-                                            className={`flex-1 py-3 px-2 rounded-xl text-sm font-bold tracking-widest transition-all ${rsvpStatus === opt.value ? 'bg-white text-black shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                                        >
-                                            <div className="flex flex-col items-center gap-1">
-                                                <span>{opt.label}</span>
-                                                <span className={`text-[10px] ${rsvpStatus === opt.value ? 'text-gray-600' : 'text-gray-500'}`}>{opt.sub}</span>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-
-                                <AnimatePresence>
-                                    {rsvpStatus && (
-                                        <m.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            transition={{ duration: 0.4, ease: "easeOut" }}
-                                            className="space-y-6 overflow-hidden"
-                                        >
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 tracking-widest uppercase mb-2">Agent Name (名前) *</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    value={agentName}
-                                                    onChange={(e) => setAgentName(e.target.value)}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
-                                                    placeholder="e.g. Maverick"
-                                                />
-                                            </div>
-
-                                            <AnimatePresence>
-                                                {(rsvpStatus === 'JOIN' || rsvpStatus === 'PENDING') && (
-                                                    <m.div
-                                                        initial={{ opacity: 0, height: 0 }}
-                                                        animate={{ opacity: 1, height: 'auto' }}
-                                                        exit={{ opacity: 0, height: 0 }}
-                                                        transition={{ duration: 0.4, ease: "easeOut" }}
-                                                        className="space-y-6 overflow-hidden"
-                                                    >
-                                                        <div>
-                                                            <label className="block text-xs font-bold text-gray-500 tracking-widest uppercase mb-2">Vehicle (搭乗機体)</label>
-                                                            <input
-                                                                type="text"
-                                                                value={vehicleInfo}
-                                                                onChange={(e) => setVehicleInfo(e.target.value)}
-                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
-                                                                placeholder="e.g. CBR600RR"
-                                                            />
-                                                        </div>
-                                                    </m.div>
-                                                )}
-                                            </AnimatePresence>
-
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 tracking-widest uppercase mb-2">Notes (特記事項)</label>
-                                                <textarea
-                                                    value={notes}
-                                                    onChange={(e) => setNotes(e.target.value)}
-                                                    rows={3}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-y font-mono"
-                                                    placeholder="合流場所の希望や遅刻・早退の予定など..."
-                                                />
-                                            </div>
-
-                                            <button
-                                                type="submit"
-                                                disabled={isSubmitting || !agentName.trim()}
-                                                className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold tracking-widest uppercase transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                {isSubmitting ? (
-                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                ) : (
-                                                    <>
-                                                        <Send className="w-5 h-5" />
-                                                        TRANSMIT STATUS
-                                                    </>
-                                                )}
-                                            </button>
-                                        </m.div>
-                                    )}
-                                </AnimatePresence>
-                            </form>
+                        {(rsvpStatus === 'JOIN' || rsvpStatus === 'PENDING') && (
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-1.5">搭乗機体</label>
+                            <input
+                              type="text"
+                              value={vehicleInfo}
+                              onChange={e => setVehicleInfo(e.target.value)}
+                              className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mieno-blue/30 transition-all"
+                              placeholder="例: CBR600RR"
+                            />
+                          </div>
                         )}
-                    </m.div>
-                )}
 
-<div className="mt-24 pt-8 border-t border-white/10 text-center flex flex-col items-center">
-                    <div className="w-12 h-1 bg-blue-600 rounded-full mb-8 opacity-50"></div>
-                    <p className="font-mono text-xs text-gray-600 tracking-[0.3em] uppercase">END OF TRANSMISSION</p>
-                    <p className="font-bold text-sm text-gray-500 mt-2 tracking-widest">MIENO CORP. STRATEGIC INTELLIGENCE</p>
-                </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-1.5">特記事項</label>
+                          <textarea
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            rows={3}
+                            className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mieno-blue/30 transition-all resize-y"
+                            placeholder="合流場所の希望や遅刻・早退の予定など"
+                          />
+                        </div>
+
+                        {submitError && (
+                          <p className="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
+                            {submitError}
+                          </p>
+                        )}
+
+                        <button
+                          type="submit"
+                          disabled={isSubmitting || !agentName.trim()}
+                          className="w-full py-3.5 bg-mieno-navy text-white rounded-xl text-xs font-bold tracking-widest uppercase hover:bg-mieno-blue transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          {isSubmitting
+                            ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            : <><Send size={14} /> TRANSMIT STATUS</>
+                          }
+                        </button>
+                      </m.div>
+                    )}
+                  </AnimatePresence>
+                </form>
+              )}
             </m.div>
+          )}
+
+          {/* Footer */}
+          <div className="mt-12 pt-6 border-t border-gray-100 flex items-center justify-between">
+            <Link
+              href="/news"
+              className="text-xs font-bold text-gray-400 hover:text-mieno-navy transition-colors tracking-widest uppercase flex items-center gap-1.5"
+            >
+              <ArrowLeft size={12} /> 通達一覧へ戻る
+            </Link>
+            <p className="text-[10px] font-mono text-gray-300 tracking-widest uppercase">MIENO CORP.</p>
+          </div>
         </article>
+      </div>
     </ClientMotionWrapper>
   );
 }

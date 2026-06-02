@@ -45,12 +45,14 @@ interface ArchivesProps {
 }
 
 export default function Archives({ archives = [], isAdmin = false }: ArchivesProps) {
-  const [showForm, setShowForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analysisStatus, setAnalysisStatus] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [showForm, setShowForm]           = useState(false);
+  const [submitting, setSubmitting]       = useState(false);
+  const [analyzing, setAnalyzing]         = useState(false);
+  const [analysisStatus, setAnalysisStatus] = useState('');
+  const [editingId, setEditingId]         = useState<number | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [deletingId, setDeletingId]       = useState<number | null>(null);
+  const [saveError, setSaveError]         = useState<string | null>(null);
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   // Form State
@@ -117,13 +119,14 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
   };
 
   const handleDeleteClick = async (id: number) => {
-      if (!confirm("Are you sure you want to delete this mission log?")) return;
-      try {
-          await deleteArchive(id);
-      } catch (e) {
-          console.error(e);
-          alert("Failed to delete archive");
-      }
+    setDeletingId(id);
+    try {
+      await deleteArchive(id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,12 +204,12 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
 
     try {
         const payload: Partial<Archive> = {
-            title: formData.title || "Untitled Operation",
+            title: formData.title || 'Untitled Operation',
             date: formData.date || new Date().toISOString().split('T')[0],
-            distance: formData.distance || "0km",
+            distance: formData.distance || '0km',
             members: Array.isArray(formData.members) ? formData.members : [],
-            weather: (formData.weather as "Clear" | "Rainy" | "Cloudy" | "Snow") || "Clear",
-            details: formData.details || "",
+            weather: (formData.weather as 'Clear' | 'Rainy' | 'Cloudy' | 'Snow') || 'Clear',
+            details: formData.details || '',
             geojson: formData.geojson || null,
             distance_km: formData.distance_km,
             max_speed: formData.max_speed,
@@ -214,19 +217,18 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
             route_data: formData.route_data,
             location_name: formData.location_name
         };
-
         if (editingId) {
             await updateArchive(editingId, payload);
         } else {
             // @ts-expect-error Partial<Archive> is compatible with Omit<Archive, 'id'> for our purposes here
             await addArchive(payload);
         }
-
+        setSaveError(null);
         resetForm();
     } catch (err: unknown) {
         console.error('Error submitting log:', err);
         const message = err instanceof Error ? err.message : 'Unknown error';
-        alert('Failed to save log: ' + message);
+        setSaveError('保存に失敗しました: ' + message);
     } finally {
         setSubmitting(false);
     }
@@ -455,6 +457,11 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                     )}
                   </button>
                 </div>
+              {saveError && (
+                <div className="col-span-1 md:col-span-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600">
+                  {saveError}
+                </div>
+              )}
               </form>
             </m.div>
           )}
@@ -549,10 +556,13 @@ export default function Archives({ archives = [], isAdmin = false }: ArchivesPro
                                     </button>
                                     <button
                                         onClick={(e) => { e.preventDefault(); handleDeleteClick(archive.id); }}
-                                        className="p-2 bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                                        disabled={deletingId === archive.id}
+                                        className="p-2 bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors disabled:opacity-40"
                                         title="Delete"
                                     >
-                                        <Trash2 size={16} />
+                                        {deletingId === archive.id
+                                          ? <Loader2 size={16} className="animate-spin" />
+                                          : <Trash2 size={16} />}
                                     </button>
                                 </div>
                             )}

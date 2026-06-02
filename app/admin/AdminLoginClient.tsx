@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-import { Lock, User, Send, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Lock, User, Send, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import EasterEggModal from '../../components/EasterEggModal';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
+import { useRouter } from 'next/navigation';
 
 const supabase = createClient();
 
@@ -31,11 +32,29 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
 };
 
 export default function AdminLoginClient() {
+  const router = useRouter();
   const [loginId, setLoginId] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [isWaitingSession, setIsWaitingSession] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
+
+  // 別タブでmagic linkがクリックされた瞬間にここも検知してリダイレクト
+  useEffect(() => {
+    if (!magicLinkSent) return;
+
+    setIsWaitingSession(true);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        router.push('/admin');
+        router.refresh();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [magicLinkSent, router]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ show: true, message, type });
@@ -47,10 +66,13 @@ export default function AdminLoginClient() {
 
     setIsLoggingIn(true);
     try {
+      const redirectTo = `${window.location.origin}/auth/callback?next=/admin`;
+      console.log('Sending magic link to:', loginId, 'redirectTo:', redirectTo);
+
       const { error } = await supabase.auth.signInWithOtp({
         email: loginId,
         options: {
-         emailRedirectTo: `${location.origin}/auth/callback?next=/admin`
+          emailRedirectTo: redirectTo,
         },
       });
 
@@ -60,8 +82,11 @@ export default function AdminLoginClient() {
       showToast('認証メールを送信しました。メールを確認してください。', 'success');
 
     } catch (err: unknown) {
-      console.error(err);
-      const message = err instanceof Error ? err.message : 'Authentication failed';
+      console.error('Magic link error:', err);
+      const message = err instanceof Error
+        ? `${err.message}`
+        : `Error: ${JSON.stringify(err)}`;
+      setErrorDetail(message);
       showToast(message, 'error');
     } finally {
       setIsLoggingIn(false);
@@ -99,10 +124,19 @@ export default function AdminLoginClient() {
                       認証用のリンクを送信しました。<br />
                       メール内のリンクをクリックして<br />ログインを完了してください。
                   </p>
+
+                  {/* 別タブでのログイン待機インジケーター */}
+                  {isWaitingSession && (
+                    <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400 font-mono">
+                      <Loader2 size={12} className="animate-spin" />
+                      <span>ログイン待機中...</span>
+                    </div>
+                  )}
+
                   <button
                       type="button"
-                      onClick={() => setMagicLinkSent(false)}
-                      className="mt-6 text-sm text-blue-500 font-bold hover:underline"
+                      onClick={() => { setMagicLinkSent(false); setIsWaitingSession(false); }}
+                      className="mt-4 text-sm text-blue-500 font-bold hover:underline"
                   >
                       メールアドレスを再入力する
                   </button>
@@ -127,6 +161,14 @@ export default function AdminLoginClient() {
                           />
                       </div>
                   </div>
+
+                  {/* Error detail */}
+                  {errorDetail && (
+                    <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-left">
+                      <p className="text-xs font-bold text-red-600 mb-1">エラー詳細:</p>
+                      <p className="text-xs text-red-500 font-mono break-all">{errorDetail}</p>
+                    </div>
+                  )}
 
                   <button
                       type="submit"

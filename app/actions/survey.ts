@@ -17,8 +17,8 @@ export async function upsertSurvey(data: { news_id: number | string, attendance_
         // Determine agent_name securely
         let agentName = user.email || 'Unknown Agent';
         const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
-        if (profile && profile.name) {
-            agentName = profile.name;
+        if (profile && profile.codename) {
+            agentName = profile.codename;
         }
 
         // Cast news_id to string to match DB column type
@@ -120,8 +120,8 @@ export async function getUserSurveyByNewsId(newsId: number | string): Promise<To
 
     let agentName = user.email || 'Unknown Agent';
     const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
-    if (profile && profile.name) {
-        agentName = profile.name;
+    if (profile && profile.codename) {
+        agentName = profile.codename;
     }
 
     const { data, error } = await supabase

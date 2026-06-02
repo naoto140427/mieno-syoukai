@@ -114,7 +114,7 @@ export interface Unit {
 export interface Agent {
   id: string; // uuid from auth.users
   email: string;
-  name: string;
+  codename: string; // DB column: codename (not name)
   role: string;
   created_at?: string;
 }

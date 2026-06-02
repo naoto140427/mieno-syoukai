@@ -277,9 +277,10 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
 
 export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }: { units?: Unit[], isAdmin?: boolean }) {
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Unit>>({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [editForm, setEditForm]       = useState<Partial<Unit>>({});
+  const [isSaving, setIsSaving]       = useState(false);
+  const [saveError, setSaveError]     = useState<string | null>(null);
+  const [mounted, setMounted]         = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -297,14 +298,15 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
   const handleSave = async () => {
     if (!editingUnit) return;
     setIsSaving(true);
+    setSaveError(null);
     try {
-        await updateUnit(editingUnit.id, editForm);
-        setEditingUnit(null);
+      await updateUnit(editingUnit.id, editForm);
+      setEditingUnit(null);
     } catch (e) {
-        console.error(e);
-        alert('Failed to update');
+      console.error(e);
+      setSaveError('更新に失敗しました。再度お試しください。');
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
 
@@ -402,6 +404,10 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
                                 />
                             </div>
                         </div>
+
+                        {saveError && (
+                          <p className="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">{saveError}</p>
+                        )}
 
                         {/* Footer */}
                         <div className="mt-6 flex justify-end gap-3">

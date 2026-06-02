@@ -1,10 +1,12 @@
 "use client"
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
-import { useState, useActionState } from 'react'
+import { useState, useActionState, useEffect } from 'react'
 import { m, AnimatePresence } from 'framer-motion'
 import { Mail, ArrowRight, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { signInWithEmail } from '@/app/actions/auth'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 
 const initialState = {
   success: false,
@@ -14,6 +16,22 @@ const initialState = {
 export default function LoginForm() {
   const [state, formAction, isPending] = useActionState(signInWithEmail, initialState)
   const [email, setEmail] = useState('')
+  const [isWaiting, setIsWaiting] = useState(false)
+  const router = useRouter()
+  const supabase = createClient()
+
+  // 別タブでmagic linkがクリックされた場合にこのタブも自動リダイレクト
+  useEffect(() => {
+    if (!state.success) return
+    setIsWaiting(true)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        router.push('/agent')
+        router.refresh()
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [state.success]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <ClientMotionWrapper>
@@ -51,31 +69,37 @@ export default function LoginForm() {
           <AnimatePresence mode="wait">
             {state.success ? (
               <m.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.4 }}
-                className="text-center py-6"
-              >
-                <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="w-8 h-8 text-green-500" />
-                </div>
-                <h3 className="text-xl font-medium text-[#1D1D1F] mb-2">
-                  リンクを送信しました
-                </h3>
-                <p className="text-[#86868B] text-sm leading-relaxed mb-6">
-                  {email} 宛に認証用リンクを送信しました。<br />
-                  メール内のリンクをクリックして<br />システムにアクセスしてください。
-                </p>
-                <button
-                  type="button"
-                  onClick={() => window.location.reload()}
-                  className="text-sm text-blue-500 hover:text-blue-600 font-medium transition-colors"
+                  key="success"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.4 }}
+                  className="text-center py-6"
                 >
-                  別のアカウントでログイン
-                </button>
-              </m.div>
+                  <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-8 h-8 text-green-500" />
+                  </div>
+                  <h3 className="text-xl font-medium text-[#1D1D1F] mb-2">
+                    リンクを送信しました
+                  </h3>
+                  <p className="text-[#86868B] text-sm leading-relaxed mb-4">
+                    {email} 宛に認証用リンクを送信しました。<br />
+                    メール内のリンクをクリックすると<br />この画面が自動で遷移します。
+                  </p>
+                  {isWaiting && (
+                    <div className="flex items-center justify-center gap-2 text-xs text-[#86868B] font-mono mb-4">
+                      <Loader2 size={12} className="animate-spin" />
+                      <span>ログイン待機中...</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="text-sm text-blue-500 hover:text-blue-600 font-medium transition-colors"
+                  >
+                    別のアカウントでログイン
+                  </button>
+                </m.div>
             ) : (
               <m.form
                 key="form"

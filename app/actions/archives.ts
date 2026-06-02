@@ -14,7 +14,8 @@ export const getArchives = unstable_cache(
     const supabase = createPublicClient();
     const { data, error } = await supabase
       .from('archives')
-      .select('*')
+      // route_data は GPX 全座標を含み 3MB+ になるため一覧では除外
+      .select('id, title, date, distance, members, weather, details, geojson, distance_km, max_speed, max_elevation, duration_time, avg_speed, elevation_gain, location_name, created_at')
       .order('date', { ascending: false });
 
     if (error) {

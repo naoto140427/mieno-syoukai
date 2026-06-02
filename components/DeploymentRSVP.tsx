@@ -58,6 +58,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
         } catch (error: unknown) {
             console.error('RSVP Submission failed', error);
             setErrorMsg(error instanceof Error ? error.message : 'Unknown error occurred');
+        } finally {
             setIsSubmitting(false);
         }
     };
@@ -177,7 +178,13 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                         <CheckCircle2 className="text-emerald-500 w-8 h-8" />
                     </div>
                     <h4 className="text-lg font-bold text-gray-900 tracking-wider mb-2 uppercase">Transmission Complete</h4>
-                    <p className="text-sm text-gray-500">Your deployment status has been recorded.</p>
+                    <p className="text-sm text-gray-500 mb-6">Your deployment status has been recorded.</p>
+                    <button
+                        onClick={() => setShowSuccess(false)}
+                        className="text-xs font-bold text-mieno-blue tracking-widest uppercase hover:underline"
+                    >
+                        ← MODIFY STATUS
+                    </button>
                 </m.div>
             )}
         </div>
