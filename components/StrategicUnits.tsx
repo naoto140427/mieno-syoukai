@@ -328,9 +328,16 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
             <p className="text-4xl md:text-6xl font-black tracking-tighter mb-4 text-mieno-text">
                 機動戦力
             </p>
-            <p className="text-gray-500 text-lg font-light tracking-widest uppercase">
+            <p className="text-gray-500 text-lg font-light tracking-widest uppercase mb-6">
                 Power / Precision / Prestige
             </p>
+            <Link
+                href="/units/compare"
+                className="inline-flex items-center gap-2 bg-mieno-navy text-white text-xs font-bold px-5 py-2.5 rounded-full hover:bg-opacity-90 transition-all shadow-md hover:shadow-lg hover:scale-[1.02]"
+            >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                性能比較を見る
+            </Link>
         </m.div>
       </section>
 
