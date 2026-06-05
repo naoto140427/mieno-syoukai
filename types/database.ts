@@ -109,6 +109,7 @@ export interface Unit {
   specs?: any;
   docs?: UnitDocument[];
   logs?: MaintenanceLog[];
+  image_url?: string;
 }
 
 export interface Agent {

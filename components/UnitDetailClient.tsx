@@ -463,8 +463,8 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
       ? initialUnit.specs
       : mockUnit?.specs ?? []) as SpecItem[],
     // docs/logs: DBになければmockを使用
-    docs: (initialUnit as UnitData)?.docs?.length ? (initialUnit as UnitData).docs : mockUnit?.docs ?? [],
-    logs: (initialUnit as UnitData)?.logs?.length ? (initialUnit as UnitData).logs : mockUnit?.logs ?? [],
+    docs: (initialUnit?.docs?.length ? initialUnit.docs : mockUnit?.docs ?? []) as DocItem[],
+    logs: (initialUnit?.logs?.length ? initialUnit.logs : mockUnit?.logs ?? []) as LogItem[],
     description: initialUnit?.description || mockUnit?.description || '',
     id: initialUnit?.id ?? mockUnit?.id,
   } : null;
