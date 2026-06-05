@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-import { Lock, User, Send, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, User, Send, Mail, CheckCircle2, AlertCircle, Loader2, KeyRound } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import EasterEggModal from '../../components/EasterEggModal';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 import { useRouter } from 'next/navigation';
 
 const supabase = createClient();
+
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) => {
   useEffect(() => {
@@ -34,6 +36,7 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
 export default function AdminLoginClient() {
   const router = useRouter();
   const [loginId, setLoginId] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [isWaitingSession, setIsWaitingSession] = useState(false);
@@ -60,11 +63,41 @@ export default function AdminLoginClient() {
     setToast({ show: true, message, type });
   };
 
+  // 開発環境: パスワードログイン
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginId || !password) return;
+
+    setIsLoggingIn(true);
+    setErrorDetail(null);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginId,
+        password,
+      });
+
+      if (error) throw error;
+
+      showToast('ログイン成功！リダイレクト中...', 'success');
+      router.push('/admin');
+      router.refresh();
+    } catch (err: unknown) {
+      console.error('Password login error:', err);
+      const message = err instanceof Error ? err.message : `Error: ${JSON.stringify(err)}`;
+      setErrorDetail(message);
+      showToast(message, 'error');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  // 本番環境: マジックリンクログイン
   const handleMagicLinkLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginId) return;
 
     setIsLoggingIn(true);
+    setErrorDetail(null);
     try {
       const redirectTo = `${window.location.origin}/auth/callback?next=/admin`;
       console.log('Sending magic link to:', loginId, 'redirectTo:', redirectTo);
@@ -113,6 +146,81 @@ export default function AdminLoginClient() {
           <p className="text-gray-400 text-xs font-bold tracking-[0.2em] mt-2 uppercase">Member Dashboard</p>
         </div>
 
+        {/* ======== DEV: パスワードログインフォーム ======== */}
+        {IS_DEV ? (
+          <form onSubmit={handlePasswordLogin} className="space-y-5">
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2 mb-2">
+              <KeyRound className="w-4 h-4 text-amber-500 shrink-0" />
+              <p className="text-[11px] font-bold text-amber-600 tracking-wide">DEV MODE — Password Login</p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="ml-4 flex items-baseline gap-2">
+                <span className="text-sm font-bold text-gray-700">メールアドレス</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">EMAIL</span>
+              </label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="email"
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value)}
+                  className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl py-4 pl-12 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-100 transition-all font-medium"
+                  placeholder="email@mieno.dev"
+                  autoCapitalize="none"
+                  disabled={isLoggingIn}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="ml-4 flex items-baseline gap-2">
+                <span className="text-sm font-bold text-gray-700">パスワード</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">PASSWORD</span>
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl py-4 pl-12 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-100 transition-all font-medium"
+                  placeholder="••••••••"
+                  disabled={isLoggingIn}
+                />
+              </div>
+            </div>
+
+            {/* Error detail */}
+            {errorDetail && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-left">
+                <p className="text-xs font-bold text-red-600 mb-1">エラー詳細:</p>
+                <p className="text-xs text-red-500 font-mono break-all">{errorDetail}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoggingIn || !loginId || !password}
+              className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-black transition-all mt-4 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
+            >
+              {isLoggingIn ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <div className="p-1 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col items-start leading-none">
+                    <span className="text-base">ログイン</span>
+                    <span className="text-[9px] font-medium text-gray-400 uppercase tracking-widest mt-0.5">Sign In with Password</span>
+                  </div>
+                </>
+              )}
+            </button>
+          </form>
+        ) : (
+        /* ======== PROD: マジックリンクフォーム ======== */
         <form onSubmit={handleMagicLinkLogin} className="space-y-5">
           {magicLinkSent ? (
               <div className="text-center py-8">
@@ -192,6 +300,7 @@ export default function AdminLoginClient() {
               </>
           )}
         </form>
+        )}
 
         <p className="text-center mt-8 font-medium text-gray-400">
            <span className="block text-sm font-bold text-gray-500">※関係者以外アクセス禁止</span>
