@@ -4,6 +4,7 @@ import { Resend } from 'resend';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import type { News } from '@/types/database';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -28,10 +29,10 @@ export async function generateAiReplyDraft(name: string, message: string, strict
 
     let contextText = '';
     if (recentNews && recentNews.length > 0) {
-      contextText += '【最近の通達】\n' + recentNews.map((n: any) => `- ${n.date}: ${n.title}`).join('\n') + '\n\n';
+      contextText += '【最近の通達】\n' + recentNews.map((n: Pick<News, 'title' | 'date'>) => `- ${n.date}: ${n.title}`).join('\n') + '\n\n';
     }
     if (upcomingEvents && upcomingEvents.length > 0) {
-      contextText += '【Upcomingのツーリング予定】\n' + upcomingEvents.map((e: any) => `- ${e.event_date}: ${e.title}`).join('\n') + '\n\n';
+      contextText += '【Upcomingのツーリング予定】\n' + upcomingEvents.map((e: Pick<News, 'title' | 'event_date'>) => `- ${e.event_date}: ${e.title}`).join('\n') + '\n\n';
     }
 
     const strictnessLevel = strictness > 80 ? '極めて厳格' : strictness > 50 ? '厳格' : '標準的';
@@ -102,7 +103,7 @@ ${message}
     try {
       parsedResult = JSON.parse(generatedText);
     } catch (e) {
-      console.error("Failed to parse AI response as JSON", generatedText);
+      console.error("Failed to parse AI response as JSON", generatedText, e);
       throw new Error("AI returned invalid JSON");
     }
 
@@ -214,7 +215,7 @@ export async function getGlobalSettings() {
        return { emergency_banner: false, ai_persona_strictness: 50 };
     }
     return data;
-  } catch (error) {
+  } catch {
     return { emergency_banner: false, ai_persona_strictness: 50 };
   }
 }

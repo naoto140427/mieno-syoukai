@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { Consumable, Tool } from '@/types/database';
 import { updateConsumableQuantity, updateToolStatus } from '@/app/actions/logistics';
-import { RefreshCw, Plus, Minus, AlertTriangle, CheckCircle, User, Wrench, Package } from 'lucide-react';
+import { RefreshCw, Plus, Minus, AlertTriangle, User, Wrench, Package } from 'lucide-react';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 interface LogisticsClientProps {
@@ -191,7 +191,7 @@ function ToolItem({ tool, isAdmin }: { tool: Tool; isAdmin: boolean }) {
                 <label className="text-[10px] text-gray-500 font-mono uppercase block mb-1">Status</label>
                 <select
                   value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value as any)}
+                  onChange={(e) => setEditStatus(e.target.value as Tool['status'])}
                   className="w-full bg-black border border-gray-700 rounded px-2 py-1.5 text-sm text-white focus:border-cyan-500 outline-none"
                 >
                   <option value="Available">Available</option>

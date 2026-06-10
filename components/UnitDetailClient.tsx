@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useTransition, useEffect, useCallback } from 'react';
+import { useState, useTransition, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { m, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence, useInView, animate } from 'framer-motion';
 import {
   ArrowLeft,
   FileText,
@@ -34,6 +34,40 @@ import { Unit } from '@/types/database';
 import { updateUnit, addMaintenanceLog, deleteMaintenanceLog } from '@/app/actions/units';
 import { notFound } from 'next/navigation';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
+
+// ─── Odometer digit animation ─────────────────────────────────────────────────
+
+function OdometerDisplay({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-40px' });
+
+  useEffect(() => {
+    if (!inView || !value) return;
+    const ctrl = animate(0, value, {
+      duration: 2.0,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => setDisplay(Math.round(v)),
+    });
+    return () => ctrl.stop();
+  }, [inView, value]);
+
+  const digits = display.toLocaleString('ja-JP').split('');
+
+  return (
+    <div ref={ref} className="flex items-baseline gap-0.5">
+      {digits.map((ch, i) => (
+        <span
+          key={i}
+          className={ch === ',' ? 'text-lg text-gray-300 mx-0.5' : 'text-2xl font-black tabular-nums text-gray-900'}
+        >
+          {ch}
+        </span>
+      ))}
+      <span className="text-xs font-bold text-gray-400 ml-1.5">km</span>
+    </div>
+  );
+}
 
 // --- Types ---
 
@@ -455,14 +489,34 @@ interface UnitDetailClientProps {
 export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDetailClientProps) {
   const mockUnit = UNITS[slug];
 
+  // ── すべてのHooksを早期returnより前に宣言（Rules of Hooks） ──────
+  const [activeTab, setActiveTab]       = useState<'specs' | 'docs' | 'logs'>('specs');
+  const [isEditing, setIsEditing]       = useState(false);
+  const [description, setDescription]   = useState(initialUnit?.description ?? mockUnit?.description ?? '');
+  const [isFormOpen, setIsFormOpen]     = useState(false);
+  const [isPending, startTransition]    = useTransition();
+  const [toast, setToast]               = useState<ToastState>({ show: false, message: '', type: 'success' });
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; log: LogItem | null }>({ open: false, log: null });
+  const [imageUrl, setImageUrl]         = useState<string>(initialUnit?.image_url ?? '');
+  const [isEditingImage, setIsEditingImage] = useState(false);
+  const [imageInputVal, setImageInputVal]   = useState('');
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    type: 'maintenance', description: '', cost: '', distance_km: ''
+  });
+  const [unitOdometer, setUnitOdometer] = useState<number>(initialUnit?.odometer ?? 0);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type });
+  }, []);
+
+  // ── unit 導出（Hooksの後） ────────────────────────────────────────
   const unit: UnitData | null = mockUnit || initialUnit ? {
     ...mockUnit,
     ...initialUnit,
-    // specs: DBに有効なデータがあればDB優先、なければmockにフォールバック
     specs: (Array.isArray(initialUnit?.specs) && (initialUnit.specs as SpecItem[]).length > 0
       ? initialUnit.specs
       : mockUnit?.specs ?? []) as SpecItem[],
-    // docs/logs: DBになければmockを使用
     docs: (initialUnit?.docs?.length ? initialUnit.docs : mockUnit?.docs ?? []) as DocItem[],
     logs: (initialUnit?.logs?.length ? initialUnit.logs : mockUnit?.logs ?? []) as LogItem[],
     description: initialUnit?.description || mockUnit?.description || '',
@@ -473,25 +527,6 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
 
   const safeSpecs = Array.isArray(unit.specs) ? unit.specs : [];
   const accent = getAccentColor(unit.themeColor);
-
-  const [activeTab, setActiveTab]     = useState<'specs' | 'docs' | 'logs'>('specs');
-  const [isEditing, setIsEditing]     = useState(false);
-  const [description, setDescription] = useState(unit.description);
-  const [isFormOpen, setIsFormOpen]   = useState(false);
-  const [isPending, startTransition]  = useTransition();
-  const [toast, setToast]             = useState<ToastState>({ show: false, message: '', type: 'success' });
-  const [confirmModal, setConfirmModal] = useState<{ open: boolean; log: LogItem | null }>({ open: false, log: null });
-  const [imageUrl, setImageUrl]       = useState<string>(initialUnit?.image_url ?? '');
-  const [isEditingImage, setIsEditingImage] = useState(false);
-  const [imageInputVal, setImageInputVal]   = useState('');
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    type: 'maintenance', description: '', cost: ''
-  });
-
-  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ show: true, message, type });
-  }, []);
 
   const tabs = [
     { id: 'specs', label: '機体仕様',      sub: 'SPECS' },
@@ -516,14 +551,20 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!unit.id || typeof unit.id !== 'number') return;
+    const distKm = Number(formData.distance_km) || 0;
     startTransition(async () => {
       try {
         await addMaintenanceLog(unit.id as number, {
-          date: formData.date, type: formData.type,
-          description: formData.description, cost: Number(formData.cost) || 0
+          date: formData.date,
+          type: formData.type,
+          description: formData.description,
+          cost: Number(formData.cost) || 0,
+          distance_km: distKm,
         });
+        // クライアント側でも即時反映
+        if (distKm > 0) setUnitOdometer((prev) => prev + distKm);
         setIsFormOpen(false);
-        setFormData({ date: new Date().toISOString().split('T')[0], type: 'maintenance', description: '', cost: '' });
+        setFormData({ date: new Date().toISOString().split('T')[0], type: 'maintenance', description: '', cost: '', distance_km: '' });
         showToast('記録を追加しました', 'success');
       } catch {
         showToast('記録の追加に失敗しました', 'error');
@@ -572,14 +613,20 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
 
           {/* 車両画像エリア */}
           <div className="relative w-full h-[45vh] md:h-[55vh] bg-gray-100 overflow-hidden">
-            {imageUrl ? (
-              <Image src={imageUrl} alt={unit.name.jp} fill className="object-cover" priority sizes="100vw" />
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300">
-                <ImageIcon size={48} className="mb-3" />
-                <p className="text-sm font-medium">No image</p>
-              </div>
-            )}
+            <m.div
+              layoutId={`unit-image-${slug}`}
+              className="absolute inset-0"
+              transition={{ type: 'spring', stiffness: 280, damping: 30 }}
+            >
+              {imageUrl ? (
+                <Image src={imageUrl} alt={unit.name.jp} fill className="object-cover" priority sizes="100vw" />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300">
+                  <ImageIcon size={48} className="mb-3" />
+                  <p className="text-sm font-medium">No image</p>
+                </div>
+              )}
+            </m.div>
             {/* グラデーションオーバーレイ */}
             <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent" />
 
@@ -623,10 +670,20 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
                   </h1>
                   <p className="text-xs font-mono text-gray-400 tracking-[0.2em] uppercase">{unit.name.en}</p>
                 </div>
-                {/* ステータス */}
-                <div className="flex items-center gap-2 text-sm font-semibold text-green-600 shrink-0">
-                  <span className={`w-2 h-2 rounded-full animate-pulse ${accent.dot}`} />
-                  OPERATIONAL
+                {/* オドメーター + ステータス */}
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  {unitOdometer > 0 && (
+                    <div className="bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-right">
+                      <p className="text-[9px] font-bold tracking-[0.25em] text-gray-400 uppercase mb-1 flex items-center gap-1 justify-end">
+                        <Gauge size={9} /> Odometer
+                      </p>
+                      <OdometerDisplay value={unitOdometer} />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-sm font-semibold text-green-600">
+                    <span className={`w-2 h-2 rounded-full animate-pulse ${accent.dot}`} />
+                    OPERATIONAL
+                  </div>
                 </div>
               </div>
             </m.div>
@@ -824,6 +881,14 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
                                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">費用 (¥)</label>
                                 <input type="number" min="0" value={formData.cost} placeholder="0"
                                   onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                                  className="w-full p-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" />
+                              </div>
+                              <div className="md:col-span-2">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                                  走行距離 (km) <span className="text-gray-300 normal-case font-normal">— 入力するとオドメーターに加算</span>
+                                </label>
+                                <input type="number" min="0" step="0.1" value={formData.distance_km} placeholder="0"
+                                  onChange={(e) => setFormData({ ...formData, distance_km: e.target.value })}
                                   className="w-full p-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200" />
                               </div>
                             </div>

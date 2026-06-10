@@ -1,5 +1,6 @@
 import Logistics from "@/components/Logistics";
 import { Metadata } from "next";
+import { createPublicClient } from "@/lib/supabase/public";
 
 export const metadata: Metadata = {
   title: "Logistics (広域兵站・作戦経路)",
@@ -11,10 +12,36 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LogisticsPage() {
+export interface ArchiveTrack {
+  id: number;
+  title: string;
+  date: string;
+  distance_km: number | null;
+  location_name: string | null;
+  route_data: [number, number, number][] | [number, number][] | null;
+}
+
+async function getArchiveTracks(): Promise<ArchiveTrack[]> {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from('archives')
+    .select('id, title, date, distance_km, location_name, route_data')
+    .not('route_data', 'is', null)
+    .order('date', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching archive tracks:', error);
+    return [];
+  }
+  return (data as ArchiveTrack[]) || [];
+}
+
+export default async function LogisticsPage() {
+  const tracks = await getArchiveTracks();
+
   return (
     <div className="bg-black min-h-screen">
-      <Logistics />
+      <Logistics tracks={tracks} />
     </div>
   );
 }

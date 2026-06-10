@@ -96,6 +96,13 @@ export interface MaintenanceLog {
   cost?: number;
 }
 
+export interface SpecItem {
+  label: string;
+  value: string;
+  progress?: number;
+  icon?: string | null;
+}
+
 export interface Unit {
   id: number;
   slug: string;
@@ -106,7 +113,7 @@ export interface Unit {
   maintenance_note: string;
   created_at?: string;
   description?: string;
-  specs?: any;
+  specs?: SpecItem[];
   docs?: UnitDocument[];
   logs?: MaintenanceLog[];
   image_url?: string;
@@ -136,4 +143,5 @@ export interface InventoryRequest {
   status: "PENDING" | "APPROVED" | "REJECTED" | "RETURNED";
   created_at?: string;
   tool?: Tool; // Optional for joins
+  agent?: Agent;
 }

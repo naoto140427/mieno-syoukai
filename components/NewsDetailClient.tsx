@@ -2,7 +2,7 @@
 
 import { m, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Share2, Calendar, MapPin,
+  ArrowLeft, Calendar, MapPin,
   ClipboardCheck, Send, CheckCircle2, Link2
 } from 'lucide-react';
 import { useState, useEffect } from 'react';

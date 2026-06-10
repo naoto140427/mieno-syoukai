@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { m, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
+
 import { X, Trash2, Loader2, Save, Sparkles, Globe, Tags } from 'lucide-react';
 import { News as NewsType } from '@/types/database';
 import { generateNewsContent, translateNews, generateNewsMetadata } from '@/app/actions/news-ai';
@@ -70,7 +70,7 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
         try {
             const result = await generateNewsContent(formData.content);
             setFormData(prev => ({ ...prev, content: result }));
-        } catch (error) {
+        } catch {
             alert("AI generation failed.");
         } finally {
             setIsGeneratingContent(false);
@@ -87,7 +87,7 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
             const result = await translateNews(formData.content);
 
             setFormData(prev => ({ ...prev, content: prev.content + result }));
-        } catch (error) {
+        } catch {
             alert("AI translation failed.");
         } finally {
             setIsTranslating(false);
@@ -107,7 +107,7 @@ export default function NewsModal({ isOpen, onClose, onSave, onDelete, initialDa
                 title: title || prev.title,
                 category: (category as NewsType['category']) || prev.category
             }));
-        } catch (error) {
+        } catch {
             alert("AI analysis failed.");
         } finally {
             setIsGeneratingMetadata(false);

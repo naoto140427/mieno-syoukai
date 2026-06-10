@@ -1,11 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { m } from 'framer-motion';
-import { LogOut, Activity, Archive, Megaphone, Clock, Mail, Settings, Users } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { m, AnimatePresence } from 'framer-motion';
+import {
+  LogOut, Activity, Archive, Megaphone, Mail, Settings,
+  Users, Radio, Shield, Zap, ChevronRight, Terminal,
+  type LucideIcon,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
+import { type User as SupabaseUser } from '@supabase/supabase-js';
+import type { Inquiry, News, TouringSurvey } from '@/types/database';
 
 import TransmissionControl from '@/components/admin/TransmissionControl';
 import LiveEditor from '@/components/admin/LiveEditor';
@@ -17,268 +22,420 @@ import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 const supabase = createClient();
 
 interface DashboardProps {
-  user: any;
-  stats: {
-    news: number;
-    archives: number;
-    unreadInquiries: number;
-  };
-  latestInquiries: any[];
-  latestNews: any[];
-  surveys?: any[];
+  user: SupabaseUser;
+  stats: { news: number; archives: number; unreadInquiries: number };
+  latestInquiries: Inquiry[];
+  latestNews: News[];
+  surveys?: TouringSurvey[];
 }
 
-const generateTrendData = () => {
-    return Array.from({ length: 15 }, (_, i) => ({
-        name: `Day ${i}`,
-        uv: Math.floor(Math.random() * 50) + 10,
-    }));
-};
+// ─── Clock ────────────────────────────────────────────────────────────────────
 
-const chartData = generateTrendData();
+function SystemClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const hh = time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+  const ss = time.getSeconds().toString().padStart(2, '0');
+  const date = time.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
+  return (
+    <div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-5xl font-black text-white tracking-tighter tabular-nums">{hh}</span>
+        <span className="text-2xl font-black text-white/30 tabular-nums">:{ss}</span>
+      </div>
+      <p className="text-[10px] font-mono text-white/30 tracking-[0.25em] uppercase mt-1">{date} · JST</p>
+    </div>
+  );
+}
+
+// ─── Scan Line Overlay ────────────────────────────────────────────────────────
+
+function ScanLines() {
+  return (
+    <div
+      className="pointer-events-none fixed inset-0 z-0 opacity-[0.03]"
+      style={{
+        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,1) 2px, rgba(255,255,255,1) 4px)',
+      }}
+    />
+  );
+}
+
+// ─── Glass Panel ─────────────────────────────────────────────────────────────
+
+function GlassPanel({ children, className = '', onClick }: {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) {
+  const Tag = onClick ? 'button' : 'div';
+  return (
+    <Tag
+      onClick={onClick}
+      className={`bg-[#0D111A]/80 backdrop-blur-md border border-white/[0.06] rounded-2xl transition-all duration-200 ${onClick ? 'text-left hover:border-white/15 hover:bg-[#0D111A] cursor-pointer active:scale-[0.99]' : ''} ${className}`}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, icon: Icon, accent, onClick }: {
+  label: string; value: number | string; icon: LucideIcon; accent: string; onClick: () => void;
+}) {
+  return (
+    <GlassPanel onClick={onClick} className="p-6 flex flex-col justify-between gap-4 group">
+      <div className="flex items-start justify-between">
+        <p className="text-[10px] font-bold tracking-[0.3em] text-white/30 uppercase">{label}</p>
+        <Icon size={14} className="text-white/20 group-hover:text-white/40 transition-colors" />
+      </div>
+      <div>
+        <p className={`text-4xl font-black tabular-nums ${accent}`}>{value}</p>
+        <div className="flex items-center gap-1.5 mt-2 text-white/20 group-hover:text-white/40 transition-colors">
+          <ChevronRight size={12} />
+          <span className="text-[10px] font-mono tracking-widest uppercase">Open</span>
+        </div>
+      </div>
+    </GlassPanel>
+  );
+}
+
+// ─── Activity Log Stream ──────────────────────────────────────────────────────
+
+function LogStream({ items, onClick, type }: {
+  items: (Inquiry | News)[];
+  onClick: () => void;
+  type: 'inquiry' | 'news';
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {items.length === 0 && (
+        <p className="text-[11px] font-mono text-white/20 py-2">— NO ENTRIES —</p>
+      )}
+      {items.map((item, i) => {
+        const isInquiry = type === 'inquiry';
+        const inq = item as Inquiry;
+        const news = item as News;
+        
+        return (
+          <m.div
+            key={item.id ?? i}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.05 }}
+            onClick={onClick}
+            className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.07] hover:border-white/10 cursor-pointer transition-all group"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {isInquiry && inq.status === 'unread' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0 animate-pulse" />
+              )}
+              <span className="text-[11px] text-white/60 font-medium truncate group-hover:text-white/80 transition-colors">
+                {isInquiry ? inq.subject : news.title}
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-white/25 flex-shrink-0">
+              {new Date(isInquiry ? inq.created_at : news.date).toLocaleDateString('ja-JP')}
+            </span>
+          </m.div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Keyboard shortcut hook ───────────────────────────────────────────────────
+
+function useHotkey(key: string, callback: () => void) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === key) {
+        e.preventDefault();
+        callback();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [key, callback]);
+}
+
+// ─── Command Bar ─────────────────────────────────────────────────────────────
+
+function CommandBar({ onTransmission, onLiveEditor, onOperationBoard, onRSVP, onGlobalOverride }: {
+  onTransmission: () => void;
+  onLiveEditor: () => void;
+  onOperationBoard: () => void;
+  onRSVP: () => void;
+  onGlobalOverride: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const COMMANDS = [
+    { label: '通信管制 Transmission Control', shortcut: 'T', action: onTransmission, icon: Radio },
+    { label: 'ライブエディタ Live Editor',     shortcut: 'E', action: onLiveEditor,   icon: Megaphone },
+    { label: '作戦ボード Operation Board',     shortcut: 'O', action: onOperationBoard,icon: Archive },
+    { label: 'RSVP モニター',                  shortcut: 'R', action: onRSVP,         icon: Users },
+    { label: 'グローバル設定 Override',         shortcut: 'G', action: onGlobalOverride,icon: Settings },
+  ];
+
+  const filtered = COMMANDS.filter((c) =>
+    query === '' || c.label.toLowerCase().includes(query.toLowerCase())
+  );
+
+  useHotkey('k', () => setOpen((v) => !v));
+  useHotkey('t', onTransmission);
+  useHotkey('e', onLiveEditor);
+  useHotkey('o', onOperationBoard);
+  useHotkey('r', onRSVP);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-white/40 hover:text-white/70 hover:bg-white/10 transition-all text-[11px] font-mono"
+      >
+        <Terminal size={12} />
+        <span>⌘K</span>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <m.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-start justify-center pt-[20vh] px-6 bg-black/60 backdrop-blur-sm"
+            onClick={() => { setOpen(false); setQuery(''); }}
+          >
+            <m.div
+              initial={{ scale: 0.96, opacity: 0, y: -8 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0, y: -8 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg bg-[#0D111A] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+            >
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
+                <Terminal size={14} className="text-white/30" />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="コマンドを検索..."
+                  className="flex-1 bg-transparent text-sm text-white placeholder-white/20 outline-none font-mono"
+                />
+                <kbd className="text-[10px] font-mono text-white/20 bg-white/5 px-2 py-0.5 rounded">ESC</kbd>
+              </div>
+              <div className="p-2">
+                {filtered.map((cmd) => {
+                  const Icon = cmd.icon;
+                  return (
+                    <button
+                      key={cmd.shortcut}
+                      onClick={() => { cmd.action(); setOpen(false); setQuery(''); }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.06] transition-colors group"
+                    >
+                      <Icon size={14} className="text-white/30 group-hover:text-white/60 transition-colors" />
+                      <span className="flex-1 text-sm text-white/60 group-hover:text-white/90 transition-colors font-medium">{cmd.label}</span>
+                      <kbd className="text-[10px] font-mono text-white/20 bg-white/5 px-2 py-0.5 rounded">⌘{cmd.shortcut}</kbd>
+                    </button>
+                  );
+                })}
+              </div>
+            </m.div>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function AdminDashboardClient({ user, stats, latestInquiries, latestNews, surveys = [] }: DashboardProps) {
   const router = useRouter();
-  const [time, setTime] = useState(new Date());
-
-  // Panel states
   const [isTransmissionOpen, setTransmissionOpen] = useState(false);
   const [isLiveEditorOpen, setLiveEditorOpen] = useState(false);
   const [isOperationBoardOpen, setOperationBoardOpen] = useState(false);
   const [isGlobalOverrideOpen, setGlobalOverrideOpen] = useState(false);
   const [isRSVPOpen, setRSVPOpen] = useState(false);
 
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
     router.refresh();
-  };
+  }, [router]);
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
-  };
+  const rsvpActive = surveys.filter((s) => s.attendance_status === 'JOIN' || s.attendance_status === 'PENDING').length;
 
   return (
     <ClientMotionWrapper>
-    <div className="min-h-screen bg-[#F5F5F7] text-gray-900 pb-24 font-sans selection:bg-gray-200">
-      <header className="sticky top-0 z-30 bg-[#F5F5F7]/80 backdrop-blur-md border-b border-gray-200/50 px-6 py-4 flex justify-between items-center">
-        <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-none">MIENO COMMAND CENTER</h1>
-            <p className="text-[10px] font-bold text-gray-400 tracking-widest mt-1 uppercase">Strategic Dashboard</p>
-        </div>
-        <div className="flex items-center gap-3">
-            <button
-                onClick={() => setGlobalOverrideOpen(true)}
-                className="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-gray-900 hover:shadow-md transition-all active:scale-95"
-            >
-                <Settings size={18} />
-            </button>
-            <div className="text-right mr-2 hidden sm:block">
-                <p className="text-sm font-bold text-gray-900">{user.email}</p>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Agent</p>
+      <div className="min-h-screen bg-[#0A0E17] text-white font-sans selection:bg-white/10">
+        <ScanLines />
+
+        {/* ── Header ──────────────────────────────────────────────── */}
+        <header className="sticky top-0 z-30 bg-[#0A0E17]/80 backdrop-blur-md border-b border-white/[0.05] px-6 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <div>
+              <p className="text-sm font-bold text-white leading-none tracking-wide">MIENO COMMAND CENTER</p>
+              <p className="text-[9px] font-mono text-white/25 tracking-[0.3em] uppercase mt-0.5">Strategic Operations HQ</p>
             </div>
-            <button onClick={handleLogout} className="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-red-500 hover:shadow-md transition-all active:scale-95">
-                <LogOut size={18} />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <CommandBar
+              onTransmission={() => setTransmissionOpen(true)}
+              onLiveEditor={() => setLiveEditorOpen(true)}
+              onOperationBoard={() => setOperationBoardOpen(true)}
+              onRSVP={() => setRSVPOpen(true)}
+              onGlobalOverride={() => setGlobalOverrideOpen(true)}
+            />
+            <div className="text-right hidden sm:block">
+              <p className="text-[11px] font-mono text-white/50">{user.email}</p>
+            </div>
+            <button
+              onClick={() => setGlobalOverrideOpen(true)}
+              className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/[0.07] flex items-center justify-center text-white/30 hover:text-white/70 hover:bg-white/10 transition-all"
+            >
+              <Settings size={14} />
             </button>
-        </div>
-      </header>
+            <button
+              onClick={handleLogout}
+              className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/[0.07] flex items-center justify-center text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <m.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"
-        >
-            {/* Top Left: Clock & Status */}
-            <m.div variants={itemVariants} className="col-span-1 md:col-span-2 lg:col-span-2 bg-white/5 backdrop-blur-2xl border border-white/50 rounded-3xl p-8 shadow-sm flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-white to-gray-50">
-                <div className="absolute top-0 right-0 p-8 opacity-5">
-                    <Activity size={160} />
+        {/* ── Main Grid ───────────────────────────────────────────── */}
+        <main className="relative z-10 max-w-6xl mx-auto px-4 py-8">
+          <m.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="grid grid-cols-1 md:grid-cols-4 gap-4"
+          >
+
+            {/* ── Row 1: Clock + Status ──────────────────────────── */}
+            <GlassPanel className="md:col-span-2 p-8 flex flex-col justify-between gap-8 min-h-[180px]">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[10px] font-mono text-white/25 tracking-[0.3em] uppercase mb-1">System Status</p>
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-[11px] font-mono text-green-400/80 tracking-widest">ONLINE · ALL SYSTEMS GO</span>
+                  </div>
                 </div>
-                <div className="relative z-10">
-                    <h2 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        System Status: Online
-                    </h2>
-                    <div className="mt-8">
-                        <p className="text-5xl md:text-7xl font-bold tracking-tighter text-gray-900">
-                            {time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit' })}
-                            <span className="text-2xl md:text-4xl text-gray-400 font-normal ml-2">{time.getSeconds().toString().padStart(2, '0')}</span>
-                        </p>
-                        <p className="text-sm font-semibold tracking-widest text-gray-400 uppercase mt-4">
-                            {time.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')} / JST
-                        </p>
-                    </div>
-                </div>
-            </m.div>
+                <Shield size={16} className="text-white/10" />
+              </div>
+              <SystemClock />
+            </GlassPanel>
 
-            {/* Top Right: Stat Cards */}
-            <m.div variants={itemVariants} className="col-span-1 md:col-span-1 lg:col-span-1 flex flex-col gap-6">
-                <button onClick={() => setOperationBoardOpen(true)} className="text-left bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex flex-col justify-center relative overflow-hidden group hover:border-gray-300 transition-colors">
-                     <div className="absolute right-[-10px] top-1/2 -translate-y-1/2 opacity-5 group-hover:opacity-10 transition-opacity">
-                         <Archive size={100} />
-                     </div>
-                     <h3 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">Operations Board</h3>
-                     <p className="text-5xl font-bold tracking-tighter text-gray-900">{stats.archives}</p>
-                </button>
-                <button onClick={() => setLiveEditorOpen(true)} className="text-left bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex flex-col justify-center relative overflow-hidden group hover:border-gray-300 transition-colors">
-                     <div className="absolute right-[-10px] top-1/2 -translate-y-1/2 opacity-5 group-hover:opacity-10 transition-opacity">
-                         <Megaphone size={100} />
-                     </div>
-                     <h3 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">Live Editor</h3>
-                     <p className="text-5xl font-bold tracking-tighter text-gray-900">{stats.news}</p>
-                </button>
-            </m.div>
+            <StatCard
+              label="Unread Intel"
+              value={stats.unreadInquiries}
+              icon={Mail}
+              accent={stats.unreadInquiries > 0 ? 'text-blue-400' : 'text-white/60'}
+              onClick={() => setTransmissionOpen(true)}
+            />
+            <StatCard
+              label="RSVP Active"
+              value={rsvpActive}
+              icon={Users}
+              accent={rsvpActive > 0 ? 'text-indigo-400' : 'text-white/60'}
+              onClick={() => setRSVPOpen(true)}
+            />
 
-
-                {/* RSVP Monitor */}
-                <m.div variants={itemVariants} className="col-span-1 md:col-span-1 lg:col-span-1 flex flex-col gap-6">
-                    <button onClick={() => setRSVPOpen(true)} className="text-left bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-3xl p-6 shadow-md border border-indigo-500 flex-1 flex flex-col justify-center relative overflow-hidden group hover:from-indigo-700 hover:to-indigo-900 transition-colors">
-                        <div className="absolute right-0 top-0 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Users size={120} />
-                        </div>
-                        <h3 className="text-xs font-semibold tracking-widest text-indigo-200 uppercase mb-2">RSVP Monitor</h3>
-                        <p className="text-5xl font-bold tracking-tighter text-white">{surveys.filter(s => s.attendance_status === 'JOIN' || s.attendance_status === 'PENDING').length}</p>
-                        <p className="text-xs text-indigo-200 mt-2 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                            View Deployment HUD →
-                        </p>
+            {/* ── Row 2: Quick Launch ────────────────────────────── */}
+            <GlassPanel className="md:col-span-4 p-5">
+              <p className="text-[9px] font-mono text-white/20 tracking-[0.3em] uppercase mb-4">Quick Launch</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: '通信管制', sub: 'Transmission', icon: Radio,    count: stats.unreadInquiries, action: () => setTransmissionOpen(true)    },
+                  { label: 'ライブエディタ', sub: 'Live Editor', icon: Megaphone, count: stats.news,             action: () => setLiveEditorOpen(true)     },
+                  { label: '作戦ボード', sub: 'Op. Board',   icon: Archive,  count: stats.archives,        action: () => setOperationBoardOpen(true)  },
+                  { label: 'RSVP',     sub: 'Monitor',     icon: Users,    count: rsvpActive,            action: () => setRSVPOpen(true)           },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.sub}
+                      onClick={item.action}
+                      className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.08] hover:border-white/10 transition-all group text-left"
+                    >
+                      <div>
+                        <p className="text-[9px] font-mono text-white/25 tracking-widest uppercase">{item.sub}</p>
+                        <p className="text-sm font-bold text-white/70 group-hover:text-white transition-colors mt-0.5">{item.label}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <Icon size={14} className="text-white/20 group-hover:text-white/50 transition-colors" />
+                        {item.count > 0 && (
+                          <span className="text-[10px] font-black text-white/50 tabular-nums">{item.count}</span>
+                        )}
+                      </div>
                     </button>
-                </m.div>
+                  );
+                })}
+              </div>
+            </GlassPanel>
 
-            {/* Unread Intel (Transmission Control) */}
-            <m.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-1 flex flex-col gap-6">
-                <button onClick={() => setTransmissionOpen(true)} className="text-left bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-6 shadow-md border border-blue-500 flex-1 flex flex-col justify-center relative overflow-hidden group hover:from-blue-700 hover:to-blue-900 transition-colors">
-                     <div className="absolute right-0 top-0 opacity-10 group-hover:opacity-20 transition-opacity">
-                         <Mail size={120} />
-                     </div>
-                     <h3 className="text-xs font-semibold tracking-widest text-blue-200 uppercase mb-2">Unread Intel</h3>
-                     <p className="text-5xl font-bold tracking-tighter text-white">{stats.unreadInquiries}</p>
-                     <p className="text-xs text-blue-200 mt-2 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                        Open Transmission Control →
-                     </p>
-                </button>
-            </m.div>
-
-            {/* Middle Full: Area Chart */}
-            <m.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-4 bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-                 <h2 className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-8">Operation Activity Trends</h2>
-                 <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <Area type="monotone" dataKey="uv" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorUv)" />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                 </div>
-            </m.div>
-
-            {/* Bottom: Latest Transmissions */}
-            <m.div variants={itemVariants} className="col-span-1 md:col-span-3 lg:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                {/* Inquiries */}
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xs font-semibold tracking-widest text-gray-400 uppercase">Latest Inquiries</h2>
-                        <span className="px-2 py-1 bg-gray-100 rounded-lg text-[10px] font-bold text-gray-500 uppercase">Live</span>
-                    </div>
-                    <div className="space-y-4">
-                        {latestInquiries.length > 0 ? latestInquiries.map((inq) => (
-                            <div key={inq.id} onClick={() => setTransmissionOpen(true)} className="p-4 rounded-2xl bg-[#F5F5F7] hover:bg-gray-100 transition-colors flex items-center justify-between border border-transparent hover:border-gray-200 cursor-pointer">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="font-bold text-gray-900 text-sm">{inq.subject}</h3>
-                                        {inq.status === 'unread' && <span className="w-2 h-2 rounded-full bg-blue-500"></span>}
-                                    </div>
-                                    <p className="text-xs text-gray-500 font-medium">{inq.name}</p>
-                                </div>
-                                <span className="text-[10px] text-gray-400 font-mono">
-                                    {new Date(inq.created_at).toLocaleDateString('ja-JP')}
-                                </span>
-                            </div>
-                        )) : (
-                            <p className="text-sm text-gray-400 italic">No new inquiries.</p>
-                        )}
-                    </div>
+            {/* ── Row 3: Log Streams ────────────────────────────── */}
+            <GlassPanel className="md:col-span-2 p-6 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-mono text-white/20 tracking-[0.3em] uppercase">Latest Transmissions</p>
+                  <p className="text-sm font-bold text-white/70 mt-0.5">未読インテル</p>
                 </div>
+                {stats.unreadInquiries > 0 && (
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                    <span className="text-[10px] font-mono text-blue-400">{stats.unreadInquiries} unread</span>
+                  </span>
+                )}
+              </div>
+              <LogStream items={latestInquiries.slice(0, 5)} onClick={() => setTransmissionOpen(true)} type="inquiry" />
+            </GlassPanel>
 
-                {/* News */}
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xs font-semibold tracking-widest text-gray-400 uppercase">Recent Broadcasts</h2>
-                        <span className="px-2 py-1 bg-gray-100 rounded-lg text-[10px] font-bold text-gray-500 uppercase">Log</span>
-                    </div>
-                    <div className="space-y-4">
-                        {latestNews.length > 0 ? latestNews.map((news) => (
-                            <div key={news.id} onClick={() => setLiveEditorOpen(true)} className="p-4 rounded-2xl bg-[#F5F5F7] hover:bg-gray-100 transition-colors flex items-center justify-between border border-transparent hover:border-gray-200 cursor-pointer">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">{news.category}</span>
-                                    </div>
-                                    <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{news.title}</h3>
-                                </div>
-                                <span className="text-[10px] text-gray-400 font-mono shrink-0 ml-4">
-                                    {new Date(news.date).toLocaleDateString('ja-JP')}
-                                </span>
-                            </div>
-                        )) : (
-                            <p className="text-sm text-gray-400 italic">No recent news.</p>
-                        )}
-                    </div>
+            <GlassPanel className="md:col-span-2 p-6 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-mono text-white/20 tracking-[0.3em] uppercase">Recent Broadcasts</p>
+                  <p className="text-sm font-bold text-white/70 mt-0.5">最新通信ログ</p>
                 </div>
+                <Zap size={14} className="text-white/15" />
+              </div>
+              <LogStream items={latestNews.slice(0, 5)} onClick={() => setLiveEditorOpen(true)} type="news" />
+            </GlassPanel>
 
-            </m.div>
+            {/* ── Row 4: System info footer ─────────────────────── */}
+            <GlassPanel className="md:col-span-4 px-6 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <span className="text-[10px] font-mono text-white/20 tracking-widest uppercase">MIENO ERP v2.0</span>
+                <span className="text-[10px] font-mono text-white/15">·</span>
+                <span className="text-[10px] font-mono text-white/20">Next.js 16 · Supabase · Turbopack</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Activity size={11} className="text-green-400/50" />
+                <span className="text-[10px] font-mono text-green-400/50 tracking-widest">NOMINAL</span>
+              </div>
+            </GlassPanel>
 
-        </m.div>
-      </main>
+          </m.div>
+        </main>
 
-      {/* Admin Modals */}
-      <TransmissionControl
-         isOpen={isTransmissionOpen}
-         onClose={() => setTransmissionOpen(false)}
-         inquiries={latestInquiries}
-      />
-
-      <LiveEditor
-         isOpen={isLiveEditorOpen}
-         onClose={() => setLiveEditorOpen(false)}
-      />
-
-      <OperationBoard
-         isOpen={isOperationBoardOpen}
-         onClose={() => setOperationBoardOpen(false)}
-         operations={latestNews}
-      />
-
-      <GlobalOverride
-         isOpen={isGlobalOverrideOpen}
-         onClose={() => setGlobalOverrideOpen(false)}
-      />
-
-      <RSVPMonitor
-         isOpen={isRSVPOpen}
-         onClose={() => setRSVPOpen(false)}
-         surveys={surveys}
-      />
-
-    </div>
-  </ClientMotionWrapper>
+        {/* ── Modals ──────────────────────────────────────────────── */}
+        <TransmissionControl isOpen={isTransmissionOpen} onClose={() => setTransmissionOpen(false)} inquiries={latestInquiries} />
+        <LiveEditor isOpen={isLiveEditorOpen} onClose={() => setLiveEditorOpen(false)} />
+        <OperationBoard isOpen={isOperationBoardOpen} onClose={() => setOperationBoardOpen(false)} operations={latestNews} />
+        <GlobalOverride isOpen={isGlobalOverrideOpen} onClose={() => setGlobalOverrideOpen(false)} />
+        <RSVPMonitor isOpen={isRSVPOpen} onClose={() => setRSVPOpen(false)} surveys={surveys} />
+      </div>
+    </ClientMotionWrapper>
   );
 }

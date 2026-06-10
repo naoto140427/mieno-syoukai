@@ -1,49 +1,154 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wrench, Package, AlertCircle, Plus, X, ChevronUp, ChevronDown, Minus, RefreshCw } from "lucide-react";
+import {
+  Wrench, Package, Plus, X,
+  Minus, RefreshCw, CheckCircle2, AlertTriangle, Info,
+  ArrowUpDown, CalendarClock, MapPin, Hash
+} from "lucide-react";
 import { Consumable, Tool } from "@/types/database";
 import { updateConsumableLevel, toggleToolStatus, addConsumable, addTool, createInventoryRequest } from "@/app/actions/inventory";
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
 interface InventoryProps {
-    consumables?: Consumable[];
-    tools?: Tool[];
-    isAdmin?: boolean;
+  consumables?: Consumable[];
+  tools?: Tool[];
+  isAdmin?: boolean;
 }
 
+type ToastType = "success" | "error" | "info";
+interface Toast {
+  id: number;
+  type: ToastType;
+  message: string;
+}
+
+// ─── Toast Component ──────────────────────────────────────────────────────────
+
+function ToastContainer({ toasts, remove }: { toasts: Toast[]; remove: (id: number) => void }) {
+  const icons = {
+    success: <CheckCircle2 size={16} className="text-green-500 flex-shrink-0" />,
+    error: <AlertTriangle size={16} className="text-red-500 flex-shrink-0" />,
+    info: <Info size={16} className="text-blue-500 flex-shrink-0" />,
+  };
+  return (
+    <div className="fixed bottom-6 right-6 z-[200] flex flex-col gap-2 pointer-events-none">
+      <AnimatePresence>
+        {toasts.map((t) => (
+          <motion.div
+            key={t.id}
+            initial={{ opacity: 0, y: 16, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="pointer-events-auto flex items-center gap-3 bg-white/90 backdrop-blur-xl border border-gray-200/80 shadow-xl rounded-2xl px-4 py-3 min-w-[240px] max-w-xs"
+          >
+            {icons[t.type]}
+            <span className="text-sm font-medium text-gray-800 flex-1">{t.message}</span>
+            <button onClick={() => remove(t.id)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X size={14} />
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Status Badge ─────────────────────────────────────────────────────────────
+
+const statusConfig: Record<string, { dot: string; text: string; bg: string }> = {
+  Available:   { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50/80" },
+  "In Use":    { dot: "bg-blue-400",    text: "text-blue-700",    bg: "bg-blue-50/80"    },
+  Maintenance: { dot: "bg-amber-400",   text: "text-amber-700",   bg: "bg-amber-50/80"   },
+  Missing:     { dot: "bg-red-400",     text: "text-red-700",     bg: "bg-red-50/80"     },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = statusConfig[status] ?? { dot: "bg-gray-400", text: "text-gray-600", bg: "bg-gray-50" };
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+      {status}
+    </span>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function Inventory({ consumables = [], tools = [], isAdmin = false }: InventoryProps) {
+  // UI State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Tool; direction: "asc" | "desc" } | null>(null);
   const [loadingAction, setLoadingAction] = useState<number | null>(null);
   const [requestModalTool, setRequestModalTool] = useState<Tool | null>(null);
-  const [requestDates, setRequestDates] = useState({ start: '', end: '' });
+  const [requestDates, setRequestDates] = useState({ start: "", end: "" });
   const [isRequesting, setIsRequesting] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   // Form State
-  const [newItemType, setNewItemType] = useState<'consumable' | 'tool'>('consumable');
+  const [newItemType, setNewItemType] = useState<"consumable" | "tool">("consumable");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-      name: '',
-      level: 100,
-      max_capacity: 0,
-      unit: '',
-      color: 'bg-blue-500',
-      spec: '',
-      qty: 1,
-      status: 'Available' as Tool['status'],
-      location: ''
+    name: "", level: 100, max_capacity: 0, unit: "", color: "bg-blue-500",
+    spec: "", qty: 1, status: "Available" as Tool["status"], location: "",
   });
 
-  // Sorting Logic
+  // ── Toast helpers ────────────────────────────────────────────────────────
+  const addToast = useCallback((type: ToastType, message: string) => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+  }, []);
+
+  const removeToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  // ── Sorting ──────────────────────────────────────────────────────────────
   const sortedTools = [...tools].sort((a, b) => {
     if (!sortConfig) return 0;
     const { key, direction } = sortConfig;
-    const aVal = a[key] ?? ""; const bVal = b[key] ?? ""; if (aVal < bVal) return direction === "asc" ? -1 : 1;
+    const aVal = a[key] ?? ""; const bVal = b[key] ?? "";
+    if (aVal < bVal) return direction === "asc" ? -1 : 1;
     if (aVal > bVal) return direction === "asc" ? 1 : -1;
     return 0;
   });
+
+  const requestSort = (key: keyof Tool) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig?.key === key && sortConfig.direction === "asc") direction = "desc";
+    setSortConfig({ key, direction });
+  };
+
+  // ── Actions ──────────────────────────────────────────────────────────────
+  const handleUpdateLevel = async (id: number, delta: number) => {
+    if (!isAdmin) return;
+    setLoadingAction(id);
+    try {
+      await updateConsumableLevel(id, delta);
+    } catch {
+      addToast("error", "在庫レベルの更新に失敗しました");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleToggleStatus = async (id: number, currentStatus: string) => {
+    if (!isAdmin) return;
+    setLoadingAction(id);
+    try {
+      await toggleToolStatus(id, currentStatus);
+      addToast("success", "ステータスを更新しました");
+    } catch {
+      addToast("error", "ステータスの更新に失敗しました");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
 
   const handleRequestDeployment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,278 +157,277 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
     try {
       await createInventoryRequest(requestModalTool.id, requestDates.start, requestDates.end);
       setRequestModalTool(null);
-      setRequestDates({ start: '', end: '' });
-      alert('Deployment requested successfully.');
-    } catch (e) {
-      alert('Failed to request deployment.');
+      setRequestDates({ start: "", end: "" });
+      addToast("success", "デプロイ申請を送信しました");
+    } catch {
+      addToast("error", "デプロイ申請の送信に失敗しました");
     } finally {
       setIsRequesting(false);
     }
   };
 
-  const requestSort = (key: keyof Tool) => {
-    let direction: "asc" | "desc" = "asc";
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
-  };
-
-  // Admin Actions
-  const handleUpdateLevel = async (id: number, delta: number) => {
-      if (!isAdmin) return;
-      setLoadingAction(id);
-      try {
-          // Optimistic update could go here, but relying on server revalidation for now
-          await updateConsumableLevel(id, delta);
-      } catch (e) {
-          console.error(e);
-          alert("Failed to update level");
-      } finally {
-          setLoadingAction(null);
-      }
-  };
-
-  const handleToggleStatus = async (id: number, currentStatus: string) => {
-      if (!isAdmin) return;
-      setLoadingAction(id);
-      try {
-          await toggleToolStatus(id, currentStatus);
-      } catch (e) {
-          console.error(e);
-          alert("Failed to update status");
-      } finally {
-          setLoadingAction(null);
-      }
-  };
-
   const handleAddItem = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setIsSubmitting(true);
-      setError(null);
-
-      try {
-          if (newItemType === 'consumable') {
-              await addConsumable({
-                  name: formData.name,
-                  level: Number(formData.level),
-                  max_capacity: Number(formData.max_capacity),
-                  unit: formData.unit,
-                  color: formData.color
-              });
-          } else {
-              await addTool({
-                  name: formData.name,
-                  spec: formData.spec,
-                  qty: Number(formData.qty),
-                  status: formData.status,
-                  location: formData.location
-              });
-          }
-          setIsModalOpen(false);
-          // Reset form
-          setFormData({
-              name: '',
-              level: 100,
-              max_capacity: 0,
-              unit: '',
-              color: 'bg-blue-500',
-              spec: '',
-              qty: 1,
-              status: 'Available',
-              location: ''
-          });
-      } catch (err: unknown) {
-          console.error(err);
-          setError("Failed to add item. Please try again.");
-      } finally {
-          setIsSubmitting(false);
+    e.preventDefault();
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      if (newItemType === "consumable") {
+        await addConsumable({
+          name: formData.name, level: Number(formData.level),
+          max_capacity: Number(formData.max_capacity), unit: formData.unit, color: formData.color,
+        });
+      } else {
+        await addTool({
+          name: formData.name, spec: formData.spec,
+          qty: Number(formData.qty), status: formData.status, location: formData.location,
+        });
       }
+      setIsModalOpen(false);
+      setFormData({ name: "", level: 100, max_capacity: 0, unit: "", color: "bg-blue-500", spec: "", qty: 1, status: "Available", location: "" });
+      addToast("success", "資材を追加しました");
+    } catch {
+      setFormError("追加に失敗しました。もう一度お試しください。");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toolColumns = ["name", "spec", "qty", "status", "location"] as const;
   const toolHeaders: Record<typeof toolColumns[number], string> = {
-    name: "品名",
-    spec: "仕様/サイズ",
-    qty: "数量",
-    status: "状態",
-    location: "保管場所",
+    name: "品名", spec: "仕様/サイズ", qty: "数量", status: "状態", location: "保管場所",
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-mieno-gray p-6 lg:p-12 font-sans text-mieno-text rounded-3xl">
-      <div className="max-w-7xl mx-auto space-y-12">
+    <div className="bg-[#F5F5F7] min-h-screen p-6 lg:p-12 font-sans">
+      <ToastContainer toasts={toasts} remove={removeToast} />
 
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="max-w-7xl mx-auto space-y-14">
+
+        {/* ── Page Header ──────────────────────────────────────────────── */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-gray-200/80 pb-8">
           <div>
-            <h1 className="text-3xl font-bold text-mieno-navy tracking-tight">
+            <p className="text-[11px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-2">MIENO CORP. SYSTEM</p>
+            <h1 className="text-4xl font-black text-gray-900 tracking-tight">
               資材・備品管理
-              <span className="block text-sm text-gray-500 font-mono tracking-wider mt-1">INVENTORY</span>
             </h1>
-            <p className="text-gray-500 mt-1">Equipment status and supply levels dashboard.</p>
+            <p className="text-sm text-gray-500 mt-1.5 font-mono tracking-wider">INVENTORY MANAGEMENT SYSTEM</p>
           </div>
           {isAdmin && (
-            <button
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2 bg-mieno-navy text-white px-5 py-2.5 rounded-lg shadow-lg hover:bg-mieno-navy/90 transition-all active:scale-95"
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2.5 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-lg hover:bg-gray-800 transition-colors text-sm font-semibold"
             >
-                <Plus className="w-5 h-5" />
-                <span>資材を追加</span>
-            </button>
+              <Plus className="w-4 h-4" />
+              資材を追加
+            </motion.button>
           )}
         </div>
 
-        {/* Consumables Section */}
+        {/* ── Consumables ──────────────────────────────────────────────── */}
         <section>
-          <div className="flex items-center gap-2 mb-6">
-            <Package className="w-6 h-6 text-mieno-navy" />
-            <h2 className="text-xl font-bold text-mieno-navy">
-              消耗品在庫
-              <span className="ml-2 text-xs text-gray-400 font-mono uppercase tracking-wider">CONSUMABLES</span>
-            </h2>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Package className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 leading-none">消耗品在庫</h2>
+              <p className="text-xs text-gray-400 font-mono tracking-widest mt-0.5">CONSUMABLES</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {consumables.length === 0 ? (
-                <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl">
-                    No consumables data available.
-                </div>
+              <div className="col-span-full py-16 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-3xl">
+                <Package className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">消耗品データがありません</p>
+              </div>
             ) : (
-                consumables.map((item, index) => (
-                <motion.div
+              consumables.map((item, index) => {
+                const pct = Math.min(100, Math.max(0, item.level));
+                const isLow = pct < 20;
+                const remaining = Math.round((item.max_capacity * pct) / 100);
+                return (
+                  <motion.div
                     key={item.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group"
-                >
-                    <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div>
-                        <h3 className="font-bold text-lg text-gray-800">{item.name}</h3>
-                        <p className="text-sm text-gray-400">Max Capacity: {item.max_capacity}{item.unit}</p>
-                    </div>
-                    <div className={`w-3 h-3 rounded-full ${item.level < 20 ? "bg-red-500 animate-pulse" : "bg-green-500"}`} />
-                    </div>
-
-                    <div className="relative h-4 bg-gray-100 rounded-full overflow-hidden mb-2 relative z-10">
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${item.level}%` }}
-                        transition={{ duration: 1, delay: 0.2 + index * 0.1, ease: "easeOut" }}
-                        className={`absolute top-0 left-0 h-full ${item.color || 'bg-blue-500'} rounded-full`}
-                    />
+                    transition={{ delay: index * 0.07, type: "spring", stiffness: 260, damping: 24 }}
+                    className="group bg-white rounded-3xl p-6 shadow-sm border border-gray-100/80 relative overflow-hidden flex flex-col gap-4"
+                  >
+                    {/* Card Header */}
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-base text-gray-900 truncate">{item.name}</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Max: {item.max_capacity}{item.unit}</p>
+                      </div>
+                      <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 ${isLow ? "bg-red-400 animate-pulse" : "bg-emerald-400"}`} />
                     </div>
 
-                    <div className="flex justify-between text-sm font-medium relative z-10">
-                    <span className="text-gray-500">{item.level}% Remaining</span>
-                    <span className="text-mieno-navy font-bold">
-                        {Math.round((item.max_capacity * item.level) / 100)}{item.unit}
-                    </span>
+                    {/* Big Number */}
+                    <div className="flex items-baseline gap-1">
+                      <span className={`text-4xl font-black tabular-nums ${isLow ? "text-red-500" : "text-gray-900"}`}>
+                        {remaining}
+                      </span>
+                      <span className="text-sm text-gray-400 font-medium">{item.unit}</span>
                     </div>
 
-                    {/* Admin Magic Buttons */}
+                    {/* Progress bar */}
+                    <div className="space-y-1.5">
+                      <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 1, delay: 0.2 + index * 0.07, ease: "easeOut" }}
+                          className={`absolute top-0 left-0 h-full rounded-full ${
+                            isLow ? "bg-red-400" : (item.color || "bg-blue-500")
+                          }`}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[11px] text-gray-400 font-medium">
+                        <span>{pct}% 残量</span>
+                        {isLow && <span className="text-red-500 font-semibold">⚠ LOW</span>}
+                      </div>
+                    </div>
+
+                    {/* Admin Controls — slide in on hover */}
                     {isAdmin && (
-                        <div className="absolute top-0 right-0 h-full flex flex-col justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm z-20 shadow-[-10px_0_20px_rgba(255,255,255,1)]">
-                            <button
-                                onClick={() => handleUpdateLevel(item.id, 10)}
-                                disabled={loadingAction === item.id}
-                                className="p-2 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition-colors disabled:opacity-50"
-                            >
-                                <Plus size={16} />
-                            </button>
-                            <button
-                                onClick={() => handleUpdateLevel(item.id, -10)}
-                                disabled={loadingAction === item.id}
-                                className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors disabled:opacity-50"
-                            >
-                                <Minus size={16} />
-                            </button>
+                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-6 py-3 bg-white/95 backdrop-blur-sm border-t border-gray-100 translate-y-full group-hover:translate-y-0 transition-transform duration-200 ease-out">
+                        <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">補充調整</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleUpdateLevel(item.id, -10)}
+                            disabled={loadingAction === item.id}
+                            className="w-8 h-8 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-100 transition-colors disabled:opacity-40"
+                          >
+                            {loadingAction === item.id ? <RefreshCw size={12} className="animate-spin" /> : <Minus size={14} />}
+                          </button>
+                          <button
+                            onClick={() => handleUpdateLevel(item.id, 10)}
+                            disabled={loadingAction === item.id}
+                            className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-100 transition-colors disabled:opacity-40"
+                          >
+                            {loadingAction === item.id ? <RefreshCw size={12} className="animate-spin" /> : <Plus size={14} />}
+                          </button>
                         </div>
+                      </div>
                     )}
-                </motion.div>
-                ))
+                  </motion.div>
+                );
+              })
             )}
           </div>
         </section>
 
-        {/* Tools Section */}
+        {/* ── Tools ────────────────────────────────────────────────────── */}
         <section>
-          <div className="flex items-center gap-2 mb-6">
-            <Wrench className="w-6 h-6 text-mieno-navy" />
-            <h2 className="text-xl font-bold text-mieno-navy">
-              整備工具・機材
-              <span className="ml-2 text-xs text-gray-400 font-mono uppercase tracking-wider">TOOLS</span>
-            </h2>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center">
+              <Wrench className="w-4 h-4 text-amber-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 leading-none">整備工具・機材</h2>
+              <p className="text-xs text-gray-400 font-mono tracking-widest mt-0.5">TOOLS & EQUIPMENT</p>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100/80 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
+                  <tr className="border-b border-gray-100">
                     {toolColumns.map((key) => (
                       <th
                         key={key}
                         onClick={() => requestSort(key)}
-                        className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                        className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest cursor-pointer hover:text-gray-700 transition-colors select-none"
                       >
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           {toolHeaders[key]}
-                          <div className="flex flex-col">
-                            <ChevronUp className={`w-3 h-3 -mb-1 ${sortConfig?.key === key && sortConfig.direction === 'asc' ? 'text-mieno-navy' : 'text-gray-300'}`} />
-                            <ChevronDown className={`w-3 h-3 ${sortConfig?.key === key && sortConfig.direction === 'desc' ? 'text-mieno-navy' : 'text-gray-300'}`} />
-                          </div>
+                          <ArrowUpDown className={`w-3 h-3 ${sortConfig?.key === key ? "text-gray-700" : "text-gray-300"}`} />
                         </div>
                       </th>
                     ))}
-                    {isAdmin && <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ACTION</th>}
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-50">
                   {tools.length === 0 ? (
-                      <tr>
-                          <td colSpan={isAdmin ? 6 : 5} className="px-6 py-8 text-center text-gray-400">No tools data available.</td>
-                      </tr>
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-400 text-sm">
+                        <Wrench className="w-6 h-6 mx-auto mb-2 opacity-30" />
+                        工具・機材データがありません
+                      </td>
+                    </tr>
                   ) : (
                     sortedTools.map((tool, index) => (
-                        <motion.tr
+                      <motion.tr
                         key={tool.id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="hover:bg-gray-50/50 transition-colors group"
-                        >
-                        <td className="px-6 py-4 font-medium text-gray-900">{tool.name}</td>
-                        <td className="px-6 py-4 text-gray-600 font-mono text-sm">{tool.spec}</td>
-                        <td className="px-6 py-4 text-gray-600">{tool.qty}</td>
+                        transition={{ delay: index * 0.04 }}
+                        className="group hover:bg-gray-50/60 transition-colors"
+                      >
+                        {/* Name */}
                         <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                            ${tool.status === 'Available' ? 'bg-green-50 text-green-700 border-green-200' :
-                                tool.status === 'In Use' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                tool.status === 'Maintenance' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                'bg-red-50 text-red-700 border-red-200'
-                            }`}
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                              <Wrench size={12} className="text-gray-500" />
+                            </div>
+                            <span className="font-semibold text-gray-900 text-sm">{tool.name}</span>
+                          </div>
+                        </td>
+                        {/* Spec */}
+                        <td className="px-6 py-4">
+                          <span className="font-mono text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-lg">{tool.spec || "—"}</span>
+                        </td>
+                        {/* Qty */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1 text-sm text-gray-700">
+                            <Hash size={12} className="text-gray-400" />
+                            {tool.qty}
+                          </div>
+                        </td>
+                        {/* Status */}
+                        <td className="px-6 py-4">
+                          <StatusBadge status={tool.status} />
+                        </td>
+                        {/* Location */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                            <MapPin size={12} className="text-gray-400 flex-shrink-0" />
+                            <span>{tool.location || "—"}</span>
+                          </div>
+                        </td>
+                        {/* Actions */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleToggleStatus(tool.id, tool.status)}
+                                disabled={loadingAction === tool.id}
+                                className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors disabled:opacity-40"
+                                title="ステータスを切り替え"
+                              >
+                                {loadingAction === tool.id
+                                  ? <RefreshCw size={12} className="animate-spin" />
+                                  : <RefreshCw size={12} />
+                                }
+                                切替
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setRequestModalTool(tool)}
+                              className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl transition-colors"
                             >
-                            {tool.status}
-                            </span>
+                              <CalendarClock size={12} />
+                              申請
+                            </button>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-500 text-sm flex items-center gap-2">
-                            {tool.location}
-                        </td>
-                        {isAdmin && (
-                            <td className="px-6 py-4">
-                                <button
-                                    onClick={() => handleToggleStatus(tool.id, tool.status)}
-                                    disabled={loadingAction === tool.id}
-                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
-                                    title="Toggle Status (Available/In Use)"
-                                >
-                                    <RefreshCw size={16} className={loadingAction === tool.id ? 'animate-spin' : ''} />
-                                </button>
-                            </td>
-                        )}
-                        </motion.tr>
+                      </motion.tr>
                     ))
                   )}
                 </tbody>
@@ -332,9 +436,9 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
           </div>
         </section>
 
-      </div>
+      </div>{/* /max-w */}
 
-      {/* Admin Modal */}
+      {/* ── Add Item Modal ────────────────────────────────────────────── */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -343,259 +447,246 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg overflow-hidden"
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="relative bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-lg overflow-hidden"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-mieno-navy">資材を追加</h3>
+              {/* Modal Header */}
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">資材を追加</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">ADD NEW INVENTORY ITEM</p>
+                </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors text-gray-400"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleAddItem} className="space-y-4">
-                {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
-                        <AlertCircle size={16} />
-                        {error}
-                    </div>
+              <form onSubmit={handleAddItem} className="space-y-5">
+                {formError && (
+                  <div className="bg-red-50 text-red-600 p-3 rounded-2xl text-sm flex items-center gap-2">
+                    <AlertTriangle size={15} />
+                    {formError}
+                  </div>
                 )}
 
+                {/* Type Toggle */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">種別</label>
-                  <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">種別</label>
+                  <div className="flex bg-gray-100 p-1 rounded-2xl gap-1">
+                    {(["consumable", "tool"] as const).map((t) => (
                       <button
+                        key={t}
                         type="button"
-                        onClick={() => setNewItemType('consumable')}
-                        className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${newItemType === 'consumable' ? 'bg-white text-mieno-navy shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setNewItemType(t)}
+                        className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
+                          newItemType === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                        }`}
                       >
-                        Consumable
+                        {t === "consumable" ? "消耗品" : "工具"}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setNewItemType('tool')}
-                        className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${newItemType === 'tool' ? 'bg-white text-mieno-navy shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                      >
-                        Tool
-                      </button>
+                    ))}
                   </div>
                 </div>
 
+                {/* Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">品名 / 名称</label>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">品名</label>
                   <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
-                    placeholder={newItemType === 'consumable' ? "e.g. Engine Oil" : "e.g. Torque Wrench"}
+                    type="text" required value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                    placeholder={newItemType === "consumable" ? "例: エンジンオイル" : "例: トルクレンチ"}
                   />
                 </div>
 
-                {newItemType === 'consumable' ? (
-                    <>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">最大容量</label>
-                                <input
-                                    type="number"
-                                    required
-                                    value={formData.max_capacity}
-                                    onChange={(e) => setFormData({...formData, max_capacity: Number(e.target.value)})}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
-                                    placeholder="100"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">単位</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.unit}
-                                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
-                                    placeholder="L, kg, pcs"
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">現在レベル (%)</label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="0"
-                                    max="100"
-                                    value={formData.level}
-                                    onChange={(e) => setFormData({...formData, level: Number(e.target.value)})}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">カラー</label>
-                                <select
-                                    value={formData.color}
-                                    onChange={(e) => setFormData({...formData, color: e.target.value})}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
-                                >
-                                    <option value="bg-blue-500">Blue</option>
-                                    <option value="bg-red-500">Red</option>
-                                    <option value="bg-green-500">Green</option>
-                                    <option value="bg-yellow-500">Yellow</option>
-                                    <option value="bg-purple-500">Purple</option>
-                                    <option value="bg-gray-500">Gray</option>
-                                </select>
-                            </div>
-                        </div>
-                    </>
+                {newItemType === "consumable" ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">最大容量</label>
+                        <input
+                          type="number" required value={formData.max_capacity}
+                          onChange={(e) => setFormData({ ...formData, max_capacity: Number(e.target.value) })}
+                          className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                          placeholder="100"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">単位</label>
+                        <input
+                          type="text" required value={formData.unit}
+                          onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                          className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                          placeholder="L / kg / 本"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">現在レベル (%)</label>
+                        <input
+                          type="number" required min="0" max="100" value={formData.level}
+                          onChange={(e) => setFormData({ ...formData, level: Number(e.target.value) })}
+                          className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">カラー</label>
+                        <select
+                          value={formData.color}
+                          onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                          className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                        >
+                          <option value="bg-blue-500">Blue</option>
+                          <option value="bg-emerald-500">Green</option>
+                          <option value="bg-amber-500">Amber</option>
+                          <option value="bg-red-500">Red</option>
+                          <option value="bg-purple-500">Purple</option>
+                          <option value="bg-gray-500">Gray</option>
+                        </select>
+                      </div>
+                    </div>
+                  </>
                 ) : (
-                    <>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">仕様 / サイズ</label>
-                            <input
-                                type="text"
-                                required
-                                value={formData.spec}
-                                onChange={(e) => setFormData({...formData, spec: e.target.value})}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
-                                placeholder="e.g. 10mm-24mm"
-                            />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">数量</label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="1"
-                                    value={formData.qty}
-                                    onChange={(e) => setFormData({...formData, qty: Number(e.target.value)})}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">状態</label>
-                                <select
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({...formData, status: e.target.value as Tool['status']})}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
-                                >
-                                    <option value="Available">Available</option>
-                                    <option value="In Use">In Use</option>
-                                    <option value="Maintenance">Maintenance</option>
-                                    <option value="Missing">Missing</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">保管場所</label>
-                            <input
-                                type="text"
-                                required
-                                value={formData.location}
-                                onChange={(e) => setFormData({...formData, location: e.target.value})}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mieno-navy focus:border-transparent outline-none transition-all"
-                                placeholder="e.g. Cabinet A-2"
-                            />
-                        </div>
-                    </>
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">仕様 / サイズ</label>
+                      <input
+                        type="text" required value={formData.spec}
+                        onChange={(e) => setFormData({ ...formData, spec: e.target.value })}
+                        className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                        placeholder="例: 10mm-24mm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">数量</label>
+                        <input
+                          type="number" required min="1" value={formData.qty}
+                          onChange={(e) => setFormData({ ...formData, qty: Number(e.target.value) })}
+                          className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">状態</label>
+                        <select
+                          value={formData.status}
+                          onChange={(e) => setFormData({ ...formData, status: e.target.value as Tool["status"] })}
+                          className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                        >
+                          <option value="Available">Available</option>
+                          <option value="In Use">In Use</option>
+                          <option value="Maintenance">Maintenance</option>
+                          <option value="Missing">Missing</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">保管場所</label>
+                      <input
+                        type="text" required value={formData.location}
+                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                        className="w-full px-4 py-3 bg-[#F5F5F7] border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                        placeholder="例: キャビネット A-2"
+                      />
+                    </div>
+                  </>
                 )}
 
-                <div className="mt-8 flex justify-end gap-3">
-                    <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
-                    disabled={isSubmitting}
-                    >
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}
+                    className="flex-1 py-3 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-2xl transition-colors disabled:opacity-50"
+                  >
                     キャンセル
-                    </button>
-                    <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-6 py-2 bg-mieno-navy text-white font-medium rounded-lg shadow-md hover:bg-mieno-navy/90 transition-colors flex items-center gap-2 disabled:opacity-50"
-                    >
-                    {isSubmitting ? (
-                        <>
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                            Saving...
-                        </>
-                    ) : (
-                        "登録する"
-                    )}
-                    </button>
+                  </button>
+                  <button
+                    type="submit" disabled={isSubmitting}
+                    className="flex-1 py-3 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-2xl transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isSubmitting ? <><RefreshCw className="w-4 h-4 animate-spin" /> 保存中...</> : "登録する"}
+                  </button>
                 </div>
               </form>
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
 
-      {/* Request Deployment Modal */}
-      {requestModalTool && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative"
-          >
-             <button
+      {/* ── Deployment Request Modal ──────────────────────────────────── */}
+      <AnimatePresence>
+        {requestModalTool && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setRequestModalTool(null)}
+              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="relative bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-md"
+            >
+              <button
                 onClick={() => setRequestModalTool(null)}
-                className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition-colors"
-             >
-                <X size={20} />
-             </button>
+                className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={16} />
+              </button>
 
-             <h2 className="text-2xl font-bold tracking-tight text-mieno-navy mb-6">REQUEST DEPLOYMENT</h2>
-             <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
-               <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase block mb-1">TARGET EQUIPMENT</span>
-               <span className="font-bold text-gray-900">{requestModalTool.name}</span>
-             </div>
+              <div className="mb-8">
+                <p className="text-[11px] font-bold tracking-[0.25em] text-gray-400 uppercase mb-1">EQUIPMENT REQUEST</p>
+                <h2 className="text-2xl font-bold text-gray-900">デプロイ申請</h2>
+              </div>
 
-             <form onSubmit={handleRequestDeployment} className="space-y-4">
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <label className="block text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">START DATE</label>
-                   <input
-                     type="date"
-                     required
-                     value={requestDates.start}
-                     onChange={e => setRequestDates(prev => ({ ...prev, start: e.target.value }))}
-                     className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-mieno-blue/20 focus:border-mieno-blue transition-all"
-                   />
-                 </div>
-                 <div>
-                   <label className="block text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">END DATE</label>
-                   <input
-                     type="date"
-                     required
-                     value={requestDates.end}
-                     onChange={e => setRequestDates(prev => ({ ...prev, end: e.target.value }))}
-                     className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-mieno-blue/20 focus:border-mieno-blue transition-all"
-                   />
-                 </div>
-               </div>
+              <div className="mb-6 p-4 bg-[#F5F5F7] rounded-2xl">
+                <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">対象機材</p>
+                <p className="font-bold text-gray-900">{requestModalTool.name}</p>
+                {requestModalTool.spec && <p className="text-xs text-gray-500 font-mono mt-0.5">{requestModalTool.spec}</p>}
+              </div>
 
-               <button
-                 type="submit"
-                 disabled={isRequesting}
-                 className="w-full mt-6 py-4 bg-mieno-blue hover:bg-mieno-navy text-white font-bold tracking-widest uppercase text-sm rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex justify-center"
-               >
-                 {isRequesting ? <RefreshCw className="animate-spin" size={20} /> : 'SUBMIT REQUEST'}
-               </button>
-             </form>
-          </motion.div>
-        </div>
-      )}
+              <form onSubmit={handleRequestDeployment} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">開始日</label>
+                    <input
+                      type="date" required value={requestDates.start}
+                      onChange={(e) => setRequestDates((p) => ({ ...p, start: e.target.value }))}
+                      className="w-full bg-[#F5F5F7] border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">終了日</label>
+                    <input
+                      type="date" required value={requestDates.end}
+                      onChange={(e) => setRequestDates((p) => ({ ...p, end: e.target.value }))}
+                      className="w-full bg-[#F5F5F7] border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 transition-all"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit" disabled={isRequesting}
+                  className="w-full mt-2 py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold tracking-widest uppercase text-sm rounded-2xl transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-50"
+                >
+                  {isRequesting ? <RefreshCw className="animate-spin" size={16} /> : <><CalendarClock size={16} /> SUBMIT REQUEST</>}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </div>
   );

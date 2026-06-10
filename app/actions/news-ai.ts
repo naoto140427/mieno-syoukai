@@ -1,6 +1,7 @@
 'use server'
 
 import { GoogleGenAI } from '@google/genai';
+import type { News } from '@/types/database';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const model = 'gemini-2.5-flash';
@@ -94,7 +95,7 @@ export async function generateNewsMetadata(text: string): Promise<{ title: strin
     }
 }
 
-export async function semanticSearch(query: string, newsArray: any[]): Promise<number[]> {
+export async function semanticSearch(query: string, newsArray: News[]): Promise<number[]> {
   try {
     const aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 

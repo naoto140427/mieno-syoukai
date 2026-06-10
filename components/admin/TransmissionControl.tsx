@@ -19,9 +19,6 @@ export default function TransmissionControl({ isOpen, onClose, inquiries, aiStri
   const [draftHtml, setDraftHtml] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [urgency, setUrgency] = useState<number | null>(null);
-  const [sentiment, setSentiment] = useState<string | null>(null);
-  const [category, setCategory] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 

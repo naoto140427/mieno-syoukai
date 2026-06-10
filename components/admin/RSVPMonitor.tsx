@@ -1,16 +1,10 @@
 import { m, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle2, Clock, XCircle, Users } from 'lucide-react';
+import type { TouringSurvey } from '@/types/database';
 
-interface ExtendedSurvey {
-    id: number;
-    news_id: number;
-    agent_name: string;
-    attendance_status: 'JOIN' | 'PENDING' | 'DECLINE';
-    vehicle_info?: string;
-    message?: string;
-    created_at?: string;
+type ExtendedSurvey = TouringSurvey & {
     news_title?: string;
-}
+};
 
 interface RSVPMonitorProps {
     isOpen: boolean;

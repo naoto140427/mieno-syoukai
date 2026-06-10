@@ -25,8 +25,8 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
   // 2. Extract Points, Max Elevation, Duration & Elevation Gain
   let maxElevation = 0;
   let elevationGain = 0;
-  let minTime: Date | any = null;
-  let maxTime: Date | any = null;
+  let minTime: Date | null = null;
+  let maxTime: Date | null = null;
   const allPoints: { lat: number; lon: number; ele: number; time?: Date }[] = [];
 
   gpx.tracks.forEach((track) => {
@@ -45,8 +45,8 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
 
       // Update min/max time
       if (point.time) {
-        if (!minTime || point.time < minTime) minTime = point.time;
-        if (!maxTime || point.time > maxTime) maxTime = point.time;
+        if (!minTime || point.time.getTime() < minTime.getTime()) minTime = point.time;
+        if (!maxTime || point.time.getTime() > maxTime.getTime()) maxTime = point.time;
       }
 
       allPoints.push({
@@ -62,7 +62,7 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
   let durationTime = "00:00:00";
   let durationHours = 0;
   if (minTime && maxTime) {
-    const diffMs = maxTime.getTime() - minTime.getTime();
+    const diffMs = (maxTime as Date).getTime() - (minTime as Date).getTime();
     if (diffMs > 0) {
       const totalSeconds = Math.floor(diffMs / 1000);
       const hours = Math.floor(totalSeconds / 3600);

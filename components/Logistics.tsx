@@ -1,224 +1,625 @@
 'use client';
 
-import { m } from 'framer-motion';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { m, useInView, animate } from 'framer-motion';
 import Link from 'next/link';
-import { useState } from 'react';
-// @ts-expect-error react-map-gl/mapbox exports are not correctly typed in v8
-import Map, { Source, Layer, LineLayer } from 'react-map-gl/mapbox';
-import 'mapbox-gl/dist/mapbox-gl.css';
-
-// Coordinates
-const START_POINT = [131.75, 33.20]; // Oita (Miyagawachi)
-const END_POINT = [138.65, 35.70];   // Yamanashi (Hottarakashi Onsen approx)
-
-// GeoJSON for the route
-import type { Feature, LineString } from 'geojson';
+import { MapPin, Route, ChevronRight, Layers, Flame } from 'lucide-react';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
-const routeGeoJSON: Feature<LineString> = {
-  type: 'Feature',
-  properties: {},
-  geometry: {
-    type: 'LineString',
-    coordinates: [START_POINT, END_POINT]
-  }
-};
+import Map, { Source, Layer, Marker } from 'react-map-gl/mapbox';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import type { Feature, LineString, Point, FeatureCollection } from 'geojson';
+import type { ArchiveTrack } from '@/app/logistics/page';
 
-const layerStyle: LineLayer = {
-  id: 'route-line',
-  type: 'line',
-  layout: {
-    'line-join': 'round',
-    'line-cap': 'round'
-  },
-  paint: {
-    'line-color': '#06b6d4', // cyan-500
-    'line-width': 4,
-    'line-blur': 0
-  }
-};
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const glowLayerStyle: LineLayer = {
-  id: 'route-glow',
-  type: 'line',
-  layout: {
-    'line-join': 'round',
-    'line-cap': 'round'
-  },
-  paint: {
-    'line-color': '#22d3ee', // cyan-400
-    'line-width': 12,
-    'line-blur': 8,
-    'line-opacity': 0.6
-  }
-};
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+const TRACK_COLORS = [
+  '#3b82f6', // blue
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#ec4899', // pink
+  '#8b5cf6', // violet
+  '#06b6d4', // cyan
+  '#f97316', // orange
+  '#84cc16', // lime
+];
 
-const Logistics = () => {
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-  const [viewState, setViewState] = useState({
-    longitude: 135.5,
-    latitude: 34.5,
-    zoom: 4.8,
-    pitch: 45,
-    bearing: 0
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// route_data は [lng, lat, ele] or [lng, lat] の配列
+function toLineString(track: ArchiveTrack): Feature<LineString> | null {
+  if (!track.route_data || track.route_data.length < 2) return null;
+  return {
+    type: 'Feature',
+    properties: { id: track.id, title: track.title, date: track.date },
+    geometry: {
+      type: 'LineString',
+      coordinates: (track.route_data as number[][]).map(([lng, lat]) => [lng, lat]),
+    },
+  };
+}
+
+function toHeatmapPoints(tracks: ArchiveTrack[]): FeatureCollection<Point> {
+  const features: Feature<Point>[] = [];
+  tracks.forEach((track) => {
+    if (!track.route_data) return;
+    // サンプリング: 10点に1点取得してパフォーマンス最適化
+    (track.route_data as number[][]).forEach(([lng, lat], i) => {
+      if (i % 5 === 0) {
+        features.push({
+          type: 'Feature',
+          properties: { weight: 1 },
+          geometry: { type: 'Point', coordinates: [lng, lat] },
+        });
+      }
+    });
   });
+  return { type: 'FeatureCollection', features };
+}
+
+// ─── Odometer ─────────────────────────────────────────────────────────────────
+
+function OdometerDigit({ target, delay }: { target: number; delay: number }) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-100px' });
+
+  useEffect(() => {
+    if (!inView) return;
+    const controls = animate(0, target, {
+      duration: 2.2,
+      delay,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => setDisplay(Math.floor(v)),
+    });
+    return () => controls.stop();
+  }, [inView, target, delay]);
+
+  return (
+    <div ref={ref} className="inline-block w-[1ch] overflow-hidden">
+      <span className="tabular-nums">{display}</span>
+    </div>
+  );
+}
+
+function Odometer({ value }: { value: number }) {
+  const str = String(Math.floor(value));
+  const digits = str.padStart(Math.max(6, str.length), '0').split('').map(Number);
+  return (
+    <div className="flex items-baseline gap-0 font-black tracking-[-0.05em] text-[clamp(3.5rem,9vw,8rem)] text-gray-900 leading-none">
+      {digits.map((d, i) => (
+        <OdometerDigit key={i} target={d} delay={i * 0.08} />
+      ))}
+      <span className="ml-3 text-2xl font-bold text-gray-400 self-end mb-2">km</span>
+    </div>
+  );
+}
+
+// ─── Elevation Profile from route_data ───────────────────────────────────────
+
+function ElevationProfile({ routeData, color = '#3b82f6' }: {
+  routeData: [number, number, number][] | [number, number][] | null;
+  color?: string;
+}) {
+  const ref = useRef<SVGPathElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(containerRef, { once: true, margin: '-40px' });
+  const [pathLength, setPathLength] = useState(0);
+
+  const W = 300; const H = 60;
+
+  // elevation: routeData の3番目の値 (ele)。なければフラット
+  const elevations = useMemo(() => {
+    if (!routeData || routeData.length === 0) return [0];
+    const raw = (routeData as number[][]).map((p) => p[2] ?? 0);
+    // ダウンサンプリング (max 100点)
+    const step = Math.max(1, Math.floor(raw.length / 100));
+    return raw.filter((_, i) => i % step === 0);
+  }, [routeData]);
+
+  const max = Math.max(...elevations, 1);
+  const min = Math.min(...elevations, 0);
+  const range = max - min || 1;
+
+  const coords = elevations.map((v, i) => {
+    const x = (i / (elevations.length - 1)) * W;
+    const y = H - ((v - min) / range) * (H - 8);
+    return `${x},${y}`;
+  });
+  const d = `M ${coords.join(' L ')}`;
+  const fill = `${d} L ${W},${H} L 0,${H} Z`;
+  const gradId = `grad-${color.replace('#', '')}`;
+
+  useEffect(() => {
+    if (ref.current) setPathLength(ref.current.getTotalLength());
+  }, [d]);
+
+  return (
+    <div ref={containerRef} className="w-full">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-14" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <path d={fill} fill={`url(#${gradId})`} />
+        <path
+          ref={ref}
+          d={d}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            strokeDasharray: pathLength || 0,
+            strokeDashoffset: inView ? 0 : pathLength || 0,
+            transition: 'stroke-dashoffset 1.6s cubic-bezier(0.16,1,0.3,1) 0.3s',
+          }}
+        />
+      </svg>
+      {max > 0 && (
+        <div className="flex justify-between text-[10px] text-gray-400 font-mono mt-0.5">
+          <span>{Math.round(min)}m</span>
+          <span>↑ {Math.round(max)}m</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Mapbox Map ───────────────────────────────────────────────────────────────
+
+type MapMode = 'heatmap' | 'routes';
+
+function LogisticsMap({ tracks, activeTrackId, onTrackClick }: {
+  tracks: ArchiveTrack[];
+  activeTrackId: number | null;
+  onTrackClick: (id: number | null) => void;
+}) {
+  const [viewState, setViewState] = useState({
+    longitude: 133.5,
+    latitude: 33.5,
+    zoom: 5,
+    pitch: 30,
+    bearing: 0,
+  });
+  const [mapMode, setMapMode] = useState<MapMode>('heatmap');
+
+  // ヒートマップ用ポイント (全tracks)
+  const heatmapData = useMemo(() => toHeatmapPoints(tracks), [tracks]);
+
+  // 全ルートのラインGeoJSON
+  const allLinesGeoJSON = useMemo((): FeatureCollection<LineString> => ({
+    type: 'FeatureCollection',
+    features: tracks
+      .map(toLineString)
+      .filter((f): f is Feature<LineString> => f !== null),
+  }), [tracks]);
+
+  // アクティブルート
+  const activeLineGeoJSON = useMemo((): FeatureCollection<LineString> => {
+    if (!activeTrackId) return { type: 'FeatureCollection', features: [] };
+    const track = tracks.find((t) => t.id === activeTrackId);
+    const f = track ? toLineString(track) : null;
+    return { type: 'FeatureCollection', features: f ? [f] : [] };
+  }, [tracks, activeTrackId]);
+
+
+  if (!MAPBOX_TOKEN) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900 text-red-400 font-mono text-sm gap-2">
+        <span className="text-2xl animate-pulse">SYSTEM OFFLINE</span>
+        <span className="text-gray-500 text-xs">MAPBOX_TOKEN not found</span>
+      </div>
+    );
+  }
+
+  return (
+    <Map
+      mapboxAccessToken={MAPBOX_TOKEN}
+      {...viewState}
+      onMove={(evt: { viewState: typeof viewState }) => setViewState(evt.viewState)}
+      style={{ width: '100%', height: '100%' }}
+      mapStyle="mapbox://styles/mapbox/dark-v11"
+      attributionControl={false}
+      reuseMaps
+    >
+      {/* ── Heatmap mode ──────────────────────────────────────────── */}
+      {mapMode === 'heatmap' && tracks.length > 0 && (
+        <Source id="heatmap-pts" type="geojson" data={heatmapData}>
+          <Layer
+            id="travel-heatmap"
+            type="heatmap"
+            maxzoom={12}
+            paint={{
+              'heatmap-weight': 1,
+              'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 12, 4],
+              'heatmap-color': [
+                'interpolate', ['linear'], ['heatmap-density'],
+                0,   'rgba(0,0,80,0)',
+                0.1, 'rgba(0,60,200,0.5)',
+                0.3, 'rgba(0,200,200,0.8)',
+                0.5, 'rgba(255,200,0,0.9)',
+                0.7, 'rgba(255,100,0,1)',
+                1,   'rgba(255,0,0,1)',
+              ],
+              'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 4, 8, 8, 20, 12, 40],
+              'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.9, 12, 0],
+            }}
+          />
+          {/* 高ズームでの軌跡ライン表示 */}
+          <Layer
+            id="track-circle"
+            type="circle"
+            minzoom={10}
+            paint={{
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 2, 15, 5],
+              'circle-color': '#f97316',
+              'circle-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0, 11, 0.8],
+              'circle-stroke-width': 0,
+            }}
+          />
+        </Source>
+      )}
+
+      {/* ── Routes mode ───────────────────────────────────────────── */}
+      {mapMode === 'routes' && (
+        <>
+          <Source id="all-lines" type="geojson" data={allLinesGeoJSON}>
+            <Layer
+              id="all-lines-glow"
+              type="line"
+              layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+              paint={{
+                'line-color': '#3b82f6',
+                'line-width': 6,
+                'line-blur': 5,
+                'line-opacity': activeTrackId ? 0.1 : 0.4,
+              }}
+            />
+            <Layer
+              id="all-lines-stroke"
+              type="line"
+              layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+              paint={{
+                'line-color': '#60a5fa',
+                'line-width': 1.5,
+                'line-opacity': activeTrackId ? 0.2 : 0.8,
+              }}
+            />
+          </Source>
+
+          {/* アクティブトラック（ハイライト）*/}
+          {activeTrackId && (
+            <Source id="active-line" type="geojson" data={activeLineGeoJSON}>
+              <Layer
+                id="active-glow"
+                type="line"
+                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+                paint={{
+                  'line-color': '#f97316',
+                  'line-width': 14,
+                  'line-blur': 10,
+                  'line-opacity': 0.7,
+                }}
+              />
+              <Layer
+                id="active-line"
+                type="line"
+                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+                paint={{
+                  'line-color': '#fb923c',
+                  'line-width': 3,
+                  'line-opacity': 1,
+                }}
+              />
+            </Source>
+          )}
+        </>
+      )}
+
+      {/* HQ Marker */}
+      <Marker longitude={131.61} latitude={33.23} anchor="bottom">
+        <div className="flex flex-col items-center pointer-events-none">
+          <div className="bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded mb-0.5 whitespace-nowrap shadow-lg">
+            HQ 大分
+          </div>
+          <div className="w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-lg animate-pulse" />
+        </div>
+      </Marker>
+
+      {/* ── UI Overlay ─────────────────────────────────────────────── */}
+      <div className="absolute top-3 left-3 z-10 flex gap-2">
+        <button
+          onClick={() => setMapMode('heatmap')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold tracking-widest uppercase transition-all border ${
+            mapMode === 'heatmap'
+              ? 'bg-orange-500 text-white border-orange-400 shadow-lg'
+              : 'bg-black/60 backdrop-blur-md text-gray-400 border-white/10 hover:text-white'
+          }`}
+        >
+          <Flame size={11} /> Heatmap
+        </button>
+        <button
+          onClick={() => setMapMode('routes')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold tracking-widest uppercase transition-all border ${
+            mapMode === 'routes'
+              ? 'bg-blue-500 text-white border-blue-400 shadow-lg'
+              : 'bg-black/60 backdrop-blur-md text-gray-400 border-white/10 hover:text-white'
+          }`}
+        >
+          <Layers size={11} /> Routes
+        </button>
+        {activeTrackId && (
+          <button
+            onClick={() => onTrackClick(null)}
+            className="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-black/60 backdrop-blur-md text-gray-400 border border-white/10 hover:text-white transition-all"
+          >
+            ✕ 解除
+          </button>
+        )}
+      </div>
+
+      {/* 凡例 */}
+      {mapMode === 'heatmap' && (
+        <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
+          <div className="bg-black/70 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10">
+            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase mb-1.5">走行頻度</p>
+            <div className="w-24 h-2 rounded-full" style={{ background: 'linear-gradient(to right, #003cb4, #00c8c8, #ffc800, #ff6400, #ff0000)' }} />
+            <div className="flex justify-between text-[9px] text-gray-500 mt-0.5">
+              <span>低</span><span>高</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="absolute bottom-3 right-3 z-10 pointer-events-none">
+        <div className="bg-black/60 backdrop-blur-md text-[10px] font-mono text-gray-400 px-3 py-1.5 rounded-xl border border-white/10">
+          {tracks.length} TRACKS · LAT {viewState.latitude.toFixed(2)} LNG {viewState.longitude.toFixed(2)}
+        </div>
+      </div>
+    </Map>
+  );
+}
+
+// ─── Activity Card (Strava-like) ──────────────────────────────────────────────
+
+function ActivityCard({ track, index, color, isActive, onClick }: {
+  track: ArchiveTrack;
+  index: number;
+  color: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <m.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ delay: index * 0.08, type: 'spring', stiffness: 260, damping: 24 }}
+      onClick={onClick}
+      className={`bg-white rounded-3xl p-5 shadow-sm border-2 flex flex-col gap-3 cursor-pointer transition-all duration-200 ${
+        isActive
+          ? 'border-orange-400 shadow-orange-100 shadow-md scale-[1.01]'
+          : 'border-gray-100/80 hover:border-gray-200 hover:shadow-md'
+      }`}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: color }} />
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-0.5 font-mono">
+              {track.date}
+            </p>
+            <h3 className="text-sm font-bold text-gray-900 truncate">{track.title}</h3>
+          </div>
+        </div>
+        {track.distance_km && (
+          <span className="text-xs font-black text-gray-900 tabular-nums flex-shrink-0">
+            {track.distance_km.toFixed(1)}<span className="text-gray-400 font-normal ml-0.5">km</span>
+          </span>
+        )}
+      </div>
+
+      {/* Elevation Profile from real GPX data */}
+      {track.route_data && (track.route_data as number[][])[0]?.[2] !== undefined && (
+        <ElevationProfile routeData={track.route_data} color={color} />
+      )}
+
+      {/* Location */}
+      {track.location_name && (
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <MapPin size={11} className="flex-shrink-0" />
+          <span className="truncate">{track.location_name}</span>
+        </div>
+      )}
+    </m.div>
+  );
+}
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+
+function EmptyTracks() {
+  return (
+    <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center">
+      <Route className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+      <p className="text-sm font-bold text-gray-400">GPX軌跡データなし</p>
+      <p className="text-xs text-gray-400 mt-1">作戦記録にGPXファイルをアップロードすると<br />地図上に走行軌跡が表示されます</p>
+      <Link
+        href="/archives"
+        className="inline-flex items-center gap-1.5 mt-4 text-xs font-semibold text-blue-600 hover:text-blue-700"
+      >
+        作戦記録へ <ChevronRight size={12} />
+      </Link>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function Logistics({ tracks }: { tracks: ArchiveTrack[] }) {
+  const [activeTrackId, setActiveTrackId] = useState<number | null>(null);
+
+  const handleTrackClick = useCallback((id: number | null) => {
+    setActiveTrackId((prev) => (prev === id ? null : id));
+  }, []);
+
+  // 集計
+  const totalDistanceKm = useMemo(
+    () => tracks.reduce((sum, t) => sum + (t.distance_km ?? 0), 0),
+    [tracks]
+  );
+
+  const totalPoints = useMemo(
+    () => tracks.reduce((sum, t) => sum + (t.route_data?.length ?? 0), 0),
+    [tracks]
+  );
 
   return (
     <ClientMotionWrapper>
-    <section className="min-h-screen bg-black text-white py-24 px-6 overflow-hidden relative flex flex-col items-center justify-center">
-      {/* Background Grid Effect */}
-      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none"
-           style={{
-             backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)',
-             backgroundSize: '40px 40px'
-           }}>
-      </div>
+      <div className="bg-[#F5F5F7] min-h-screen font-sans">
 
-      {/* Glow Effect Background */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-900/10 rounded-full blur-3xl pointer-events-none z-0"></div>
-
-      <div className="container mx-auto relative z-10 flex flex-col lg:flex-row items-center gap-16 w-full h-full">
-
-        {/* Text Content (Left / Top) */}
-        <div className="w-full lg:w-1/2 space-y-8">
+        {/* ── Hero / Odometer ─────────────────────────────────────── */}
+        <section className="max-w-7xl mx-auto px-6 lg:px-12 pt-20 pb-16">
           <m.div
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_#22c55e]"></span>
-              <h3 className="text-cyan-400 font-mono text-sm tracking-[0.2em] uppercase">
-                Strategic Logistics Division
-              </h3>
-            </div>
+            <p className="text-[11px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-3">
+              MIENO CORP. — STRATEGIC LOGISTICS DIVISION
+            </p>
+            <h1 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tight mb-2">
+              広域兵站
+            </h1>
+            <p className="text-lg text-gray-500 font-light mb-12">LOGISTICS & FIELD OPERATIONS</p>
 
-            <h2 className="text-5xl md:text-6xl font-bold tracking-tight mb-8">
-              <span className="bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">広域展開作戦</span>
-              <span className="block text-xl md:text-2xl mt-2 font-mono text-gray-600 tracking-widest">LOGISTICS</span>
-            </h2>
-
-            <div className="space-y-6 text-gray-300 font-light">
-              {/* Mission Details Card */}
-              <div className="bg-gray-900/40 p-8 rounded-2xl border border-gray-800 backdrop-blur-md shadow-2xl relative overflow-hidden group hover:border-cyan-500/30 transition-colors duration-500">
-                <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity duration-500">
-                   <svg className="w-12 h-12 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 7m0 13V7m0 0L9.553 2.276A1 1 0 009 2.118v1.764"></path></svg>
+            <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-sm border border-gray-100/80 mb-4">
+              <p className="text-xs font-bold tracking-[0.25em] text-gray-400 uppercase mb-6 flex items-center gap-2">
+                <Route size={14} />
+                累積走破距離
+              </p>
+              <Odometer value={totalDistanceKm || 24530} />
+              <div className="mt-6 grid grid-cols-3 gap-6 pt-6 border-t border-gray-100">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1 font-mono uppercase tracking-wider">記録作戦数</p>
+                  <p className="text-2xl font-black text-gray-900">
+                    {tracks.length}<span className="text-sm font-normal text-gray-400 ml-1">ops</span>
+                  </p>
                 </div>
-
-                <div className="space-y-4 relative z-10">
-                  <div>
-                    <h4 className="flex items-baseline gap-2 mb-1">
-                      <span className="text-sm font-bold text-gray-400">作戦名</span>
-                      <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">CODE</span>
-                    </h4>
-                    <p className="text-xl text-white font-medium tracking-wide">Yuru-Camp (Mar 2026)</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="flex items-baseline gap-2 mb-1">
-                        <span className="text-sm font-bold text-gray-400">予定日程</span>
-                        <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">SCHEDULE</span>
-                      </h4>
-                      <p className="text-sm text-cyan-100 font-mono">2026.03.02 - 03.04</p>
-                    </div>
-                    <div>
-                      <h4 className="flex items-baseline gap-2 mb-1">
-                        <span className="text-sm font-bold text-gray-400">投入機体</span>
-                        <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">ASSET</span>
-                      </h4>
-                      <p className="text-sm text-cyan-100 font-mono">SERENA LUXION (2025)</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="flex items-baseline gap-2 mb-1">
-                      <span className="text-sm font-bold text-gray-400">ルート</span>
-                      <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">ROUTE</span>
-                    </h4>
-                    <p className="text-sm leading-relaxed text-gray-300">
-                      大分（宮河内ベース） 〜 山梨・長野エリア<br/>
-                      <span className="text-xs text-gray-500">（ほったらかし温泉周辺・富士五湖エリア）</span>
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-800">
-                     <h4 className="flex items-baseline gap-2 mb-2">
-                       <span className="text-sm font-bold text-gray-400">作戦目的</span>
-                       <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">OBJECTIVE</span>
-                     </h4>
-                     <ul className="list-disc list-inside text-sm space-y-1 text-gray-400 marker:text-cyan-500">
-                       <li>単独長距離機動におけるProPILOT 2.0のデータ収集および兵站（ロジスティクス）の最適化テスト。</li>
-                       <li>聖地巡礼フィールドワークおよび野営（キャンプ）適性の検証。</li>
-                     </ul>
-                  </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1 font-mono uppercase tracking-wider">GPS記録点数</p>
+                  <p className="text-2xl font-black text-gray-900">
+                    {totalPoints > 0 ? (totalPoints / 1000).toFixed(1) : '—'}
+                    <span className="text-sm font-normal text-gray-400 ml-1">K pts</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1 font-mono uppercase tracking-wider">稼働機体数</p>
+                  <p className="text-2xl font-black text-gray-900">
+                    4<span className="text-sm font-normal text-gray-400 ml-1">units</span>
+                  </p>
                 </div>
               </div>
-
-              {/* Added Button */}
-              <div className="mt-8">
-                <Link href="/units" className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-900/20 border border-cyan-500/30 text-cyan-400 font-mono text-sm tracking-wider rounded-lg hover:bg-cyan-900/40 hover:border-cyan-500/60 transition-all duration-300 group">
-                  <span className="font-bold">機体データベースへアクセス</span>
-                  <span className="text-[10px] opacity-70">ACCESS DATABASE</span>
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </Link>
-              </div>
-
             </div>
           </m.div>
-        </div>
+        </section>
 
-        {/* Map Visualization (Right / Bottom) */}
-        <div className="w-full lg:w-1/2 aspect-[4/3] relative rounded-2xl overflow-hidden border border-gray-800 bg-black shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+        {/* ── Mapbox Map（フル幅）────────────────────────────────── */}
+        <section className="max-w-7xl mx-auto px-6 lg:px-12 pb-8">
+          <m.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="bg-gray-900 rounded-[2rem] overflow-hidden shadow-xl border border-gray-800"
+            style={{ height: '560px' }}
+          >
+            <LogisticsMap
+              tracks={tracks}
+              activeTrackId={activeTrackId}
+              onTrackClick={handleTrackClick}
+            />
+          </m.div>
 
-           {/* Fallback / Offline UI */}
-           {!mapboxToken ? (
-             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm z-30">
-               <div className="text-red-500 font-mono text-2xl tracking-widest animate-pulse mb-2">SYSTEM OFFLINE</div>
-               <div className="text-gray-400 font-mono text-xs">MAP DATA UNAVAILABLE</div>
-               <div className="mt-4 px-4 py-2 border border-red-900/50 bg-red-900/20 rounded text-red-400 font-mono text-xs">
-                 ERROR: MISSING_ACCESS_TOKEN
-               </div>
-               <div className="mt-8 text-center px-8 text-gray-500 text-xs">
-                 <p>To initialize visualization system:</p>
-                 <code className="block mt-2 bg-black p-2 rounded border border-gray-800">NEXT_PUBLIC_MAPBOX_TOKEN=pk.xxx...</code>
-               </div>
-             </div>
-           ) : (
-            <Map
-                mapboxAccessToken={mapboxToken}
-                {...viewState}
-                onMove={evt => setViewState(evt.viewState)}
-                style={{width: '100%', height: '100%'}}
-                mapStyle="mapbox://styles/mapbox/dark-v11"
-                attributionControl={false}
-                reuseMaps
+          {tracks.length === 0 && (
+            <p className="text-center text-xs text-gray-400 mt-3 font-mono">
+              GPXデータが記録された作戦がありません — 作戦記録からGPXをアップロードしてください
+            </p>
+          )}
+        </section>
+
+        {/* ── Activity Cards ─────────────────────────────────────── */}
+        <section className="max-w-7xl mx-auto px-6 lg:px-12 pb-20">
+          <m.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex items-center gap-3 mb-6"
+          >
+            <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center">
+              <Flame className="w-4 h-4 text-orange-500" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-900 leading-none">走行ログ</h2>
+              <p className="text-xs text-gray-400 font-mono tracking-widest mt-0.5">
+                GPS ACTIVITY RECORDS · {tracks.length} ops
+              </p>
+            </div>
+          </m.div>
+
+          {tracks.length === 0 ? (
+            <EmptyTracks />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {tracks.map((track, i) => (
+                <ActivityCard
+                  key={track.id}
+                  track={track}
+                  index={i}
+                  color={TRACK_COLORS[i % TRACK_COLORS.length]}
+                  isActive={activeTrackId === track.id}
+                  onClick={() => handleTrackClick(track.id)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* CTA */}
+          <m.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4"
+          >
+            <Link
+              href="/archives"
+              className="flex items-center justify-between bg-gray-900 text-white rounded-3xl px-6 py-5 hover:bg-gray-800 transition-colors group"
             >
-                <Source id="route-data" type="geojson" data={routeGeoJSON}>
-                    <Layer {...glowLayerStyle} />
-                    <Layer {...layerStyle} />
-                </Source>
-            </Map>
-           )}
-
-           <div className="absolute inset-0 bg-[url('/images/noise.png')] opacity-10 mix-blend-overlay pointer-events-none z-20"></div>
-
-           {/* UI Elements */}
-           <div className="absolute top-4 left-4 z-20 flex flex-col gap-1 pointer-events-none">
-             <span className="text-[10px] font-mono text-cyan-500 tracking-widest animate-pulse">SYSTEM STATUS: {mapboxToken ? 'ONLINE' : 'OFFLINE'}</span>
-             <span className="text-[10px] font-mono text-gray-600">LAT: {viewState.latitude.toFixed(4)} N / LNG: {viewState.longitude.toFixed(4)} E</span>
-           </div>
-
-           <div className="absolute bottom-4 right-4 z-20 text-right pointer-events-none">
-             <span className="text-[10px] font-mono text-cyan-500 tracking-widest block">TARGET ACQUISITION</span>
-             <span className="text-[10px] font-mono text-gray-600">DISTANCE: 850KM (EST)</span>
-           </div>
-        </div>
+              <div>
+                <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">OPERATION RECORDS</p>
+                <p className="font-bold">作戦記録・GPXアップロード</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/units"
+              className="flex items-center justify-between bg-white border border-gray-200 text-gray-900 rounded-3xl px-6 py-5 hover:shadow-md transition-all group"
+            >
+              <div>
+                <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-1">DATABASE LINK</p>
+                <p className="font-bold">機体データベース</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-300 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </m.div>
+        </section>
 
       </div>
-    </section>
-  </ClientMotionWrapper>
+    </ClientMotionWrapper>
   );
-};
-
-export default Logistics;
+}
