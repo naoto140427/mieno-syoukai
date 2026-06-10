@@ -7,7 +7,14 @@ import { ArrowLeft, CheckCircle2, Circle, BarChart3, ArrowRight, Zap, Gauge, Act
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 import { COMPARE_UNITS, THEME_COLORS, type CompareUnit } from '@/lib/units-data';
 
-const SPEC_ICONS = [<Cpu size={13} />, <Box size={13} />, <Zap size={13} />, <Activity size={13} />, <Gauge size={13} />, <Fuel size={13} />];
+const SPEC_ICONS = [
+  { id: 'cpu',      Icon: Cpu      },
+  { id: 'box',      Icon: Box      },
+  { id: 'zap',      Icon: Zap      },
+  { id: 'activity', Icon: Activity },
+  { id: 'gauge',    Icon: Gauge    },
+  { id: 'fuel',     Icon: Fuel     },
+];
 
 const MAX_SELECT = 4;
 
@@ -234,7 +241,7 @@ export default function UnitCompareClient() {
                       return (
                         <div key={label} className="border-b border-gray-50 pb-5 last:border-0 last:pb-0">
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="text-gray-400">{SPEC_ICONS[si + 1]}</span>
+                            {(() => { const item = SPEC_ICONS[si + 1] ?? SPEC_ICONS[0]; return <item.Icon key={item.id} size={13} className="text-gray-400" />; })()}
                             <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">{label}</span>
                           </div>
                           {/* 各車両の値 */}

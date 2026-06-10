@@ -232,7 +232,7 @@ export default function AgentDashboardClient({ user, agentProfile, surveys, requ
                           </div>
                           {survey.message && (
                             <p className="mt-2.5 text-[11px] text-gray-400 italic border-t border-gray-100 pt-2.5 line-clamp-1">
-                              "{survey.message}"
+                              &ldquo;{survey.message}&rdquo;
                             </p>
                           )}
                         </m.div>

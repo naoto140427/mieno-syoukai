@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
-import { Unit } from '@/types/database';
+import { Unit, UnitDocument } from '@/types/database';
 
 // ─────────────────────────────────────────────────────────────
 // PUBLIC READ FUNCTIONS (Zero-Latency / Edge Cached)
@@ -21,7 +21,7 @@ export const getUnits = unstable_cache(
       return [];
     }
 
-    return (data as Unit[]) || [];
+    return (data as unknown as Unit[]) || [];
   },
   ['units-list'],
   { tags: ['units'], revalidate: false }
@@ -51,8 +51,9 @@ export const getUnitBySlug = unstable_cache(
         ...data,
         specs: Array.isArray(data.specs) ? data.specs : [],
         docs: Array.isArray(data.docs)
-          ? data.docs.map((doc: any) => ({
+          ? (data.docs as (Omit<UnitDocument, 'size' | 'date'> & { date: string | null })[]).map((doc) => ({
               ...doc,
+              date: doc.date || '',
               size: '-'
             }))
           : [],
@@ -102,7 +103,10 @@ export async function updateUnit(id: number, data: Partial<Unit>) {
   return { success: true };
 }
 
-export async function addMaintenanceLog(unitId: number, data: { date: string, type: string, description: string, cost: number }) {
+export async function addMaintenanceLog(
+  unitId: number,
+  data: { date: string; type: string; description: string; cost: number; distance_km?: number }
+) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -118,7 +122,7 @@ export async function addMaintenanceLog(unitId: number, data: { date: string, ty
       log_type: data.type,
       title: data.description,
       details: data.description,
-      cost: data.cost
+      cost: data.cost,
     });
 
   if (error) {
@@ -126,9 +130,28 @@ export async function addMaintenanceLog(unitId: number, data: { date: string, ty
     throw new Error('Failed to add maintenance log');
   }
 
-  // キャッシュパージ（slug取得してピンポイントでパージ）
+  // ── 走行距離が指定された場合、odometerを加算 ──────────────────
+  if (data.distance_km && data.distance_km > 0) {
+    // 現在のodometerを取得してから加算（アトミックではないがRLSを通す安全な方法）
+    const { data: currentUnit } = await supabase
+      .from('units')
+      .select('odometer, slug')
+      .eq('id', unitId)
+      .single();
+
+    if (currentUnit) {
+      const newOdometer = (currentUnit.odometer ?? 0) + data.distance_km;
+      await supabase
+        .from('units')
+        .update({ odometer: newOdometer })
+        .eq('id', unitId);
+    }
+  }
+
+  // キャッシュパージ
   const { data: unit } = await supabase.from('units').select('slug').eq('id', unitId).single();
   revalidateTag('units', 'default');
+  revalidatePath('/logistics');
   if (unit) {
     revalidatePath(`/units/${unit.slug}`);
   }

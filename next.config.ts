@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-} as any;
+};
 
 export default withSentryConfig(nextConfig, {
   // For all available options, see:

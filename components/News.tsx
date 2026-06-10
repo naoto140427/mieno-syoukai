@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { m, AnimatePresence, Variants } from 'framer-motion';
+import { m, Variants } from 'framer-motion';
 import { ArrowRight, Plus, Edit2, Trash2, Calendar, MapPin, Pin } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';

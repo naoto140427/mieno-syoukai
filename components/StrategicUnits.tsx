@@ -3,7 +3,8 @@
 import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { m, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import { m, useScroll, useTransform, AnimatePresence, MotionConfig } from 'framer-motion';
 import { ChevronRight, Gauge, Calendar, Wrench, Edit2, X, Save, User } from 'lucide-react';
 import { Unit } from '@/types/database';
 import { updateUnit } from '@/app/actions/units';
@@ -126,25 +127,36 @@ const UnitSection = ({ unit, index, dbUnits, isAdmin, onEdit }: { unit: UnitData
       <div className={`container mx-auto px-6 flex flex-col md:flex-row items-center gap-16 ${isEven ? '' : 'md:flex-row-reverse'}`}>
 
         {/* Image Side */}
-        <div className="w-full md:w-1/2 relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-800 shadow-2xl group">
-           {/* Parallax Background Simulation */}
-           <m.div
-             style={{ y }}
-             className="absolute inset-0 w-full h-[120%] -top-[10%] bg-gray-200 flex items-center justify-center text-gray-400 font-bold text-2xl tracking-widest transition-colors duration-500 group-hover:bg-gray-300 dark:group-hover:bg-gray-700"
-           >
-             <AnimatePresence mode='wait'>
-                <m.span
-                    key={currentImageLabel}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.1 }}
-                    transition={{ duration: 0.4 }}
-                    className="block text-center px-4"
+        <div className="w-full md:w-1/2 relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100 shadow-2xl group">
+          <m.div
+            layoutId={`unit-image-${currentSlug}`}
+            style={{ y }}
+            className="absolute inset-0 w-full h-[120%] -top-[10%]"
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          >
+            {dbUnit?.image_url ? (
+              <Image
+                src={dbUnit.image_url}
+                alt={displayName ?? ''}
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            ) : (
+              <AnimatePresence mode="wait">
+                <m.div
+                  key={currentImageLabel}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.1 }}
+                  transition={{ duration: 0.4 }}
+                  className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 font-bold text-2xl tracking-widest group-hover:bg-gray-300 transition-colors"
                 >
-                    {currentImageLabel}
-                </m.span>
-             </AnimatePresence>
-           </m.div>
+                  {currentImageLabel}
+                </m.div>
+              </AnimatePresence>
+            )}
+          </m.div>
         </div>
 
         {/* Text Side */}
@@ -312,6 +324,7 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
 
   return (
     <ClientMotionWrapper>
+    <MotionConfig transition={{ type: 'spring', stiffness: 280, damping: 30 }}>
     <div className="bg-white text-mieno-text">
       {/* Title Section */}
       <section className="py-24 text-center bg-gray-50">
@@ -444,6 +457,7 @@ export default function StrategicUnits({ units: dbUnits = [], isAdmin = false }:
         document.body
       )}
     </div>
+    </MotionConfig>
   </ClientMotionWrapper>
   );
 }
