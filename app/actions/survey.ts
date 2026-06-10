@@ -198,7 +198,7 @@ export async function getAllTouringSurveys() {
         }
 
         // Map data to handle relation smoothly
-        return (data || []).map((item: any) => ({
+        return (data || []).map((item: TouringSurvey & { news?: { title: string } | null }) => ({
             ...item,
             news_title: item.news?.title || 'Unknown Operation'
         }));

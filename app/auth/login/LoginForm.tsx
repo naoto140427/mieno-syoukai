@@ -16,14 +16,15 @@ const initialState = {
 export default function LoginForm() {
   const [state, formAction, isPending] = useActionState(signInWithEmail, initialState)
   const [email, setEmail] = useState('')
-  const [isWaiting, setIsWaiting] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  // state.success が true ならウェイト中と見なす（派生値のためsetStateは不要）
+  const isWaiting = state.success
 
   // 別タブでmagic linkがクリックされた場合にこのタブも自動リダイレクト
   useEffect(() => {
     if (!state.success) return
-    setIsWaiting(true)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         router.push('/agent')

@@ -5,43 +5,41 @@ import { m, useScroll, useTransform } from 'framer-motion';
 import Link from 'next/link';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
+// ── トップレベルで定義（render内定義は禁止） ──────────────────────────────
+function RevealText({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  return (
+    <m.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-100px' }}
+      transition={{ duration: 1, delay, ease: [0.16, 1, 0.3, 1] }}
+      variants={{
+        hidden: { opacity: 0, y: 20, clipPath: 'inset(100% 0 0 0)' },
+        visible: { opacity: 1, y: 0, clipPath: 'inset(0% 0 0 0)' },
+      }}
+    >
+      {children}
+    </m.div>
+  );
+}
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 40 },
+  whileInView: { opacity: 1, y: 0 },
+  transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] },
+};
+
 export default function CareersPage() {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Track scroll progress within the container
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"]
+    offset: ['start start', 'end end'],
   });
 
-  // Hero section parallax values
-  const heroScale = useTransform(scrollYProgress, [0, 0.2], [1, 1.5]);
+  const heroScale   = useTransform(scrollYProgress, [0, 0.2], [1, 1.5]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 0.2], [0, 100]);
-
-  // Reveal Text component for elegant typography masking
-  const RevealText = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => {
-    return (
-      <m.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 1, delay, ease: [0.16, 1, 0.3, 1] }}
-        variants={{
-          hidden: { opacity: 0, y: 20, clipPath: 'inset(100% 0 0 0)' },
-          visible: { opacity: 1, y: 0, clipPath: 'inset(0% 0 0 0)' }
-        }}
-      >
-        {children}
-      </m.div>
-    );
-  }
-
-  const fadeInUp = {
-    initial: { opacity: 0, y: 40 },
-    whileInView: { opacity: 1, y: 0 },
-    transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] }
-  };
+  const heroY       = useTransform(scrollYProgress, [0, 0.2], [0, 100]);
 
   return (
     <ClientMotionWrapper>

@@ -237,7 +237,7 @@ export default function ArchiveDetailClient({ archive, isAdmin }: Props) {
           </div>
 
             {/* Elevation Chart */}
-            {hasRoute && (archive.route_data as any[])[0]?.length >= 3 && (
+            {hasRoute && archive.route_data && archive.route_data[0] && archive.route_data[0].length >= 3 && (
               <ElevationChart routeData={archive.route_data as [number, number, number][]} />
             )}
 

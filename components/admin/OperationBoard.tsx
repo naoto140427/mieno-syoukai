@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-import { X, Kanban, CheckCircle2, Clock, Activity, GripVertical, Users, MapPin, Calendar, FileText, Trash2, Download, Package } from 'lucide-react';
+import { X, Kanban, CheckCircle2, Clock, Activity, GripVertical, Users, FileText, Trash2, Download, Package } from 'lucide-react';
 import { getSurveysByNewsId, deleteSurvey } from '@/app/actions/survey';
 import { approveInventoryRequest } from '@/app/actions/inventory';
 import { createClient } from '@/lib/supabase/client';
-import type { TouringSurvey } from '@/types/database';
+import type { TouringSurvey, InventoryRequest } from '@/types/database';
 import { updateNewsStatus } from '@/app/actions/admin';
 import type { News } from '@/types/database';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
@@ -18,7 +18,6 @@ interface OperationBoardProps {
 }
 
 export default function OperationBoard({ isOpen, onClose, operations }: OperationBoardProps) {
-  const touringOps = operations.filter(op => op.category === 'TOURING');
 
   // States for lanes
   const [upcoming, setUpcoming] = useState<News[]>([]);
@@ -27,7 +26,7 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
 
   const [selectedOp, setSelectedOp] = useState<News | null>(null);
   const [roster, setRoster] = useState<TouringSurvey[]>([]);
-  const [inventoryRequests, setInventoryRequests] = useState<any[]>([]);
+  const [inventoryRequests, setInventoryRequests] = useState<InventoryRequest[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
@@ -35,15 +34,16 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
       supabase.from('inventory_requests')
         .select('*, tool:tool_id(*), agent:agents(*)')
         .eq('status', 'PENDING')
-        .then(({ data }) => setInventoryRequests(data || []));
+        .then(({ data }) => setInventoryRequests((data as unknown as InventoryRequest[]) || []));
     }
-  }, [isOpen]);
+  }, [isOpen, supabase]);
 
   const handleApproveRequest = async (reqId: number, toolId: number) => {
     try {
       await approveInventoryRequest(reqId, toolId);
       setInventoryRequests(prev => prev.filter(r => r.id !== reqId));
     } catch (e) {
+      console.error(e);
       alert('Failed to approve request');
     }
   };
@@ -97,6 +97,7 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
 
 
   useEffect(() => {
+    const touringOps = operations.filter(op => op.category === 'TOURING');
     setUpcoming(touringOps.filter(op => op.location === 'Upcoming' || !op.location));
     setActive(touringOps.filter(op => op.location === 'Active'));
     setCompleted(touringOps.filter(op => op.location === 'Completed'));
@@ -283,7 +284,7 @@ export default function OperationBoard({ isOpen, onClose, operations }: Operatio
                                      </span>
                                    </div>
                                    <div className="text-xs text-gray-500 font-mono mb-3">
-                                      Req: {req.agent?.name || 'Agent'} <br/>
+                                      Req: {req.agent?.codename || 'Agent'} <br/>
                                       Dates: {new Date(req.start_date).toLocaleDateString()} - {new Date(req.end_date).toLocaleDateString()}
                                    </div>
                                    <button

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import AdminDashboardClient from './AdminDashboardClient';
 import AdminLoginClient from './AdminLoginClient';
 import { getAllTouringSurveys } from '@/app/actions/survey';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export default async function AdminPage() {
     return <AdminLoginClient />;
   }
 
-  const { data: profile, error: dbError } = await supabase
+  const { data: profile } = await supabase
     .from('agents')
     .select('role, email, codename')
     .eq('email', user.email)
@@ -50,12 +51,12 @@ export default async function AdminPage() {
           <p className="text-gray-600 font-mono text-xs tracking-widest uppercase mb-10">Clearance Level: CTO / CEO / CMO / Admin Required</p>
 
           {/* Back button */}
-          <a
+          <Link
             href="/"
             className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-full text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all font-mono tracking-widest uppercase"
           >
             ← Return to Base
-          </a>
+          </Link>
         </div>
       </div>
     );
