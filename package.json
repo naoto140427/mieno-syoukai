@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:preview": "BASE_URL=https://preview.mieno-shokai.com playwright test"
   },
   "dependencies": {
     "@google/genai": "^1.45.0",
