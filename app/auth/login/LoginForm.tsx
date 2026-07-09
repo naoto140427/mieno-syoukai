@@ -3,8 +3,8 @@ import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 import { useState, useActionState, useEffect } from 'react'
 import { m, AnimatePresence } from 'framer-motion'
-import { Mail, ArrowRight, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react'
-import { signInWithEmail } from '@/app/actions/auth'
+import { Mail, ArrowRight, Loader2, CheckCircle2, ShieldCheck, Lock } from 'lucide-react'
+import { signInWithEmail, signInWithTestPassword } from '@/app/actions/auth'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -14,8 +14,17 @@ const initialState = {
 }
 
 export default function LoginForm() {
-  const [state, formAction, isPending] = useActionState(signInWithEmail, initialState)
   const [email, setEmail] = useState('')
+  const isTestEmail = email === 'naoto150127@gmail.com' || email === 'preview-agent@mieno-shokai.com';
+
+  const handleAction = async (prevState: any, formData: FormData) => {
+    if (isTestEmail) {
+      return signInWithTestPassword(prevState, formData)
+    }
+    return signInWithEmail(prevState, formData)
+  }
+
+  const [state, formAction, isPending] = useActionState(handleAction, initialState)
   const router = useRouter()
   const supabase = createClient()
 
@@ -25,14 +34,21 @@ export default function LoginForm() {
   // 別タブでmagic linkがクリックされた場合にこのタブも自動リダイレクト
   useEffect(() => {
     if (!state.success) return
+    
+    if (isTestEmail) {
+      router.push('/agent')
+      router.refresh()
+      return
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         router.push('/agent')
         router.refresh()
       }
     })
-    return () => subscription.unsubscribe()
-  }, [state.success]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => subscription?.unsubscribe()
+  }, [state.success, isTestEmail, router, supabase.auth]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <ClientMotionWrapper>
@@ -131,6 +147,30 @@ export default function LoginForm() {
                   </div>
                 </div>
 
+                {isTestEmail && (
+                  <m.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-2"
+                  >
+                    <label htmlFor="password" className="block text-xs font-medium text-[#86868B] uppercase tracking-wider">
+                      Test Password
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Lock className="h-5 w-5 text-[#86868B]" strokeWidth={1.5} />
+                      </div>
+                      <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        className="block w-full pl-11 pr-4 py-3.5 bg-white/50 border border-black/[0.08] rounded-2xl text-[#1D1D1F] focus:ring-2 focus:ring-black/5 focus:border-black/20 outline-none transition-all duration-200"
+                      />
+                    </div>
+                  </m.div>
+                )}
+
                 {state.message && !state.success && (
                   <m.div
                     initial={{ opacity: 0, height: 0 }}
@@ -153,7 +193,7 @@ export default function LoginForm() {
                     </>
                   ) : (
                     <>
-                      <span>認証リンクを送信</span>
+                      <span>{isTestEmail ? 'ログイン' : '認証リンクを送信'}</span>
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </>
                   )}

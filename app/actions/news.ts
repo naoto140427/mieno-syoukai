@@ -155,6 +155,8 @@ export async function deleteNews(id: number) {
 
 export async function sendLineNotification(title: string, url: string) {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  const groupId = process.env.LINE_GROUP_ID;
+
   if (!token) {
     console.warn('LINE_CHANNEL_ACCESS_TOKEN not set. Skipping LINE notification.');
     return;
@@ -163,24 +165,49 @@ export async function sendLineNotification(title: string, url: string) {
   const message = `[MIENO COMMAND CENTER] 新たな作戦『${title}』が発令されました。各員、直ちに詳細を確認しRSVPを提出せよ。 URL: ${url}`;
 
   try {
-    const response = await fetch('https://api.line.me/v2/bot/message/broadcast', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            type: 'text',
-            text: message
-          }
-        ]
-      })
-    });
+    if (groupId) {
+      // グループIDが設定されている場合はプッシュ配信
+      const response = await fetch('https://api.line.me/v2/bot/message/push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          to: groupId,
+          messages: [
+            {
+              type: 'text',
+              text: message
+            }
+          ]
+        })
+      });
 
-    if (!response.ok) {
-      console.error('Failed to send LINE notification:', await response.text());
+      if (!response.ok) {
+        console.error('Failed to send LINE push notification:', await response.text());
+      }
+    } else {
+      // グループIDがない場合は従来のブロードキャスト（個人宛一斉送信）
+      const response = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              type: 'text',
+              text: message
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to send LINE broadcast notification:', await response.text());
+      }
     }
   } catch (error) {
     console.error('Error sending LINE notification:', error);
