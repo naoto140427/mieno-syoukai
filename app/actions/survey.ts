@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { TouringSurvey } from '@/types/database';
 
-export async function upsertSurvey(data: { news_id: number | string, attendance_status: 'JOIN' | 'PENDING' | 'DECLINE', vehicle_info?: string, message?: string }) {
+export async function upsertSurvey(data: { news_id: number | string, agent_name?: string, attendance_status: 'JOIN' | 'PENDING' | 'DECLINE', vehicle_info?: string, message?: string }) {
     try {
         const supabase = await createClient();
 
@@ -15,10 +15,13 @@ export async function upsertSurvey(data: { news_id: number | string, attendance_
         }
 
         // Determine agent_name securely
-        let agentName = user.email || 'Unknown Agent';
-        const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
-        if (profile && profile.codename) {
-            agentName = profile.codename;
+        let agentName = data.agent_name;
+        if (!agentName) {
+            agentName = user.email || 'Unknown Agent';
+            const { data: profile } = await supabase.from('agents').select('*').eq('id', user.id).single();
+            if (profile && profile.codename) {
+                agentName = profile.codename;
+            }
         }
 
         // Cast news_id to string to match DB column type

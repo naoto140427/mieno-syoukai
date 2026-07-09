@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import AdminDashboardClient from './AdminDashboardClient';
 import AdminLoginClient from './AdminLoginClient';
 import { getAllTouringSurveys } from '@/app/actions/survey';
+import { getAuditLogs } from '@/app/actions/audit';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -75,14 +76,16 @@ export default async function AdminPage() {
     { count: unreadInquiriesCount },
     { data: latestInquiries },
     { data: latestNews },
-    surveys
+    surveys,
+    auditLogs
   ] = await Promise.all([
     supabase.from('news').select('*', { count: 'exact', head: true }),
     supabase.from('archives').select('*', { count: 'exact', head: true }),
     supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('status', 'unread'),
     supabase.from('inquiries').select('*').order('created_at', { ascending: false }).limit(5),
-    supabase.from('news').select('*').order('date', { ascending: false }).limit(5),
-    getAllTouringSurveys()
+    supabase.from('news').select('*').order('date', { ascending: false }).limit(50),
+    getAllTouringSurveys(),
+    getAuditLogs()
   ]);
 
   const stats = {
@@ -91,5 +94,5 @@ export default async function AdminPage() {
     unreadInquiries: unreadInquiriesCount || 0
   };
 
-  return <AdminDashboardClient user={user} stats={stats} latestInquiries={latestInquiries || []} latestNews={latestNews || []} surveys={surveys} />;
+  return <AdminDashboardClient user={user} role={role || (isTestAgent ? 'admin' : '')} stats={stats} latestInquiries={latestInquiries || []} latestNews={latestNews || []} surveys={surveys} auditLogs={auditLogs} />;
 }

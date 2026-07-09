@@ -39,8 +39,8 @@ test.describe('Navigation', () => {
     for (const link of links) {
       await page.getByRole('button', { name: 'Open main menu' }).click();
       // Target the mobile menu overlay specifically to avoid matching footer links
-      // Use exact: true to distinguish between "Contact" and "Contact Us"
-      const menuLink = page.locator('.fixed.inset-0').getByRole('link', { name: link.name, exact: true });
+      // Use exact: false to match names like "機動戦力 UNITS"
+      const menuLink = page.locator('.fixed.inset-0').getByRole('link', { name: link.name, exact: false });
       await expect(menuLink).toBeVisible();
       await menuLink.click();
       await expect(page).toHaveURL(new RegExp(link.href));

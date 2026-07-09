@@ -55,17 +55,28 @@ export interface Inquiry {
 }
 
 export interface News {
-  is_pinned?: boolean;
   id: number;
-  date: string;
   category: 'PRESS' | 'UPDATE' | 'REPORT' | 'OTHER' | 'TOURING';
   title: string;
   content: string;
+  status?: 'DRAFT' | 'PUBLISHED';
   image_url?: string;
   event_date?: string;
   location?: string;
   requirements?: string;
-  created_at?: string;
+  date: string;
+  is_pinned: boolean;
+  created_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  target_table?: string;
+  target_id?: string;
+  user_id?: string;
+  details?: any;
+  created_at: string;
 }
 
 export interface TouringSurvey {

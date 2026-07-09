@@ -48,3 +48,35 @@ export async function signInWithEmail(prevState: Record<string, unknown>, formDa
     }
   }
 }
+
+export async function signInWithTestPassword(prevState: Record<string, unknown>, formData: FormData) {
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+
+  if (!email || !password) {
+    return { success: false, message: 'メールアドレスとパスワードを入力してください。' }
+  }
+
+  const allowedTestEmails = ['preview-agent@mieno-shokai.com', 'naoto150127@gmail.com'];
+  if (!allowedTestEmails.includes(email)) {
+    return { success: false, message: 'テストアカウントではありません。' }
+  }
+
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      console.error('Test login error:', error)
+      return { success: false, message: '認証に失敗しました。パスワードをご確認ください。' }
+    }
+
+    return { success: true, message: 'ログイン成功' }
+  } catch (error: unknown) {
+    console.error('Test auth error:', error)
+    return { success: false, message: '予期せぬエラーが発生しました。' }
+  }
+}

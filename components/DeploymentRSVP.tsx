@@ -14,27 +14,30 @@ interface DeploymentRSVPProps {
 
 type StatusOption = 'JOIN' | 'PENDING' | 'DECLINE';
 
-const VEHICLES = [
-    'Main Unit (CBR600RR)',
-    'City Commuter (Monkey 125)',
-    'Transport (Serena)',
-    'Other / Rental'
-];
+const NAMES = ['渡邊直人', '末森知輝', '三重野匠', '坂井龍乃丞'];
+
+const getVehiclesForName = (n: string) => {
+    if (n === '渡邊直人') return ['CBR400R', 'Serena LUXION', 'Other / Rental'];
+    if (n === '末森知輝') return ['CBR600RR', 'Monkey125', 'Other / Rental'];
+    return ['Other / Rental'];
+};
 
 export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVPProps) {
+    const [name, setName] = useState(initialSurvey?.agent_name || NAMES[0]);
     const [status, setStatus] = useState<StatusOption>(initialSurvey?.attendance_status || 'PENDING');
-    const [vehicle, setVehicle] = useState(initialSurvey?.vehicle_info || VEHICLES[0]);
+    const [vehicle, setVehicle] = useState(initialSurvey?.vehicle_info || getVehiclesForName(name)[0]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
 
     const handleStatusChange = (newStatus: StatusOption) => {
         setStatus(newStatus);
-        // Auto-clear vehicle if not joining to keep UI clean
-        if (newStatus !== 'JOIN') {
-             // We can keep the state but maybe default it back to empty or first option,
-             // but keeping it as is works too.
-        }
+    };
+
+    const handleNameChange = (newName: string) => {
+        setName(newName);
+        // Reset vehicle when name changes, if JOIN is selected
+        setVehicle(getVehiclesForName(newName)[0]);
     };
 
     const [message, setMessage] = useState(initialSurvey?.message || '');
@@ -45,6 +48,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
         try {
             const result = await upsertSurvey({
                 news_id: newsId,
+                agent_name: name,
                 attendance_status: status,
                 vehicle_info: status === 'JOIN' ? vehicle : undefined,
                 message: message
@@ -76,6 +80,21 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
 
             {!showSuccess ? (
             <div className="space-y-6">
+                {/* Name Selection */}
+                <div className="pt-2">
+                    <label className="block text-xs font-bold text-gray-500 tracking-wider mb-2">AGENT NAME</label>
+                    <select
+                        value={name}
+                        onChange={(e) => handleNameChange(e.target.value)}
+                        disabled={isSubmitting}
+                        className="w-full bg-white border border-gray-200 text-gray-800 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-mieno-blue focus:border-transparent appearance-none"
+                    >
+                        {NAMES.map(n => (
+                            <option key={n} value={n}>{n}</option>
+                        ))}
+                    </select>
+                </div>
+
                 {/* Segmented Control */}
                 <div className="flex p-1 bg-white rounded-xl shadow-inner border border-gray-100">
                     {(['JOIN', 'PENDING', 'DECLINE'] as StatusOption[]).map((option) => (
@@ -109,7 +128,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
 
                 {/* Optional Vehicle Selection for JOIN */}
                 <AnimatePresence>
-                    {status === 'JOIN' && (
+                    {status === 'JOIN' && (name === '渡邊直人' || name === '末森知輝') && (
                         <m.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
@@ -124,7 +143,7 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                                     disabled={isSubmitting}
                                     className="w-full bg-white border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-mieno-blue focus:border-transparent appearance-none"
                                 >
-                                    {VEHICLES.map(v => (
+                                    {getVehiclesForName(name).map(v => (
                                         <option key={v} value={v}>{v}</option>
                                     ))}
                                 </select>

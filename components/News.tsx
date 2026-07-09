@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { News as NewsType } from '@/types/database';
 import { deleteNews } from '@/app/actions/news';
-import NewsModal from './NewsModal';
+import LiveEditor from '@/components/admin/LiveEditor';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
 const containerVariants: Variants = {
@@ -51,15 +51,6 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
   const openModal = (item?: NewsType) => {
     setCurrentNews(item ?? null);
     setIsModalOpen(true);
-  };
-
-  const handleSave = async (formData: Omit<NewsType, 'id' | 'created_at'>) => {
-    const { addNews, updateNews } = await import('@/app/actions/news');
-    if (currentNews) {
-      await updateNews(currentNews.id, formData);
-    } else {
-      await addNews(formData);
-    }
   };
 
   const handleDelete = async () => {
@@ -245,11 +236,9 @@ export default function News({ news = [], isAdmin = false }: NewsProps) {
 
       {/* Admin Modal */}
       {mounted && (
-        <NewsModal
+        <LiveEditor
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onSave={handleSave}
-          onDelete={currentNews ? handleDelete : undefined}
           initialData={currentNews}
         />
       )}
