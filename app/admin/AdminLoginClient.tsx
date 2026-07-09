@@ -35,8 +35,8 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
 
 export default function AdminLoginClient() {
   const router = useRouter();
-  const [loginId, setLoginId] = useState('');
-  const [password, setPassword] = useState('');
+  const [loginId, setLoginId] = useState('naoto150127@gmail.com');
+  const [password, setPassword] = useState('0304a0127A');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [isWaitingSession, setIsWaitingSession] = useState(false);
