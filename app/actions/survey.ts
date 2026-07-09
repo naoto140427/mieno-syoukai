@@ -174,9 +174,10 @@ export async function getAllTouringSurveys() {
             .single();
 
         const role = profile?.role;
-        const adminRoles = ['CTO', 'CEO', 'CMO', 'Admin'];
+        // Role判定を大文字小文字無視に
+        const adminRoles = ['cto', 'ceo', 'cmo', 'admin'];
 
-        if (!role || !adminRoles.includes(role)) {
+        if (!role || !adminRoles.includes(role.toLowerCase())) {
             console.error('Unauthorized: Not an admin');
             return [];
         }
