@@ -10,7 +10,8 @@ export async function POST(request: Request) {
   }
 
   // プレビューテスト用の特定のメールアドレスのみ許可する安全策
-  if (email !== 'preview-agent@mieno-shokai.com') {
+  const allowedTestEmails = ['preview-agent@mieno-shokai.com', 'naoto150127@gmail.com'];
+  if (!allowedTestEmails.includes(email)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
