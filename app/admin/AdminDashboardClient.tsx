@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import {
   LogOut, Activity, Archive, Megaphone, Mail, Settings,
-  Users, Radio, Shield, Zap, ChevronRight, Terminal,
+  Users, Radio, Shield, Zap, ChevronRight, Terminal, ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
-import type { Inquiry, News, TouringSurvey } from '@/types/database';
+import type { Inquiry, News, TouringSurvey, AuditLog } from '@/types/database';
 
 import TransmissionControl from '@/components/admin/TransmissionControl';
 import LiveEditor from '@/components/admin/LiveEditor';
@@ -23,10 +23,12 @@ const supabase = createClient();
 
 interface DashboardProps {
   user: SupabaseUser;
+  role: string;
   stats: { news: number; archives: number; unreadInquiries: number };
   latestInquiries: Inquiry[];
   latestNews: News[];
   surveys?: TouringSurvey[];
+  auditLogs?: AuditLog[];
 }
 
 // ─── Clock ────────────────────────────────────────────────────────────────────
@@ -108,7 +110,7 @@ function StatCard({ label, value, icon: Icon, accent, onClick }: {
 
 function LogStream({ items, onClick, type }: {
   items: (Inquiry | News)[];
-  onClick: () => void;
+  onClick: (item?: Inquiry | News) => void;
   type: 'inquiry' | 'news';
 }) {
   return (
@@ -127,7 +129,7 @@ function LogStream({ items, onClick, type }: {
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.05 }}
-            onClick={onClick}
+            onClick={() => onClick(item)}
             className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.07] hover:border-white/10 cursor-pointer transition-all group"
           >
             <div className="flex items-center gap-3 min-w-0">
@@ -165,7 +167,8 @@ function useHotkey(key: string, callback: () => void) {
 
 // ─── Command Bar ─────────────────────────────────────────────────────────────
 
-function CommandBar({ onTransmission, onLiveEditor, onOperationBoard, onRSVP, onGlobalOverride }: {
+function CommandBar({ role, onTransmission, onLiveEditor, onOperationBoard, onRSVP, onGlobalOverride }: {
+  role: string;
   onTransmission: () => void;
   onLiveEditor: () => void;
   onOperationBoard: () => void;
@@ -175,12 +178,17 @@ function CommandBar({ onTransmission, onLiveEditor, onOperationBoard, onRSVP, on
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
+  const normalizedRole = role.toLowerCase();
+  const canAccessSettings = normalizedRole === 'admin' || normalizedRole === 'cto' || normalizedRole === 'ceo';
+  const canAccessOpBoard = normalizedRole !== 'cmo'; 
+  const canAccessTransmission = normalizedRole !== 'cmo';
+
   const COMMANDS = [
-    { label: '通信管制 Transmission Control', shortcut: 'T', action: onTransmission, icon: Radio },
+    ...(canAccessTransmission ? [{ label: '通信管制 Transmission Control', shortcut: 'T', action: onTransmission, icon: Radio }] : []),
     { label: 'ライブエディタ Live Editor',     shortcut: 'E', action: onLiveEditor,   icon: Megaphone },
-    { label: '作戦ボード Operation Board',     shortcut: 'O', action: onOperationBoard,icon: Archive },
+    ...(canAccessOpBoard ? [{ label: '作戦ボード Operation Board',     shortcut: 'O', action: onOperationBoard,icon: Archive }] : []),
     { label: 'RSVP モニター',                  shortcut: 'R', action: onRSVP,         icon: Users },
-    { label: 'グローバル設定 Override',         shortcut: 'G', action: onGlobalOverride,icon: Settings },
+    ...(canAccessSettings ? [{ label: 'グローバル設定 Override',         shortcut: 'G', action: onGlobalOverride,icon: Settings }] : []),
   ];
 
   const filtered = COMMANDS.filter((c) =>
@@ -257,20 +265,30 @@ function CommandBar({ onTransmission, onLiveEditor, onOperationBoard, onRSVP, on
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function AdminDashboardClient({ user, stats, latestInquiries, latestNews, surveys = [] }: DashboardProps) {
+export default function AdminDashboardClient({ user, role, stats, latestInquiries, latestNews, surveys = [], auditLogs = [] }: DashboardProps) {
   const router = useRouter();
   const [isTransmissionOpen, setTransmissionOpen] = useState(false);
   const [isLiveEditorOpen, setLiveEditorOpen] = useState(false);
+  const [editingNews, setEditingNews] = useState<News | null>(null);
   const [isOperationBoardOpen, setOperationBoardOpen] = useState(false);
   const [isGlobalOverrideOpen, setGlobalOverrideOpen] = useState(false);
   const [isRSVPOpen, setRSVPOpen] = useState(false);
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.refresh();
-  }, [router]);
+  };
 
-  const rsvpActive = surveys.filter((s) => s.attendance_status === 'JOIN' || s.attendance_status === 'PENDING').length;
+  const rsvpActive = surveys.filter((s: { attendance_status: string; }) => s.attendance_status === 'PENDING').length;
+
+  const handleOpenLiveEditor = (news?: News) => {
+    setEditingNews(news || null);
+    setLiveEditorOpen(true);
+  };
+
+  const drafts = latestNews.filter(n => n.status === 'DRAFT');
+  const publishedNews = latestNews.filter(n => n.status !== 'DRAFT');
 
   return (
     <ClientMotionWrapper>
@@ -289,8 +307,9 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
 
           <div className="flex items-center gap-3">
             <CommandBar
+              role={role}
               onTransmission={() => setTransmissionOpen(true)}
-              onLiveEditor={() => setLiveEditorOpen(true)}
+              onLiveEditor={() => handleOpenLiveEditor()}
               onOperationBoard={() => setOperationBoardOpen(true)}
               onRSVP={() => setRSVPOpen(true)}
               onGlobalOverride={() => setGlobalOverrideOpen(true)}
@@ -298,12 +317,15 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
             <div className="text-right hidden sm:block">
               <p className="text-[11px] font-mono text-white/50">{user.email}</p>
             </div>
-            <button
-              onClick={() => setGlobalOverrideOpen(true)}
-              className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/[0.07] flex items-center justify-center text-white/30 hover:text-white/70 hover:bg-white/10 transition-all"
-            >
-              <Settings size={14} />
-            </button>
+            
+            {(role.toLowerCase() === 'admin' || role.toLowerCase() === 'cto' || role.toLowerCase() === 'ceo') && (
+              <button
+                onClick={() => setGlobalOverrideOpen(true)}
+                className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/[0.07] flex items-center justify-center text-white/30 hover:text-white/70 hover:bg-white/10 transition-all"
+              >
+                <Settings size={14} />
+              </button>
+            )}
             <button
               onClick={handleLogout}
               className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/[0.07] flex items-center justify-center text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all"
@@ -357,9 +379,9 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
               <p className="text-[9px] font-mono text-white/20 tracking-[0.3em] uppercase mb-4">Quick Launch</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: '通信管制', sub: 'Transmission', icon: Radio,    count: stats.unreadInquiries, action: () => setTransmissionOpen(true)    },
-                  { label: 'ライブエディタ', sub: 'Live Editor', icon: Megaphone, count: stats.news,             action: () => setLiveEditorOpen(true)     },
-                  { label: '作戦ボード', sub: 'Op. Board',   icon: Archive,  count: stats.archives,        action: () => setOperationBoardOpen(true)  },
+                  ...(role.toLowerCase() !== 'cmo' ? [{ label: '通信管制', sub: 'Transmission', icon: Radio,    count: stats.unreadInquiries, action: () => setTransmissionOpen(true)    }] : []),
+                  { label: 'ライブエディタ', sub: 'Live Editor', icon: Megaphone, count: stats.news,             action: () => handleOpenLiveEditor()     },
+                  ...(role.toLowerCase() !== 'cmo' ? [{ label: '作戦ボード', sub: 'Op. Board',   icon: Archive,  count: stats.archives,        action: () => setOperationBoardOpen(true)  }] : []),
                   { label: 'RSVP',     sub: 'Monitor',     icon: Users,    count: rsvpActive,            action: () => setRSVPOpen(true)           },
                 ].map((item) => {
                   const Icon = item.icon;
@@ -385,32 +407,65 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
               </div>
             </GlassPanel>
 
-            {/* ── Row 3: Log Streams ────────────────────────────── */}
-            <GlassPanel className="md:col-span-2 p-6 flex flex-col gap-4">
+            {role.toLowerCase() !== 'cmo' && (
+              <GlassPanel className="md:col-span-2 p-6 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[9px] font-mono text-white/20 tracking-[0.3em] uppercase">Latest Transmissions</p>
+                    <p className="text-sm font-bold text-white/70 mt-0.5">未読インテル</p>
+                  </div>
+                  {stats.unreadInquiries > 0 && (
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                      <span className="text-[10px] font-mono text-blue-400">{stats.unreadInquiries} unread</span>
+                    </span>
+                  )}
+                </div>
+                <LogStream items={latestInquiries.slice(0, 5)} onClick={() => setTransmissionOpen(true)} type="inquiry" />
+              </GlassPanel>
+            )}
+
+            <GlassPanel className={role.toLowerCase() === 'cmo' ? "md:col-span-4 p-6 flex flex-col gap-4" : "md:col-span-2 p-6 flex flex-col gap-4"}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-mono text-white/20 tracking-[0.3em] uppercase">Latest Transmissions</p>
-                  <p className="text-sm font-bold text-white/70 mt-0.5">未読インテル</p>
+                  <p className="text-[9px] font-mono text-white/20 tracking-[0.3em] uppercase">Drafts & Scheduled</p>
+                  <p className="text-sm font-bold text-white/70 mt-0.5">下書き・公開待ち</p>
                 </div>
-                {stats.unreadInquiries > 0 && (
-                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                    <span className="text-[10px] font-mono text-blue-400">{stats.unreadInquiries} unread</span>
-                  </span>
+                <span className="text-[10px] font-mono text-white/30">{drafts.length} drafts</span>
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {drafts.length === 0 ? (
+                  <p className="text-xs font-mono text-white/30 mt-4">No drafts found.</p>
+                ) : (
+                  drafts.map(draft => (
+                    <div 
+                      key={draft.id} 
+                      onClick={() => handleOpenLiveEditor(draft)}
+                      className="group p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-white/80 group-hover:text-white transition-colors">{draft.title}</span>
+                        <span className="text-[9px] font-mono text-amber-500/70 border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 rounded">DRAFT</span>
+                      </div>
+                      <div className="text-[10px] font-mono text-white/40 flex items-center gap-2">
+                        <span>{draft.category}</span>
+                        <span>{new Date(draft.date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
-              <LogStream items={latestInquiries.slice(0, 5)} onClick={() => setTransmissionOpen(true)} type="inquiry" />
             </GlassPanel>
 
-            <GlassPanel className="md:col-span-2 p-6 flex flex-col gap-4">
+            <GlassPanel className={role.toLowerCase() === 'cmo' ? "md:col-span-4 p-6 flex flex-col gap-4" : "md:col-span-2 p-6 flex flex-col gap-4"}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[9px] font-mono text-white/20 tracking-[0.3em] uppercase">Recent Broadcasts</p>
-                  <p className="text-sm font-bold text-white/70 mt-0.5">最新通信ログ</p>
+                  <p className="text-sm font-bold text-white/70 mt-0.5">最近の通達</p>
                 </div>
-                <Zap size={14} className="text-white/15" />
+                <span className="text-[10px] font-mono text-white/30">LATEST {publishedNews.slice(0, 5).length}</span>
               </div>
-              <LogStream items={latestNews.slice(0, 5)} onClick={() => setLiveEditorOpen(true)} type="news" />
+              <LogStream items={publishedNews.slice(0, 5)} onClick={(item) => handleOpenLiveEditor(item as News)} type="news" />
             </GlassPanel>
 
             {/* ── Row 4: System info footer ─────────────────────── */}
@@ -430,10 +485,12 @@ export default function AdminDashboardClient({ user, stats, latestInquiries, lat
         </main>
 
         {/* ── Modals ──────────────────────────────────────────────── */}
-        <TransmissionControl isOpen={isTransmissionOpen} onClose={() => setTransmissionOpen(false)} inquiries={latestInquiries} />
-        <LiveEditor isOpen={isLiveEditorOpen} onClose={() => setLiveEditorOpen(false)} />
-        <OperationBoard isOpen={isOperationBoardOpen} onClose={() => setOperationBoardOpen(false)} operations={latestNews} />
-        <GlobalOverride isOpen={isGlobalOverrideOpen} onClose={() => setGlobalOverrideOpen(false)} />
+        {role.toLowerCase() !== 'cmo' && <TransmissionControl isOpen={isTransmissionOpen} onClose={() => setTransmissionOpen(false)} inquiries={latestInquiries} />}
+        <LiveEditor isOpen={isLiveEditorOpen} onClose={() => { setLiveEditorOpen(false); setEditingNews(null); }} initialData={editingNews} />
+        {role.toLowerCase() !== 'cmo' && <OperationBoard isOpen={isOperationBoardOpen} onClose={() => setOperationBoardOpen(false)} operations={latestNews} />}
+        {(role.toLowerCase() === 'admin' || role.toLowerCase() === 'cto' || role.toLowerCase() === 'ceo') && (
+          <GlobalOverride isOpen={isGlobalOverrideOpen} onClose={() => setGlobalOverrideOpen(false)} />
+        )}
         <RSVPMonitor isOpen={isRSVPOpen} onClose={() => setRSVPOpen(false)} surveys={surveys} />
       </div>
     </ClientMotionWrapper>

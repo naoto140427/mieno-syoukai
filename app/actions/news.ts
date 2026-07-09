@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { News } from '@/types/database';
+import { logAuditAction } from './audit';
 
 // ─────────────────────────────────────────────────────────────
 // PUBLIC READ FUNCTIONS (Zero-Latency / Edge Cached)
@@ -17,6 +18,7 @@ export const getNews = unstable_cache(
     let query = supabase
       .from('news')
       .select('*')
+      .eq('status', 'PUBLISHED')
       .order('is_pinned', { ascending: false })
       .order('date', { ascending: false });
 
@@ -44,6 +46,7 @@ export const getNewsById = unstable_cache(
       .from('news')
       .select('*')
       .eq('id', id)
+      .eq('status', 'PUBLISHED')
       .single();
 
     if (error) {
@@ -84,8 +87,8 @@ export async function addNews(data: Omit<News, 'id' | 'created_at'>) {
     throw new Error('Failed to add news');
   }
 
-  // INSERT成功後にLINE通知送信（TOURINGカテゴリのみ）
-  if (insertedData && insertedData.category === 'TOURING') {
+  // INSERT成功後にLINE通知送信（TOURINGカテゴリかつ公開時のみ）
+  if (insertedData && insertedData.category === 'TOURING' && insertedData.status === 'PUBLISHED') {
     const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://mieno-corp.vercel.app'}/news/${insertedData.id}`;
     await sendLineNotification(insertedData.title, url);
   }
@@ -94,6 +97,8 @@ export async function addNews(data: Omit<News, 'id' | 'created_at'>) {
   revalidateTag('news', 'default');
   revalidatePath('/');
   revalidatePath('/news');
+
+  await logAuditAction('CREATE_NEWS', 'news', insertedData?.id?.toString(), { title: data.title, status: data.status });
 }
 
 export async function updateNews(id: number, data: Partial<News>) {
@@ -118,6 +123,8 @@ export async function updateNews(id: number, data: Partial<News>) {
   revalidateTag('news', 'default');
   revalidatePath('/');
   revalidatePath('/news');
+
+  await logAuditAction('UPDATE_NEWS', 'news', id.toString(), { updated_fields: Object.keys(data) });
 }
 
 export async function deleteNews(id: number) {
@@ -142,6 +149,8 @@ export async function deleteNews(id: number) {
   revalidateTag('news', 'default');
   revalidatePath('/');
   revalidatePath('/news');
+
+  await logAuditAction('DELETE_NEWS', 'news', id.toString());
 }
 
 export async function sendLineNotification(title: string, url: string) {

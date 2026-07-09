@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import EasterEggModal from '../../components/EasterEggModal';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 import { useRouter } from 'next/navigation';
+import { logLogin } from '@/app/actions/audit';
 
 const supabase = createClient();
 
@@ -93,6 +94,8 @@ export default function AdminLoginClient() {
       });
 
       if (error) throw error;
+
+      await logLogin();
 
       showToast('ログイン成功！リダイレクト中...', 'success');
       router.push('/admin');
