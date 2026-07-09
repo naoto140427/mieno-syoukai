@@ -21,11 +21,16 @@ export default async function AdminPage() {
     .single();
 
   const role = profile?.role;
-  const adminRoles = ['CTO', 'CEO', 'CMO', 'Admin'];
+  // Role判定を大文字小文字無視に（DB側の表記ゆれを防ぐ）
+  const adminRoles = ['cto', 'ceo', 'cmo', 'admin'];
 
-  const isTestAgent = user.email === 'preview-agent@mieno-shokai.com' || user.email === 'test-agent@mieno-shokai.com';
+  // E2Eテスト専用エージェント: ロールチェックをバイパス
+  const isTestAgent =
+    process.env.NODE_ENV !== 'production' &&
+    (user.email === 'preview-agent@mieno-shokai.com' ||
+      user.email === 'test-agent@mieno-shokai.com');
 
-  if (!isTestAgent && (!role || !adminRoles.includes(role))) {
+  if (!isTestAgent && (!role || !adminRoles.includes(role.toLowerCase()))) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 text-center">
         {/* Scan-line overlay */}
