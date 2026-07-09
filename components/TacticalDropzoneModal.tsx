@@ -280,17 +280,29 @@ Min Elevation: ${parsed.minElevation} m
 
               {phase === "analyzing" && (
                 <div className="w-full h-80 flex flex-col items-center justify-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                    className="w-16 h-16 border-4 border-gray-100 border-t-cyan-500 rounded-full mb-8"
-                  />
+                  <div className="relative w-24 h-24 mb-8">
+                    {/* Outer Scanning Ring */}
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+                      className="absolute inset-0 rounded-full border-2 border-dashed border-cyan-500/30 border-t-cyan-500"
+                    />
+                    {/* Inner Pulse */}
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.8, 0.3] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                      className="absolute inset-2 rounded-full bg-cyan-500/10 border border-cyan-500/50"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       <Zap className="w-8 h-8 text-cyan-400" />
+                    </div>
+                  </div>
                   <motion.p
                     key={loadingTextIndex}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="text-lg font-medium text-gray-900 tracking-wide"
+                    className="text-lg font-bold text-gray-900 tracking-wider font-mono uppercase"
                   >
                     {LOADING_TEXTS[loadingTextIndex]}
                   </motion.p>
