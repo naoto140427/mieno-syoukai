@@ -26,7 +26,12 @@ const LOADING_TEXTS = [
   "✅ 解析完了"
 ];
 
-const AVAILABLE_CREW = ["Mieno", "Suemori", "Watanabe", "Nakahara", "Sato"];
+const AVAILABLE_CREW = [
+  { name: "渡邊直人", vehicles: ["CBR400R", "Serena LUXION"] },
+  { name: "末森知輝", vehicles: ["CBR600RR", "Monkey125"] },
+  { name: "三重野匠", vehicles: [] },
+  { name: "坂井龍乃丞", vehicles: [] }
+];
 
 export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: TacticalDropzoneModalProps) {
   const router = useRouter();
@@ -39,7 +44,8 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
   // Form State
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [members, setMembers] = useState<string[]>([]);
+  const [selectedCrew, setSelectedCrew] = useState<Record<string, string>>({});
+  const members = Object.entries(selectedCrew).map(([name, vehicle]) => vehicle ? `${name} (${vehicle})` : name);
   const [weather, setWeather] = useState<Archive["weather"]>("Clear");
   const [details, setDetails] = useState("");
 
@@ -55,7 +61,7 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
       setLocationName("");
       setTitle("");
       setDate(new Date().toISOString().split("T")[0]);
-      setMembers([]);
+      setSelectedCrew({});
       setWeather("Clear");
       setDetails("");
       setIsSubmitting(false);
@@ -108,6 +114,16 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
           loc = await getLocationName(parsed.centerPoint[0], parsed.centerPoint[1], token);
         }
         setLocationName(loc);
+
+        const telemetryReport = `
+---
+[Telemetry Report]
+Moving Time: ${parsed.movingTime}
+Stopped Time: ${parsed.stoppedTime}
+Moving Avg Speed: ${parsed.movingAvgSpeed} km/h
+Min Elevation: ${parsed.minElevation} m
+`;
+        setDetails(prev => prev + (prev ? "\n" : "") + telemetryReport.trim());
 
         // Wait a bit to show off the cool loading sequence
         setTimeout(() => {
@@ -264,17 +280,29 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
 
               {phase === "analyzing" && (
                 <div className="w-full h-80 flex flex-col items-center justify-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                    className="w-16 h-16 border-4 border-gray-100 border-t-cyan-500 rounded-full mb-8"
-                  />
+                  <div className="relative w-24 h-24 mb-8">
+                    {/* Outer Scanning Ring */}
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+                      className="absolute inset-0 rounded-full border-2 border-dashed border-cyan-500/30 border-t-cyan-500"
+                    />
+                    {/* Inner Pulse */}
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.8, 0.3] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                      className="absolute inset-2 rounded-full bg-cyan-500/10 border border-cyan-500/50"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       <Zap className="w-8 h-8 text-cyan-400" />
+                    </div>
+                  </div>
                   <motion.p
                     key={loadingTextIndex}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="text-lg font-medium text-gray-900 tracking-wide"
+                    className="text-lg font-bold text-gray-900 tracking-wider font-mono uppercase"
                   >
                     {LOADING_TEXTS[loadingTextIndex]}
                   </motion.p>
@@ -369,26 +397,46 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Crew</label>
                         <div className="flex flex-wrap gap-2">
-                           {AVAILABLE_CREW.map(crew => (
-                             <button
-                               type="button"
-                               key={crew}
-                               onClick={() => {
-                                 if (members.includes(crew)) {
-                                   setMembers(members.filter(m => m !== crew));
-                                 } else {
-                                   setMembers([...members, crew]);
-                                 }
-                               }}
-                               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
-                                 members.includes(crew)
-                                   ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
-                                   : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                               }`}
-                             >
-                               {crew}
-                             </button>
-                           ))}
+                            {AVAILABLE_CREW.map(crew => {
+                             const isSelected = crew.name in selectedCrew;
+                             const selectedVehicle = selectedCrew[crew.name];
+                             return (
+                               <div key={crew.name} className="flex flex-col gap-1">
+                                 <button
+                                   type="button"
+                                   onClick={() => {
+                                     setSelectedCrew(prev => {
+                                       const next = { ...prev };
+                                       if (isSelected) {
+                                         delete next[crew.name];
+                                       } else {
+                                         next[crew.name] = crew.vehicles.length > 0 ? crew.vehicles[0] : "";
+                                       }
+                                       return next;
+                                     });
+                                   }}
+                                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                                     isSelected
+                                       ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+                                       : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                   }`}
+                                 >
+                                   {crew.name}
+                                 </button>
+                                 {isSelected && crew.vehicles.length > 0 && (
+                                   <select
+                                     value={selectedVehicle}
+                                     onChange={(e) => setSelectedCrew(prev => ({ ...prev, [crew.name]: e.target.value }))}
+                                     className="text-[10px] p-1 border border-gray-200 rounded-md bg-gray-50 text-gray-700 outline-none"
+                                   >
+                                     {crew.vehicles.map(v => (
+                                       <option key={v} value={v}>{v}</option>
+                                     ))}
+                                   </select>
+                                 )}
+                               </div>
+                             );
+                           })}
                         </div>
                       </div>
                     </div>
