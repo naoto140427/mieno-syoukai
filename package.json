@@ -25,7 +25,6 @@
     "lucide-react": "^0.564.0",
     "mapbox-gl": "^3.18.1",
     "next": "16.1.6",
-    "nextjs-toploader": "^3.9.17",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-dropzone": "^15.0.0",
