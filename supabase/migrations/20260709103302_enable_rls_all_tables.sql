@@ -92,27 +92,40 @@ CREATE POLICY "units_delete_authenticated"
 -- 書き込み（INSERT）: 全員（フォーム送信）
 -- 更新/削除: 認証済みユーザーのみ
 -- ─────────────────────────────────────────
-ALTER TABLE public.inquiries ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'inquiries') THEN
+    ALTER TABLE public.inquiries ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "inquiries_select_authenticated"
-  ON public.inquiries FOR SELECT
-  TO authenticated
-  USING (true);
+    IF NOT EXISTS (SELECT FROM pg_policies WHERE tablename = 'inquiries' AND policyname = 'inquiries_select_authenticated') THEN
+      CREATE POLICY "inquiries_select_authenticated"
+        ON public.inquiries FOR SELECT
+        TO authenticated
+        USING (true);
+    END IF;
 
-CREATE POLICY "inquiries_insert_public"
-  ON public.inquiries FOR INSERT
-  WITH CHECK (true);
+    IF NOT EXISTS (SELECT FROM pg_policies WHERE tablename = 'inquiries' AND policyname = 'inquiries_insert_public') THEN
+      CREATE POLICY "inquiries_insert_public"
+        ON public.inquiries FOR INSERT
+        WITH CHECK (true);
+    END IF;
 
-CREATE POLICY "inquiries_update_authenticated"
-  ON public.inquiries FOR UPDATE
-  TO authenticated
-  USING (true)
-  WITH CHECK (true);
+    IF NOT EXISTS (SELECT FROM pg_policies WHERE tablename = 'inquiries' AND policyname = 'inquiries_update_authenticated') THEN
+      CREATE POLICY "inquiries_update_authenticated"
+        ON public.inquiries FOR UPDATE
+        TO authenticated
+        USING (true)
+        WITH CHECK (true);
+    END IF;
 
-CREATE POLICY "inquiries_delete_authenticated"
-  ON public.inquiries FOR DELETE
-  TO authenticated
-  USING (true);
+    IF NOT EXISTS (SELECT FROM pg_policies WHERE tablename = 'inquiries' AND policyname = 'inquiries_delete_authenticated') THEN
+      CREATE POLICY "inquiries_delete_authenticated"
+        ON public.inquiries FOR DELETE
+        TO authenticated
+        USING (true);
+    END IF;
+  END IF;
+END $$;
+
 
 -- ─────────────────────────────────────────
 -- consumables テーブル（消耗品管理）
@@ -162,19 +175,30 @@ CREATE POLICY "ir_metrics_write_authenticated"
 -- 読み取り: 全員（公開プロフィール）
 -- 書き込み: 認証済みユーザーのみ（自分のプロフィールのみ）
 -- ─────────────────────────────────────────
-ALTER TABLE public.agents ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'agents') THEN
+    ALTER TABLE public.agents ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "agents_select_public"
-  ON public.agents FOR SELECT
-  USING (true);
+    IF NOT EXISTS (SELECT FROM pg_policies WHERE tablename = 'agents' AND policyname = 'agents_select_public') THEN
+      CREATE POLICY "agents_select_public"
+        ON public.agents FOR SELECT
+        USING (true);
+    END IF;
 
-CREATE POLICY "agents_insert_authenticated"
-  ON public.agents FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = id);
+    IF NOT EXISTS (SELECT FROM pg_policies WHERE tablename = 'agents' AND policyname = 'agents_insert_authenticated') THEN
+      CREATE POLICY "agents_insert_authenticated"
+        ON public.agents FOR INSERT
+        TO authenticated
+        WITH CHECK (auth.uid() = id);
+    END IF;
 
-CREATE POLICY "agents_update_own"
-  ON public.agents FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
+    IF NOT EXISTS (SELECT FROM pg_policies WHERE tablename = 'agents' AND policyname = 'agents_update_own') THEN
+      CREATE POLICY "agents_update_own"
+        ON public.agents FOR UPDATE
+        TO authenticated
+        USING (auth.uid() = id)
+        WITH CHECK (auth.uid() = id);
+    END IF;
+  END IF;
+END $$;
+
