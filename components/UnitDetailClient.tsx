@@ -36,9 +36,10 @@ import {
   File,
 } from 'lucide-react';
 import { Unit } from '@/types/database';
-import { updateUnit, addMaintenanceLog, deleteMaintenanceLog, uploadUnitDocument, deleteUnitDocument } from '@/app/actions/units';
+import { updateUnit, addMaintenanceLog, deleteMaintenanceLog, uploadUnitDocument, deleteUnitDocument, uploadUnitImage } from '@/app/actions/units';
 import { notFound } from 'next/navigation';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
+import imageCompression from 'browser-image-compression';
 
 // ─── Odometer digit animation ─────────────────────────────────────────────────
 
@@ -591,7 +592,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
   const [confirmDocModal, setConfirmDocModal] = useState<{ open: boolean; doc: DocItem | null }>({ open: false, doc: null });
   const [imageUrl, setImageUrl]         = useState<string>(initialUnit?.image_url ?? '');
   const [isEditingImage, setIsEditingImage] = useState(false);
-  const [imageInputVal, setImageInputVal]   = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     type: 'maintenance', description: '', cost: '', distance_km: ''
@@ -794,15 +795,43 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
     });
   };
 
-  const handleImageSave = async () => {
-    if (typeof unit.id !== 'number') { showToast('DBに登録されていないユニットは編集できません', 'error'); return; }
+  const handleImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (typeof unit.id !== 'number') { 
+      showToast('DBに登録されていないユニットは編集できません', 'error'); 
+      return; 
+    }
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     try {
-      await updateUnit(unit.id, { image_url: imageInputVal });
-      setImageUrl(imageInputVal);
-      setIsEditingImage(false);
-      showToast('画像URLを保存しました', 'success');
-    } catch {
-      showToast('画像URLの保存に失敗しました', 'error');
+      setIsUploadingImage(true);
+      
+      // 画像の自動最適化 (圧縮・リサイズ)
+      const options = {
+        maxSizeMB: 1,          // 最大1MB
+        maxWidthOrHeight: 1200, // 最大1200px
+        useWebWorker: true,
+      };
+      
+      const compressedFile = await imageCompression(file, options);
+      
+      const formData = new FormData();
+      formData.append('file', compressedFile);
+      formData.append('unitId', String(unit.id));
+
+      // アップロード
+      const result = await uploadUnitImage(formData);
+      
+      if (result.success && result.url) {
+        setImageUrl(result.url);
+        setIsEditingImage(false);
+        showToast('画像をアップロードしました', 'success');
+      }
+    } catch (error) {
+      console.error(error);
+      showToast('画像のアップロードに失敗しました', 'error');
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -836,7 +865,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
             {isAdmin && (
               <div className="absolute top-4 right-4 z-10">
                 <button
-                  onClick={() => { setIsEditingImage(true); setImageInputVal(imageUrl); }}
+                  onClick={() => setIsEditingImage(true)}
                   className="flex items-center gap-2 bg-white/80 backdrop-blur-md border border-white/60 text-gray-700 text-xs font-bold px-4 py-2 rounded-full shadow-lg hover:bg-white transition-all"
                 >
                   <ImageIcon size={13} />画像を変更
@@ -914,23 +943,42 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
               >
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
-                    <Link2 size={18} className="text-gray-600" />
+                    <ImageIcon size={18} className="text-gray-600" />
                   </div>
-                  <h3 className="text-base font-bold text-gray-900">車両画像URLを変更</h3>
+                  <h3 className="text-base font-bold text-gray-900">車両画像を変更</h3>
                 </div>
-                <input
-                  type="url"
-                  value={imageInputVal}
-                  onChange={(e) => setImageInputVal(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 mb-5"
-                />
+                
+                <div className="relative w-full border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:bg-gray-50 transition-colors mb-5 group cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileSelect}
+                    disabled={isUploadingImage}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  />
+                  <div className="flex flex-col items-center justify-center pointer-events-none">
+                    {isUploadingImage ? (
+                      <>
+                        <Loader2 size={32} className="text-gray-400 mb-3 animate-spin" />
+                        <p className="text-sm font-semibold text-gray-700">最適化＆アップロード中...</p>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud size={32} className="text-gray-300 mb-3 group-hover:text-gray-400 transition-colors" />
+                        <p className="text-sm font-semibold text-gray-700 mb-1">クリックまたはドラッグ＆ドロップ</p>
+                        <p className="text-xs text-gray-400">自動的にリサイズ・圧縮されます</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex gap-3">
-                  <button onClick={() => setIsEditingImage(false)} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+                  <button 
+                    onClick={() => setIsEditingImage(false)} 
+                    disabled={isUploadingImage}
+                    className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
                     キャンセル
-                  </button>
-                  <button onClick={handleImageSave} className="flex-1 py-3 rounded-2xl bg-gray-900 text-white text-sm font-bold hover:bg-black transition-colors flex items-center justify-center gap-2">
-                    <Save size={14} />保存
                   </button>
                 </div>
               </m.div>
