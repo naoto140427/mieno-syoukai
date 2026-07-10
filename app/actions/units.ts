@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
-import { Unit } from '@/types/database';
+import { Unit, UnitDocument } from '@/types/database';
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -70,10 +70,13 @@ export const getUnitBySlug = unstable_cache(
         ...data,
         specs: Array.isArray(data.specs) ? data.specs : [],
         docs: Array.isArray(data.docs)
-          ? (data.docs as (Omit<UnitDocument, 'size' | 'date'> & { date: string | null })[]).map((doc) => ({
+          ? (data.docs as UnitDocument[]).map((doc) => ({
               ...doc,
-              date: doc.date || '',
-              size: '-'
+              // Legacy compat aliases for UnitDetailClient.tsx
+              type: doc.document_type ?? doc.type ?? 'OTHER',
+              date: doc.created_at ?? doc.date ?? '',
+              size: doc.file_size ? `${(doc.file_size / (1024 * 1024)).toFixed(1)} MB` : (doc.size ?? '-'),
+              url: doc.file_url ?? doc.url ?? '',
             }))
           : [],
         logs: Array.isArray(data.logs) ? data.logs : [],
