@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
-import { Unit } from '@/types/database';
+import { Unit, UnitDocument } from '@/types/database';
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS
