@@ -29,9 +29,13 @@ import {
   AlertCircle,
   ImageIcon,
   Link2,
+  UploadCloud,
+  FileSpreadsheet,
+  FileImage,
+  File,
 } from 'lucide-react';
 import { Unit } from '@/types/database';
-import { updateUnit, addMaintenanceLog, deleteMaintenanceLog } from '@/app/actions/units';
+import { updateUnit, addMaintenanceLog, deleteMaintenanceLog, uploadUnitDocument, deleteUnitDocument } from '@/app/actions/units';
 import { notFound } from 'next/navigation';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 
@@ -79,10 +83,15 @@ type SpecItem = {
 };
 
 type DocItem = {
+  id?: number;
   title: string;
-  type: string;
-  size: string;
+  type: string;          // document_type
+  size: string;          // formatted size string
   date: string;
+  url?: string;          // Public URL for download/preview
+  storage_path?: string; // For deletion
+  file_name?: string;
+  file_size?: number;    // bytes
 };
 
 type LogItem = {
@@ -400,22 +409,91 @@ function SpecCard({ spec, color }: { spec: SpecItem; color: string }) {
   );
 }
 
-function DocCard({ doc }: { doc: DocItem }) {
+// ─── File type helpers ────────────────────────────────────────────────────────
+
+function getDocIcon(mimeType?: string, fileName?: string) {
+  const name = fileName?.toLowerCase() ?? '';
+  const mime = mimeType ?? '';
+  if (mime.startsWith('image/') || name.match(/\.(jpg|jpeg|png|webp|gif)$/)) {
+    return <FileImage size={20} className="text-blue-500" />;
+  }
+  if (mime.includes('spreadsheet') || mime.includes('excel') || name.match(/\.(xlsx|xls|csv)$/)) {
+    return <FileSpreadsheet size={20} className="text-green-600" />;
+  }
+  if (mime === 'application/pdf' || name.endsWith('.pdf')) {
+    return <FileText size={20} className="text-red-500" />;
+  }
+  return <File size={20} className="text-gray-400" />;
+}
+
+function formatBytes(bytes?: number): string {
+  if (!bytes || bytes === 0) return '-';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function DocCard({
+  doc,
+  isAdmin,
+  onDelete,
+}: {
+  doc: DocItem;
+  isAdmin: boolean;
+  onDelete: (doc: DocItem) => void;
+}) {
+  const icon = getDocIcon(undefined, doc.file_name ?? doc.title);
+  const displayDate = doc.date
+    ? new Date(doc.date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    : '';
+
   return (
-    <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm group cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-gray-50 rounded-xl text-gray-500 group-hover:bg-gray-100 transition-colors">
-          <FileText size={20} />
+    <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm group hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 relative">
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="p-3 bg-gray-50 rounded-xl flex-shrink-0 group-hover:bg-gray-100 transition-colors">
+          {icon}
         </div>
-        <div>
-          <h4 className="font-semibold text-sm text-gray-900 group-hover:text-black">{doc.title}</h4>
-          <p className="text-xs text-gray-400 mt-0.5 flex gap-2">
-            <span>{doc.type}</span><span>·</span><span>{doc.size}</span><span>·</span><span>{doc.date}</span>
+        <div className="min-w-0">
+          <h4 className="font-semibold text-sm text-gray-900 group-hover:text-black truncate max-w-[240px] md:max-w-none">
+            {doc.title}
+          </h4>
+          <p className="text-xs text-gray-400 mt-0.5 flex items-center flex-wrap gap-x-2">
+            <span className="font-mono uppercase tracking-wider">{doc.type.replace('_', ' ')}</span>
+            {doc.file_size && <><span>·</span><span>{formatBytes(doc.file_size)}</span></>}
+            {displayDate && <><span>·</span><span>{displayDate}</span></>}
           </p>
         </div>
       </div>
-      <div className="text-gray-300 group-hover:text-gray-600 transition-colors mr-1">
-        <Download size={18} />
+
+      <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+        {/* Admin: Delete button */}
+        {isAdmin && doc.id && (
+          <button
+            onClick={() => onDelete(doc)}
+            className="p-2 rounded-xl text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+            title="削除"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
+
+        {/* Download / Open */}
+        {doc.url ? (
+          <a
+            href={doc.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={doc.file_name}
+            className="p-2 rounded-xl text-gray-300 hover:text-gray-800 hover:bg-gray-100 transition-all"
+            title="ダウンロード"
+          >
+            <Download size={18} />
+          </a>
+        ) : (
+          <div className="p-2 text-gray-200">
+            <Download size={18} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -497,6 +575,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
   const [isPending, startTransition]    = useTransition();
   const [toast, setToast]               = useState<ToastState>({ show: false, message: '', type: 'success' });
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; log: LogItem | null }>({ open: false, log: null });
+  const [confirmDocModal, setConfirmDocModal] = useState<{ open: boolean; doc: DocItem | null }>({ open: false, doc: null });
   const [imageUrl, setImageUrl]         = useState<string>(initialUnit?.image_url ?? '');
   const [isEditingImage, setIsEditingImage] = useState(false);
   const [imageInputVal, setImageInputVal]   = useState('');
@@ -505,6 +584,22 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
     type: 'maintenance', description: '', cost: '', distance_km: ''
   });
   const [unitOdometer, setUnitOdometer] = useState<number>(initialUnit?.odometer ?? 0);
+
+  // ── ドキュメント管理 state ─────────────────────────────────────
+  // DBから取得したdocsをstateとして持ち、アップロード・削除時にoptimistic updateする
+  const initialDocs: DocItem[] = (initialUnit?.docs?.length
+    ? (initialUnit.docs as DocItem[])
+    : mockUnit?.docs ?? []
+  );
+  const [docs, setDocs] = useState<DocItem[]>(initialDocs);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    title: '',
+    documentType: 'MANUAL' as string,
+    file: null as File | null,
+  });
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ show: true, message, type });
@@ -517,7 +612,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
     specs: (Array.isArray(initialUnit?.specs) && (initialUnit.specs as SpecItem[]).length > 0
       ? initialUnit.specs
       : mockUnit?.specs ?? []) as SpecItem[],
-    docs: (initialUnit?.docs?.length ? initialUnit.docs : mockUnit?.docs ?? []) as DocItem[],
+    docs,  // stateから取得（optimistic update対応）
     logs: (initialUnit?.logs?.length ? initialUnit.logs : mockUnit?.logs ?? []) as LogItem[],
     description: initialUnit?.description || mockUnit?.description || '',
     id: initialUnit?.id ?? mockUnit?.id,
@@ -545,6 +640,100 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
       }
     } else {
       showToast('DBに登録されていないユニットは編集できません', 'error');
+    }
+  };
+
+  // ── ドキュメント: アップロード ─────────────────────────────────
+  const handleUploadDoc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadForm.file || !uploadForm.title || typeof unit.id !== 'number') {
+      showToast('ファイルとタイトルを入力してください', 'error');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', uploadForm.file);
+      fd.append('title', uploadForm.title);
+      fd.append('documentType', uploadForm.documentType);
+      fd.append('unitId', String(unit.id));
+      fd.append('unitSlug', slug);
+
+      const result = await uploadUnitDocument(fd);
+      if (result.success && result.doc) {
+        // Optimistic update: stateにすぐ追加
+        const newDoc: DocItem = {
+          id: result.doc.id,
+          title: result.doc.title,
+          type: result.doc.document_type,
+          size: formatBytes(result.doc.file_size),
+          date: result.doc.created_at,
+          url: result.doc.file_url,
+          file_name: result.doc.file_name,
+          file_size: result.doc.file_size,
+        };
+        setDocs(prev => [newDoc, ...prev]);
+        setUploadForm({ title: '', documentType: 'MANUAL', file: null });
+        showToast('ファイルをアップロードしました', 'success');
+      } else {
+        showToast(result.error ?? 'アップロードに失敗しました', 'error');
+      }
+    } catch {
+      showToast('アップロードに失敗しました', 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // ── ドキュメント: 削除確認 ─────────────────────────────────────
+  const handleDeleteDocConfirm = (doc: DocItem) => {
+    if (!doc.id || !isAdmin) return;
+    setConfirmDocModal({ open: true, doc });
+  };
+
+  const confirmDeleteDoc = () => {
+    const doc = confirmDocModal.doc;
+    if (!doc?.id) return;
+    startTransition(async () => {
+      try {
+        const result = await deleteUnitDocument(doc.id!, doc.storage_path ?? '', slug);
+        if (result.success) {
+          setDocs(prev => prev.filter(d => d.id !== doc.id));
+          setConfirmDocModal({ open: false, doc: null });
+          showToast('書類を削除しました', 'success');
+        } else {
+          showToast(result.error ?? '削除に失敗しました', 'error');
+        }
+      } catch {
+        setConfirmDocModal({ open: false, doc: null });
+        showToast('削除に失敗しました', 'error');
+      }
+    });
+  };
+
+  // ── ファイルドロップ ────────────────────────────────────────────
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      setUploadForm(prev => ({
+        ...prev,
+        file,
+        title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
+      }));
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadForm(prev => ({
+        ...prev,
+        file,
+        title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
+      }));
     }
   };
 
@@ -819,14 +1008,118 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
 
               {/* DOCS */}
               {activeTab === 'docs' && (
-                <div className="space-y-2">
-                  {unit.docs.map((doc, i) => <DocCard key={i} doc={doc} />)}
-                  {unit.docs.length === 0 && (
-                    <div className="text-center py-16 text-gray-300">
-                      <FileText size={40} className="mx-auto mb-3" />
-                      <p className="text-sm">書類がありません</p>
-                    </div>
+                <div className="space-y-3">
+                  {/* Admin: アップロードUI */}
+                  {isAdmin && typeof unit.id === 'number' && (
+                    <m.form
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      onSubmit={handleUploadDoc}
+                      className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-4"
+                    >
+                      <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">書類を追加</h3>
+
+                      {/* ドロップゾーン */}
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                        onDragLeave={() => setIsDragOver(false)}
+                        onDrop={handleFileDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${
+                          isDragOver ? 'border-gray-400 bg-gray-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'
+                        }`}
+                      >
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.xlsx,.xls,.csv,.doc,.docx,.jpg,.jpeg,.png,.webp,.txt"
+                          onChange={handleFileSelect}
+                        />
+                        {uploadForm.file ? (
+                          <div className="flex items-center gap-3 text-gray-700">
+                            {getDocIcon(uploadForm.file.type, uploadForm.file.name)}
+                            <div>
+                              <p className="font-semibold text-sm">{uploadForm.file.name}</p>
+                              <p className="text-xs text-gray-400">{formatBytes(uploadForm.file.size)}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setUploadForm(prev => ({ ...prev, file: null })); }}
+                              className="ml-2 text-gray-300 hover:text-red-400 transition-colors"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <UploadCloud size={28} className="text-gray-300 mb-2" />
+                            <p className="text-sm text-gray-500 font-medium">ファイルをドロップ、またはクリックして選択</p>
+                            <p className="text-xs text-gray-300 mt-1">PDF / Excel / Word / 画像 · 最大50MB</p>
+                          </>
+                        )}
+                      </div>
+
+                      {/* タイトル・種別 */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">タイトル</label>
+                          <input
+                            type="text"
+                            required
+                            value={uploadForm.title}
+                            onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+                            placeholder="例: CB400 サービスマニュアル"
+                            className="w-full p-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">種別</label>
+                          <select
+                            value={uploadForm.documentType}
+                            onChange={(e) => setUploadForm(prev => ({ ...prev, documentType: e.target.value }))}
+                            className="w-full p-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
+                          >
+                            <option value="MANUAL">マニュアル</option>
+                            <option value="PARTS_LIST">パーツリスト</option>
+                            <option value="CERTIFICATE">証明書・車検証</option>
+                            <option value="INSPECTION">点検記録</option>
+                            <option value="OTHER">その他</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          disabled={isUploading || !uploadForm.file}
+                          className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-2xl text-sm font-bold hover:bg-black transition-colors disabled:opacity-40"
+                        >
+                          {isUploading ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
+                          {isUploading ? 'アップロード中...' : 'アップロード'}
+                        </button>
+                      </div>
+                    </m.form>
                   )}
+
+                  {/* ファイル一覧 */}
+                  <div className="space-y-2">
+                    {docs.map((doc, i) => (
+                      <DocCard
+                        key={doc.id ?? i}
+                        doc={doc}
+                        isAdmin={isAdmin}
+                        onDelete={handleDeleteDocConfirm}
+                      />
+                    ))}
+                    {docs.length === 0 && (
+                      <div className="text-center py-16 text-gray-300">
+                        <FileText size={40} className="mx-auto mb-3" />
+                        <p className="text-sm">書類がありません</p>
+                        {isAdmin && <p className="text-xs mt-1">上のフォームからアップロードしてください</p>}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -930,6 +1223,16 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
         message="この整備記録を削除すると元に戻せません。本当に削除しますか？"
         onConfirm={confirmDelete}
         onCancel={() => setConfirmModal({ open: false, log: null })}
+        isPending={isPending}
+      />
+
+      {/* 書類削除確認モーダル */}
+      <ConfirmModal
+        isOpen={confirmDocModal.open}
+        title="書類を削除しますか？"
+        message={`「${confirmDocModal.doc?.title ?? ''}」を削除すると元に戻せません。ストレージからも完全に削除されます。`}
+        onConfirm={confirmDeleteDoc}
+        onCancel={() => setConfirmDocModal({ open: false, doc: null })}
         isPending={isPending}
       />
 
