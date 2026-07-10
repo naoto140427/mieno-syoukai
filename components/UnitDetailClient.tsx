@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   FileText,
   Download,
+  Eye,
   Wrench,
   Calendar,
   Gauge,
@@ -479,18 +480,30 @@ function DocCard({
 
         {/* Download / Open */}
         {doc.url ? (
-          <a
-            href={doc.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            download={doc.file_name}
-            className="p-2 rounded-xl text-gray-300 hover:text-gray-800 hover:bg-gray-100 transition-all"
-            title="ダウンロード"
-          >
-            <Download size={18} />
-          </a>
+          <div className="flex items-center gap-1">
+            <a
+              href={doc.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded-xl text-gray-300 hover:text-gray-800 hover:bg-gray-100 transition-all"
+              title="プレビュー (別タブで開く)"
+            >
+              <Eye size={18} />
+            </a>
+            <a
+              href={doc.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              download={doc.file_name}
+              className="p-2 rounded-xl text-gray-300 hover:text-gray-800 hover:bg-gray-100 transition-all"
+              title="ダウンロード"
+            >
+              <Download size={18} />
+            </a>
+          </div>
         ) : (
-          <div className="p-2 text-gray-200">
+          <div className="flex items-center gap-1 p-2 text-gray-200">
+            <Eye size={18} />
             <Download size={18} />
           </div>
         )}
