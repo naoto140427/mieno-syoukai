@@ -218,6 +218,67 @@ export async function deleteMaintenanceLog(logId: number) {
   return { success: true };
 }
 
+
+
+export async function uploadUnitImage(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error('Unauthorized');
+  }
+
+  const file = formData.get('file') as File;
+  const unitId = formData.get('unitId') as string;
+
+  if (!file || !unitId) {
+    throw new Error('Missing file or unitId');
+  }
+
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+  const storagePath = `units/${unitId}/${fileName}`;
+
+  // Upload to mieno-images bucket
+  const { error: uploadError } = await supabase.storage
+    .from('mieno-images')
+    .upload(storagePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error('Storage upload error:', uploadError);
+    throw new Error('Failed to upload image');
+  }
+
+  // Get public URL
+  const { data: { publicUrl } } = supabase.storage
+    .from('mieno-images')
+    .getPublicUrl(storagePath);
+
+  // Update unit record
+  const { error: dbError } = await supabase
+    .from('units')
+    .update({ image_url: publicUrl })
+    .eq('id', Number(unitId));
+
+  if (dbError) {
+    throw new Error('Failed to update unit image_url');
+  }
+
+  // Cache purge
+  const { data: unit } = await supabase.from('units').select('slug').eq('id', Number(unitId)).single();
+  revalidateTag('units', 'default');
+  revalidatePath('/');
+  revalidatePath('/units');
+  if (unit) {
+    revalidatePath(`/units/${unit.slug}`);
+  }
+
+  return { success: true, url: publicUrl };
+}
+
 // ─────────────────────────────────────────────────────────────
 // DOCUMENT MANAGEMENT (Admin Only)
 // ─────────────────────────────────────────────────────────────
