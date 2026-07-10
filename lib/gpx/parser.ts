@@ -94,7 +94,7 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
   let maxSpeedKmh = 0;
   let movingSeconds = 0;
   let stoppedSeconds = 0;
-  const WINDOW_SECONDS = 3; // Sliding window for speed smoothing to avoid GPS drift spikes
+  const instantaneousSpeeds: number[] = [];
 
   if (allPoints.length > 1) {
     for (let i = 0; i < allPoints.length - 1; i++) {
@@ -104,7 +104,6 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
       if (p1.time && p2.time) {
         const timeDiffSeconds = (p2.time.getTime() - p1.time.getTime()) / 1000;
         
-        // Instantaneous speed to classify as moving/stopped
         try {
             const instSpeedMs = getSpeed(
                 { latitude: p1.lat, longitude: p1.lon, time: p1.time.getTime() },
@@ -118,32 +117,35 @@ export const parseGPX = (gpxString: string): ParsedGPXData => {
             } else {
                 stoppedSeconds += timeDiffSeconds;
             }
-        } catch (e) {
-            // Ignore calc errors
-        }
 
-        // Sliding window max speed calculation
-        let j = i + 1;
-        while (j < allPoints.length && allPoints[j].time && ((allPoints[j].time!.getTime() - p1.time.getTime()) < WINDOW_SECONDS * 1000)) {
-            j++;
-        }
-        
-        if (j < allPoints.length && allPoints[j].time) {
-             const pw = allPoints[j];
-             try {
-                 const windowSpeedMs = getSpeed(
-                     { latitude: p1.lat, longitude: p1.lon, time: p1.time.getTime() },
-                     { latitude: pw.lat, longitude: pw.lon, time: pw.time!.getTime() }
-                 );
-                 const windowSpeedKmh = windowSpeedMs * 3.6;
-                 
-                 // Realistic motorcycle max speed limit is around 300km/h
-                 if (windowSpeedKmh > maxSpeedKmh && windowSpeedKmh < 300) {
-                     maxSpeedKmh = windowSpeedKmh;
-                 }
-             } catch (e) {}
+            // Cap unrealistic acceleration/spikes (e.g. > 300km/h) and push to array
+            if (instSpeedKmh <= 300) {
+                instantaneousSpeeds.push(instSpeedKmh);
+            } else {
+                // Carry over the previous realistic speed if there's a GPS spike
+                instantaneousSpeeds.push(instantaneousSpeeds.length > 0 ? instantaneousSpeeds[instantaneousSpeeds.length - 1] : 0);
+            }
+        } catch {
+            instantaneousSpeeds.push(0);
         }
       }
+    }
+
+    // Apply a 5-point moving average to smooth out any remaining minor GPS spikes
+    const windowSize = 5;
+    if (instantaneousSpeeds.length >= windowSize) {
+        for (let i = 0; i <= instantaneousSpeeds.length - windowSize; i++) {
+            let sum = 0;
+            for (let j = 0; j < windowSize; j++) {
+                sum += instantaneousSpeeds[i + j];
+            }
+            const avg = sum / windowSize;
+            if (avg > maxSpeedKmh) {
+                maxSpeedKmh = avg;
+            }
+        }
+    } else if (instantaneousSpeeds.length > 0) {
+        maxSpeedKmh = Math.max(...instantaneousSpeeds);
     }
   }
 

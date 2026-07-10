@@ -20,10 +20,10 @@ interface TacticalDropzoneModalProps {
 }
 
 const LOADING_TEXTS = [
-  "🛰 衛星リンク確立中...",
-  "📍 軌跡データを抽出中...",
-  "📊 テレメトリー解析中...",
-  "✅ 解析完了"
+  "GPS軌跡データを解析中...",
+  "移動平均フィルタを適用中...",
+  "テレメトリーデータを抽出中...",
+  "解析完了"
 ];
 
 const AVAILABLE_CREW = [
@@ -266,36 +266,26 @@ Min Elevation: ${parsed.minElevation} m
                   {...getRootProps()}
                   className={`
                     w-full h-80 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300
-                    ${isDragActive ? "border-cyan-400 bg-cyan-50/50" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"}
+                    ${isDragActive ? "border-gray-400 bg-gray-100/50" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"}
                   `}
                 >
                   <input {...getInputProps()} />
-                  <div className={`p-4 rounded-full mb-4 transition-colors ${isDragActive ? "bg-cyan-100 text-cyan-600" : "bg-gray-100 text-gray-400"}`}>
+                  <div className={`p-4 rounded-full mb-4 transition-colors ${isDragActive ? "bg-gray-200 text-gray-700" : "bg-gray-100 text-gray-400"}`}>
                     <UploadCloud className="w-10 h-10" />
                   </div>
-                  <p className="text-gray-900 font-medium mb-1">GPXファイルをここにドロップして作戦記録を解析</p>
+                  <p className="text-gray-900 font-medium mb-1">GPXファイルをここにドロップしてデータを抽出</p>
                   <p className="text-sm text-gray-400">またはクリックしてファイルを選択</p>
                 </div>
               )}
 
               {phase === "analyzing" && (
                 <div className="w-full h-80 flex flex-col items-center justify-center">
-                  <div className="relative w-24 h-24 mb-8">
-                    {/* Outer Scanning Ring */}
+                  <div className="relative w-12 h-12 mb-6">
                     <motion.div
                       animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
-                      className="absolute inset-0 rounded-full border-2 border-dashed border-cyan-500/30 border-t-cyan-500"
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="absolute inset-0 rounded-full border-2 border-gray-100 border-t-gray-800"
                     />
-                    {/* Inner Pulse */}
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.8, 0.3] }}
-                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                      className="absolute inset-2 rounded-full bg-cyan-500/10 border border-cyan-500/50"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                       <Zap className="w-8 h-8 text-cyan-400" />
-                    </div>
                   </div>
                   <motion.p
                     key={loadingTextIndex}
