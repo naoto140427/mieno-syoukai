@@ -24,24 +24,6 @@ const ALLOWED_MIME_TYPES = [
   'text/csv',
 ];
 
-// ─────────────────────────────────────────────────────────────
-// CONSTANTS
-// ─────────────────────────────────────────────────────────────
-
-const STORAGE_BUCKET = 'unit-documents';
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const ALLOWED_MIME_TYPES = [
-  'application/pdf',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'text/plain',
-  'text/csv',
-];
 
 // ─────────────────────────────────────────────────────────────
 // PUBLIC READ FUNCTIONS (Zero-Latency / Edge Cached)
