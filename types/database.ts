@@ -91,11 +91,21 @@ export interface TouringSurvey {
 
 export interface UnitDocument {
   id: number;
+  unit_id?: number;
   title: string;
-  type: string;
-  size: string;
-  date: string;
-  url: string;
+  document_type: string;  // 'MANUAL' | 'PARTS_LIST' | 'CERTIFICATE' | 'INSPECTION' | 'OTHER'
+  file_url: string;
+  file_name: string;
+  file_size: number;      // bytes
+  mime_type?: string;
+  storage_path?: string;  // for deletion
+  uploaded_by?: string;   // uuid
+  created_at: string;
+  // Legacy compatibility fields (derived from above)
+  type?: string;          // alias for document_type
+  size?: string;          // formatted string e.g. "1.2 MB"
+  date?: string;          // alias for created_at
+  url?: string;           // alias for file_url
 }
 
 export interface MaintenanceLog {

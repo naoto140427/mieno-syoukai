@@ -25,6 +25,25 @@ const ALLOWED_MIME_TYPES = [
 ];
 
 // ─────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────
+
+const STORAGE_BUCKET = 'unit-documents';
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'text/plain',
+  'text/csv',
+];
+
+// ─────────────────────────────────────────────────────────────
 // PUBLIC READ FUNCTIONS (Zero-Latency / Edge Cached)
 // ─────────────────────────────────────────────────────────────
 
@@ -70,10 +89,13 @@ export const getUnitBySlug = unstable_cache(
         ...data,
         specs: Array.isArray(data.specs) ? data.specs : [],
         docs: Array.isArray(data.docs)
-          ? (data.docs as (Omit<UnitDocument, 'size' | 'date'> & { date: string | null })[]).map((doc) => ({
+          ? (data.docs as UnitDocument[]).map((doc) => ({
               ...doc,
-              date: doc.date || '',
-              size: '-'
+              // Legacy compat aliases for UnitDetailClient.tsx
+              type: doc.document_type ?? doc.type ?? 'OTHER',
+              date: doc.created_at ?? doc.date ?? '',
+              size: doc.file_size ? `${(doc.file_size / (1024 * 1024)).toFixed(1)} MB` : (doc.size ?? '-'),
+              url: doc.file_url ?? doc.url ?? '',
             }))
           : [],
         logs: Array.isArray(data.logs) ? data.logs : [],
