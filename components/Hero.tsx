@@ -53,6 +53,7 @@ export default function Hero() {
             fill
             className="object-cover object-center scale-[1.08]"
             priority
+            fetchPriority="high"
             sizes="100vw"
           />
           {/* グラデーションオーバーレイ */}

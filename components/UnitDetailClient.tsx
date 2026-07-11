@@ -810,7 +810,7 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
       const options = {
         maxSizeMB: 1,          // 最大1MB
         maxWidthOrHeight: 1200, // 最大1200px
-        useWebWorker: true,
+        useWebWorker: false,
       };
       
       const compressedFile = await imageCompression(file, options);
