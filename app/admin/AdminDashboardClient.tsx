@@ -34,11 +34,27 @@ interface DashboardProps {
 // ─── Clock ────────────────────────────────────────────────────────────────────
 
 function SystemClock() {
-  const [time, setTime] = useState(new Date());
+  const [time, setTime] = useState<Date | null>(null);
+  
   useEffect(() => {
+    setTime(new Date());
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Hydration対策：クライアントでマウントされるまでは同じレイアウトの透明なプレースホルダーを表示する
+  if (!time) {
+    return (
+      <div className="invisible">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-5xl font-black text-white tracking-tighter tabular-nums">00:00</span>
+          <span className="text-2xl font-black text-white/30 tabular-nums">:00</span>
+        </div>
+        <p className="text-[10px] font-mono text-white/30 tracking-[0.25em] uppercase mt-1">0000.00.00 · JST</p>
+      </div>
+    );
+  }
+
   const hh = time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
   const ss = time.getSeconds().toString().padStart(2, '0');
   const date = time.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
