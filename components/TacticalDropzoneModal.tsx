@@ -20,13 +20,18 @@ interface TacticalDropzoneModalProps {
 }
 
 const LOADING_TEXTS = [
-  "🛰 衛星リンク確立中...",
-  "📍 軌跡データを抽出中...",
-  "📊 テレメトリー解析中...",
-  "✅ 解析完了"
+  "GPS軌跡データを解析中...",
+  "移動平均フィルタを適用中...",
+  "テレメトリーデータを抽出中...",
+  "解析完了"
 ];
 
-const AVAILABLE_CREW = ["Mieno", "Suemori", "Watanabe", "Nakahara", "Sato"];
+const AVAILABLE_CREW = [
+  { name: "渡邊直人", vehicles: ["CBR400R", "Serena LUXION"] },
+  { name: "末森知輝", vehicles: ["CBR600RR", "Monkey125"] },
+  { name: "三重野匠", vehicles: [] },
+  { name: "坂井龍乃丞", vehicles: [] }
+];
 
 export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: TacticalDropzoneModalProps) {
   const router = useRouter();
@@ -39,7 +44,8 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
   // Form State
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [members, setMembers] = useState<string[]>([]);
+  const [selectedCrew, setSelectedCrew] = useState<Record<string, string>>({});
+  const members = Object.entries(selectedCrew).map(([name, vehicle]) => vehicle ? `${name} (${vehicle})` : name);
   const [weather, setWeather] = useState<Archive["weather"]>("Clear");
   const [details, setDetails] = useState("");
 
@@ -55,7 +61,7 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
       setLocationName("");
       setTitle("");
       setDate(new Date().toISOString().split("T")[0]);
-      setMembers([]);
+      setSelectedCrew({});
       setWeather("Clear");
       setDetails("");
       setIsSubmitting(false);
@@ -108,6 +114,16 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
           loc = await getLocationName(parsed.centerPoint[0], parsed.centerPoint[1], token);
         }
         setLocationName(loc);
+
+        const telemetryReport = `
+---
+[Telemetry Report]
+Moving Time: ${parsed.movingTime}
+Stopped Time: ${parsed.stoppedTime}
+Moving Avg Speed: ${parsed.movingAvgSpeed} km/h
+Min Elevation: ${parsed.minElevation} m
+`;
+        setDetails(prev => prev + (prev ? "\n" : "") + telemetryReport.trim());
 
         // Wait a bit to show off the cool loading sequence
         setTimeout(() => {
@@ -250,31 +266,33 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
                   {...getRootProps()}
                   className={`
                     w-full h-80 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300
-                    ${isDragActive ? "border-cyan-400 bg-cyan-50/50" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"}
+                    ${isDragActive ? "border-gray-400 bg-gray-100/50" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"}
                   `}
                 >
                   <input {...getInputProps()} />
-                  <div className={`p-4 rounded-full mb-4 transition-colors ${isDragActive ? "bg-cyan-100 text-cyan-600" : "bg-gray-100 text-gray-400"}`}>
+                  <div className={`p-4 rounded-full mb-4 transition-colors ${isDragActive ? "bg-gray-200 text-gray-700" : "bg-gray-100 text-gray-400"}`}>
                     <UploadCloud className="w-10 h-10" />
                   </div>
-                  <p className="text-gray-900 font-medium mb-1">GPXファイルをここにドロップして作戦記録を解析</p>
+                  <p className="text-gray-900 font-medium mb-1">GPXファイルをここにドロップしてデータを抽出</p>
                   <p className="text-sm text-gray-400">またはクリックしてファイルを選択</p>
                 </div>
               )}
 
               {phase === "analyzing" && (
                 <div className="w-full h-80 flex flex-col items-center justify-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                    className="w-16 h-16 border-4 border-gray-100 border-t-cyan-500 rounded-full mb-8"
-                  />
+                  <div className="relative w-12 h-12 mb-6">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="absolute inset-0 rounded-full border-2 border-gray-100 border-t-gray-800"
+                    />
+                  </div>
                   <motion.p
                     key={loadingTextIndex}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="text-lg font-medium text-gray-900 tracking-wide"
+                    className="text-lg font-bold text-gray-900 tracking-wider font-mono uppercase"
                   >
                     {LOADING_TEXTS[loadingTextIndex]}
                   </motion.p>
@@ -369,26 +387,46 @@ export default function TacticalDropzoneModal({ isOpen, onClose, onSave }: Tacti
                       <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Crew</label>
                         <div className="flex flex-wrap gap-2">
-                           {AVAILABLE_CREW.map(crew => (
-                             <button
-                               type="button"
-                               key={crew}
-                               onClick={() => {
-                                 if (members.includes(crew)) {
-                                   setMembers(members.filter(m => m !== crew));
-                                 } else {
-                                   setMembers([...members, crew]);
-                                 }
-                               }}
-                               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
-                                 members.includes(crew)
-                                   ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
-                                   : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                               }`}
-                             >
-                               {crew}
-                             </button>
-                           ))}
+                            {AVAILABLE_CREW.map(crew => {
+                             const isSelected = crew.name in selectedCrew;
+                             const selectedVehicle = selectedCrew[crew.name];
+                             return (
+                               <div key={crew.name} className="flex flex-col gap-1">
+                                 <button
+                                   type="button"
+                                   onClick={() => {
+                                     setSelectedCrew(prev => {
+                                       const next = { ...prev };
+                                       if (isSelected) {
+                                         delete next[crew.name];
+                                       } else {
+                                         next[crew.name] = crew.vehicles.length > 0 ? crew.vehicles[0] : "";
+                                       }
+                                       return next;
+                                     });
+                                   }}
+                                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                                     isSelected
+                                       ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+                                       : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                   }`}
+                                 >
+                                   {crew.name}
+                                 </button>
+                                 {isSelected && crew.vehicles.length > 0 && (
+                                   <select
+                                     value={selectedVehicle}
+                                     onChange={(e) => setSelectedCrew(prev => ({ ...prev, [crew.name]: e.target.value }))}
+                                     className="text-[10px] p-1 border border-gray-200 rounded-md bg-gray-50 text-gray-700 outline-none"
+                                   >
+                                     {crew.vehicles.map(v => (
+                                       <option key={v} value={v}>{v}</option>
+                                     ))}
+                                   </select>
+                                 )}
+                               </div>
+                             );
+                           })}
                         </div>
                       </div>
                     </div>

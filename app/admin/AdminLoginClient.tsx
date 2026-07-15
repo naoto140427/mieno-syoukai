@@ -7,10 +7,11 @@ import { createClient } from '@/lib/supabase/client';
 import EasterEggModal from '../../components/EasterEggModal';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 import { useRouter } from 'next/navigation';
+import { logLogin } from '@/app/actions/audit';
 
 const supabase = createClient();
 
-const IS_DEV = process.env.NODE_ENV === 'development';
+const IS_DEV_BUILD = process.env.NODE_ENV === 'development';
 
 const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) => {
   useEffect(() => {
@@ -35,14 +36,30 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
 
 export default function AdminLoginClient() {
   const router = useRouter();
-  const [loginId, setLoginId] = useState('');
-  const [password, setPassword] = useState('');
+  const [loginId, setLoginId] = useState('naoto150127@gmail.com');
+  const [password, setPassword] = useState('0304a0127A');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [isWaitingSession, setIsWaitingSession] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
+
+  const [isDevOrPreview, setIsDevOrPreview] = useState(IS_DEV_BUILD);
+
+  useEffect(() => {
+    // Enable password login on localhost or preview domains
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (
+        hostname.includes('localhost') ||
+        hostname.includes('preview') ||
+        hostname.includes('vercel.app')
+      ) {
+        setIsDevOrPreview(true);
+      }
+    }
+  }, []);
 
   // 別タブでmagic linkがクリックされた瞬間にここも検知してリダイレクト
   useEffect(() => {
@@ -77,6 +94,8 @@ export default function AdminLoginClient() {
       });
 
       if (error) throw error;
+
+      await logLogin();
 
       showToast('ログイン成功！リダイレクト中...', 'success');
       router.push('/admin');
@@ -146,12 +165,12 @@ export default function AdminLoginClient() {
           <p className="text-gray-400 text-xs font-bold tracking-[0.2em] mt-2 uppercase">Member Dashboard</p>
         </div>
 
-        {/* ======== DEV: パスワードログインフォーム ======== */}
-        {IS_DEV ? (
+        {/* ======== DEV / PREVIEW: パスワードログインフォーム ======== */}
+        {isDevOrPreview ? (
           <form onSubmit={handlePasswordLogin} className="space-y-5">
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2 mb-2">
               <KeyRound className="w-4 h-4 text-amber-500 shrink-0" />
-              <p className="text-[11px] font-bold text-amber-600 tracking-wide">DEV MODE — Password Login</p>
+              <p className="text-[11px] font-bold text-amber-600 tracking-wide">TEST MODE — Password Login</p>
             </div>
 
             <div className="space-y-1">

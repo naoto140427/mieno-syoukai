@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import {
   X, Save, Pin, FileText, CheckCircle2, Loader2, AlertTriangle,
@@ -8,14 +8,16 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import ClientMotionWrapper from '@/components/ClientMotionWrapper';
-import { addNews } from '@/app/actions/news';
+import { addNews, updateNews } from '@/app/actions/news';
+import { uploadImage } from '@/app/actions/upload';
+import type { News } from '@/types/database';
 
 type Category = 'UPDATE' | 'PRESS' | 'REPORT' | 'TOURING';
 
 interface LiveEditorProps {
   isOpen: boolean;
   onClose: () => void;
+  initialData?: News | null;
 }
 
 const CATEGORY_META: Record<Category, { label: string; color: string; bg: string }> = {
@@ -25,42 +27,92 @@ const CATEGORY_META: Record<Category, { label: string; color: string; bg: string
   TOURING: { label: 'TOURING', color: 'text-sky-700',    bg: 'bg-sky-50'    },
 };
 
-export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
+export default function LiveEditor({ isOpen, onClose, initialData }: LiveEditorProps) {
   const [isPending, startTransition] = useTransition();
-  const [title,     setTitle]     = useState('');
-  const [content,   setContent]   = useState('');
-  const [isPinned,  setIsPinned]  = useState(false);
-  const [category,  setCategory]  = useState<Category>('UPDATE');
-  const [eventDate, setEventDate] = useState('');
-  const [location,  setLocation]  = useState('');
+  const [title,     setTitle]     = useState(initialData?.title || '');
+  const [content,   setContent]   = useState(initialData?.content || '');
+  const [isPinned,  setIsPinned]  = useState(initialData?.is_pinned || false);
+  const [category,  setCategory]  = useState<Category>((initialData?.category as Category) || 'UPDATE');
+  const [eventDate, setEventDate] = useState(initialData?.event_date || '');
+  const [location,  setLocation]  = useState(initialData?.location || '');
+  const [imageUrl,  setImageUrl]  = useState(initialData?.image_url || '');
+  const [isUploading, setIsUploading] = useState(false);
   const [errorMsg,  setErrorMsg]  = useState<string | null>(null);
-  const [deployed,  setDeployed]  = useState<{ title: string; category: Category; date: string } | null>(null);
+  const [deployed,  setDeployed]  = useState<{ title: string; category: Category; date: string; status: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Update state when initialData changes
+  useEffect(() => {
+    if (isOpen) {
+      setTitle(initialData?.title || '');
+      setContent(initialData?.content || '');
+      setIsPinned(initialData?.is_pinned || false);
+      setCategory((initialData?.category as Category) || 'UPDATE');
+      setEventDate(initialData?.event_date || '');
+      setLocation(initialData?.location || '');
+      setImageUrl(initialData?.image_url || '');
+      setErrorMsg(null);
+      setDeployed(null);
+    }
+  }, [isOpen, initialData]);
 
   const resetForm = () => {
     setTitle(''); setContent(''); setIsPinned(false);
-    setCategory('UPDATE'); setEventDate(''); setLocation('');
+    setCategory('UPDATE'); setEventDate(''); setLocation(''); setImageUrl('');
     setErrorMsg(null); setDeployed(null);
   };
 
-  const handleDeploy = () => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setErrorMsg(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const url = await uploadImage(formData);
+      setImageUrl(url);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('画像のアップロードに失敗しました');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDeploy = (targetStatus: 'PUBLISHED' | 'DRAFT') => {
     if (!title.trim())   { setErrorMsg('タイトルを入力してください'); return; }
     if (!content.trim()) { setErrorMsg('本文を入力してください');     return; }
     setErrorMsg(null);
 
     startTransition(async () => {
       try {
-        await addNews({
+        const payload = {
           title:      title.trim(),
           content:    content.trim(),
           category,
-          date:       new Date().toISOString().split('T')[0],
+          status:     targetStatus,
+          date:       initialData?.date || new Date().toISOString().split('T')[0],
           is_pinned:  isPinned,
           event_date: eventDate  || undefined,
           location:   location   || undefined,
-          image_url:  undefined,
-          requirements: undefined,
-        });
-        setDeployed({ title: title.trim(), category, date: new Date().toLocaleDateString('ja-JP') });
+          image_url:  imageUrl   || undefined,
+          requirements: initialData?.requirements || undefined,
+        };
+
+        if (initialData?.id) {
+          await updateNews(initialData.id, payload);
+        } else {
+          await addNews(payload);
+        }
+        
+        setDeployed({ title: title.trim(), category, date: new Date().toLocaleDateString('ja-JP'), status: targetStatus });
       } catch {
         setErrorMsg('保存に失敗しました。再度お試しください。');
       }
@@ -72,8 +124,7 @@ export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
   const meta = CATEGORY_META[category];
 
   return (
-    <ClientMotionWrapper>
-      <AnimatePresence>
+    <AnimatePresence>
         {isOpen && (
           <>
             {/* Backdrop */}
@@ -107,7 +158,7 @@ export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
                   </button>
                   <div>
                     <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Strategic Live Editor</p>
-                    <h2 className="text-sm font-bold text-mieno-navy leading-none mt-0.5">新規通達</h2>
+                    <h2 className="text-sm font-bold text-mieno-navy leading-none mt-0.5">{initialData ? '通達の編集' : '新規通達'}</h2>
                   </div>
                 </div>
 
@@ -149,9 +200,19 @@ export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
                     <span className="hidden sm:inline">PIN</span>
                   </button>
 
+                  {/* Save Draft */}
+                  <button
+                    onClick={() => handleDeploy('DRAFT')}
+                    disabled={isPending}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-200 disabled:opacity-50 transition-all shadow-sm active:scale-95"
+                  >
+                    <FileText size={13} />
+                    <span className="hidden sm:inline">DRAFT</span>
+                  </button>
+
                   {/* Deploy */}
                   <button
-                    onClick={handleDeploy}
+                    onClick={() => handleDeploy('PUBLISHED')}
                     disabled={isPending}
                     className="flex items-center gap-2 px-5 py-2.5 bg-mieno-navy text-white rounded-xl text-xs font-bold hover:bg-mieno-navy/90 disabled:opacity-50 transition-all shadow-sm active:scale-95"
                   >
@@ -244,8 +305,40 @@ export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
 
                 {/* Left: Editor Panel */}
                 <div className="w-full md:w-1/2 flex flex-col bg-white border-r border-gray-100">
+                  {/* Image Upload */}
+                  <div className="px-6 md:px-8 pt-5 pb-2">
+                    <p className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-2">Cover Image</p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleImageUpload}
+                      />
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading || isPending}
+                        className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold hover:bg-gray-200 transition-all disabled:opacity-50"
+                      >
+                        {isUploading ? 'UPLOADING...' : 'UPLOAD IMAGE'}
+                      </button>
+                      {imageUrl && (
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-200 group">
+                          <img src={imageUrl} alt="Cover" className="w-full h-full object-cover" />
+                          <button 
+                            onClick={() => setImageUrl('')}
+                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                          >
+                            <X size={14} className="text-white" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Title input */}
-                  <div className="px-6 md:px-8 pt-7 pb-3 border-b border-gray-50">
+                  <div className="px-6 md:px-8 pt-3 pb-3 border-b border-gray-50">
                     <input
                       id="live-editor-title"
                       type="text"
@@ -294,6 +387,13 @@ export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
                           {new Date().toLocaleDateString('ja-JP')}
                         </span>
                       </div>
+
+                      {/* Image Preview */}
+                      {imageUrl && (
+                        <div className="mb-4 rounded-xl overflow-hidden shadow-sm">
+                          <img src={imageUrl} alt="Cover Preview" className="w-full h-auto object-cover aspect-video" />
+                        </div>
+                      )}
 
                       {/* Title */}
                       <h1 className="text-xl font-bold text-mieno-navy mb-4 leading-tight min-h-[28px]">
@@ -357,7 +457,7 @@ export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
                           { label: 'TITLE',    value: deployed.title },
                           { label: 'CATEGORY', value: deployed.category },
                           { label: 'DATE',     value: deployed.date },
-                          { label: 'STATUS',   value: '配信済み' },
+                          { label: 'STATUS',   value: deployed.status === 'PUBLISHED' ? '配信済み' : '下書き保存' },
                         ].map((row) => (
                           <m.div
                             key={row.label}
@@ -389,6 +489,5 @@ export default function LiveEditor({ isOpen, onClose }: LiveEditorProps) {
           </>
         )}
       </AnimatePresence>
-    </ClientMotionWrapper>
   );
 }

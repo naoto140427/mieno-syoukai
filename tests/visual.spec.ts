@@ -10,8 +10,8 @@ test.describe('Visual Regression', () => {
   for (const p of pages) {
     test(`${p.name} page visual`, async ({ page }) => {
       await page.goto(p.path);
-      // Wait for network to be idle to ensure content is loaded
-      await page.waitForLoadState('networkidle');
+      // Wait for the load event to ensure main content is loaded
+      await page.waitForLoadState('load');
 
       // Wait a bit for animations to settle
       await page.waitForTimeout(1000);
