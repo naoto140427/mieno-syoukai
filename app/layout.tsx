@@ -4,6 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import NextTopLoader from 'nextjs-toploader';
 
 export const metadata: Metadata = {
   title: {
@@ -55,6 +56,7 @@ export default function RootLayout({
           }
         `}} />
         <div className="flex min-h-screen flex-col">
+          <NextTopLoader color="#06b6d4" showSpinner={false} shadow="0 0 10px #06b6d4,0 0 5px #06b6d4" />
           <Header />
           <main className="flex-grow">{children}</main>
           <Footer />
