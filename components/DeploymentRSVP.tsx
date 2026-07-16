@@ -108,18 +108,14 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                             {status === option && (
                                 <m.div
                                     layoutId="rsvp-active-pill"
-                                    className={`absolute inset-0 rounded-lg -z-10 ${
-                                        option === 'JOIN' ? 'bg-emerald-500' :
-                                        option === 'PENDING' ? 'bg-amber-500' :
-                                        'bg-rose-500'
-                                    }`}
+                                    className="absolute inset-0 rounded-lg -z-10 bg-gray-800"
                                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                                 />
                             )}
                             <span className="relative z-20 flex items-center justify-center gap-2">
-                                {option === 'JOIN' && '🟢 参加'}
-                                {option === 'PENDING' && '🟡 未定'}
-                                {option === 'DECLINE' && '🔴 不参加'}
+                                {option === 'JOIN' && '参加'}
+                                {option === 'PENDING' && '未定'}
+                                {option === 'DECLINE' && '不参加'}
                             </span>
                         </button>
                     ))}

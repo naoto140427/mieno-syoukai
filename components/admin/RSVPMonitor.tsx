@@ -116,9 +116,9 @@ export default function RSVPMonitor({ isOpen, onClose, surveys }: RSVPMonitorPro
                                             </h3>
                                             
                                             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                                                {renderList(joins, 'text-emerald-400', <CheckCircle2 className="w-3.5 h-3.5" />, '参加')}
-                                                {renderList(pendings, 'text-amber-400', <Clock className="w-3.5 h-3.5" />, '未定')}
-                                                {renderList(declines, 'text-rose-400', <XCircle className="w-3.5 h-3.5" />, '不参加')}
+                                                {renderList(joins, 'text-white/70', <CheckCircle2 className="w-3.5 h-3.5" />, '参加')}
+                                                {renderList(pendings, 'text-white/70', <Clock className="w-3.5 h-3.5" />, '未定')}
+                                                {renderList(declines, 'text-white/70', <XCircle className="w-3.5 h-3.5" />, '不参加')}
                                             </div>
                                         </div>
                                     );
