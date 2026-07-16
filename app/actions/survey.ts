@@ -185,15 +185,10 @@ export async function getAllTouringSurveys() {
             return [];
         }
 
-        // Fetch all surveys with news title
+        // Fetch all surveys (join will fail because news_id is TEXT and news.id is BIGINT)
         const { data, error } = await supabase
             .from('touring_surveys')
-            .select(`
-                *,
-                news (
-                    title
-                )
-            `)
+            .select('*')
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -201,10 +196,22 @@ export async function getAllTouringSurveys() {
             return [];
         }
 
-        // Map data to handle relation smoothly
-        return (data || []).map((item: TouringSurvey & { news?: { title: string } | null }) => ({
+        // Fetch news titles manually
+        const newsIds = Array.from(new Set((data || []).map(s => Number(s.news_id)).filter(id => !isNaN(id))));
+        let newsMap = new Map<string, string>();
+        
+        if (newsIds.length > 0) {
+            const { data: newsData } = await supabase
+                .from('news')
+                .select('id, title')
+                .in('id', newsIds);
+                
+            newsMap = new Map(newsData?.map(n => [String(n.id), n.title]) || []);
+        }
+
+        return (data || []).map((item: TouringSurvey) => ({
             ...item,
-            news_title: item.news?.title || 'Unknown Operation'
+            news_title: newsMap.get(String(item.news_id)) || 'Unknown Operation'
         }));
     } catch (error) {
         console.error('Action Error in getAllTouringSurveys:', error);
