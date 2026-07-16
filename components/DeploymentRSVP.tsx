@@ -69,25 +69,25 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
 
     return (
     <ClientMotionWrapper>
-        <div className="w-full max-w-2xl mx-auto mt-12 mb-8 bg-[#F5F5F7] rounded-3xl p-6 md:p-8 border border-gray-200/50 shadow-sm relative overflow-hidden">
+        <div className="w-full max-w-2xl mx-auto mt-12 mb-8 bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm relative overflow-hidden">
             {/* Cyber / Tactical accents */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-mieno-navy via-mieno-blue to-mieno-gray opacity-50"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-mieno-navy via-mieno-blue to-gray-200 opacity-50"></div>
 
             <div className="flex items-center gap-3 mb-6">
                 <ShieldAlert size={20} className="text-mieno-blue" />
-                <h3 className="text-sm font-bold tracking-widest text-gray-800 uppercase">Deployment RSVP</h3>
+                <h3 className="text-sm font-bold tracking-widest text-gray-800">参加可否フォーム</h3>
             </div>
 
             {!showSuccess ? (
             <div className="space-y-6">
                 {/* Name Selection */}
                 <div className="pt-2">
-                    <label className="block text-xs font-bold text-gray-500 tracking-wider mb-2">AGENT NAME</label>
+                    <label className="block text-xs font-bold text-gray-500 tracking-wider mb-2">エージェント名</label>
                     <select
                         value={name}
                         onChange={(e) => handleNameChange(e.target.value)}
                         disabled={isSubmitting}
-                        className="w-full bg-white border border-gray-200 text-gray-800 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-mieno-blue focus:border-transparent appearance-none"
+                        className="w-full bg-[#F5F5F7] border border-gray-200 text-gray-800 text-sm font-bold rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-mieno-blue focus:border-transparent appearance-none"
                     >
                         {NAMES.map(n => (
                             <option key={n} value={n}>{n}</option>
@@ -96,31 +96,26 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                 </div>
 
                 {/* Segmented Control */}
-                <div className="flex p-1 bg-white rounded-xl shadow-inner border border-gray-100">
+                <div className="flex p-1 bg-[#F5F5F7] rounded-xl border border-gray-100">
                     {(['JOIN', 'PENDING', 'DECLINE'] as StatusOption[]).map((option) => (
                         <button
                             key={option}
                             onClick={() => handleStatusChange(option)}
                             disabled={isSubmitting}
                             className={`flex-1 relative py-3 text-xs md:text-sm font-bold tracking-wider rounded-lg transition-all duration-300 z-10
-                                ${status === option ? 'text-white shadow-md' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
+                                ${status === option ? 'text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'}`}
                         >
                             {status === option && (
                                 <m.div
                                     layoutId="rsvp-active-pill"
-                                    className={`absolute inset-0 rounded-lg -z-10 ${
-                                        option === 'JOIN' ? 'bg-emerald-500' :
-                                        option === 'PENDING' ? 'bg-amber-500' :
-                                        'bg-rose-500'
-                                    }`}
+                                    className="absolute inset-0 rounded-lg -z-10 bg-gray-800"
                                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                                 />
                             )}
                             <span className="relative z-20 flex items-center justify-center gap-2">
-                                {option === 'JOIN' && '🟢 '}
-                                {option === 'PENDING' && '🟡 '}
-                                {option === 'DECLINE' && '🔴 '}
-                                {option}
+                                {option === 'JOIN' && '参加'}
+                                {option === 'PENDING' && '未定'}
+                                {option === 'DECLINE' && '不参加'}
                             </span>
                         </button>
                     ))}
@@ -136,12 +131,12 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                             className="overflow-hidden"
                         >
                             <div className="pt-2">
-                                <label className="block text-xs font-bold text-gray-500 tracking-wider mb-2">DEPLOYMENT VEHICLE</label>
+                                <label className="block text-xs font-bold text-gray-500 tracking-wider mb-2">参加車両</label>
                                 <select
                                     value={vehicle}
                                     onChange={(e) => setVehicle(e.target.value)}
                                     disabled={isSubmitting}
-                                    className="w-full bg-white border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-mieno-blue focus:border-transparent appearance-none"
+                                    className="w-full bg-[#F5F5F7] border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-mieno-blue focus:border-transparent appearance-none"
                                 >
                                     {getVehiclesForName(name).map(v => (
                                         <option key={v} value={v}>{v}</option>
@@ -154,14 +149,14 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
 
                 {/* Message Input */}
                 <div className="pt-2">
-                    <label className="block text-xs font-bold text-gray-500 tracking-wider mb-2">COMMUNICATION / MESSAGE (OPTIONAL)</label>
+                    <label className="block text-xs font-bold text-gray-500 tracking-wider mb-2">連絡事項・メッセージ（任意）</label>
                     <textarea
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         disabled={isSubmitting}
                         rows={3}
-                        placeholder="Any requirements or notes for the operation..."
-                        className="w-full bg-white border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-mieno-blue focus:border-transparent resize-none"
+                        placeholder="伝達事項や配車希望などがあればご記入ください..."
+                        className="w-full bg-[#F5F5F7] border border-gray-200 text-gray-800 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-mieno-blue focus:border-transparent resize-none"
                     />
                 </div>
 
@@ -175,10 +170,10 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                         {isSubmitting ? (
                             <>
                                 <Loader2 size={18} className="animate-spin" />
-                                <span className="tracking-widest text-xs">TRANSMITTING...</span>
+                                <span className="tracking-widest text-xs">送信中...</span>
                             </>
                         ) : (
-                            <span className="tracking-widest text-xs">CONFIRM STATUS</span>
+                            <span className="tracking-widest text-xs">送信する</span>
                         )}
                     </button>
 
@@ -196,13 +191,13 @@ export default function DeploymentRSVP({ newsId, initialSurvey }: DeploymentRSVP
                     <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
                         <CheckCircle2 className="text-emerald-500 w-8 h-8" />
                     </div>
-                    <h4 className="text-lg font-bold text-gray-900 tracking-wider mb-2 uppercase">Transmission Complete</h4>
-                    <p className="text-sm text-gray-500 mb-6">Your deployment status has been recorded.</p>
+                    <h4 className="text-lg font-bold text-gray-900 tracking-wider mb-2">送信完了しました</h4>
+                    <p className="text-sm text-gray-500 mb-6">参加可否ステータスが正常に記録されました。</p>
                     <button
                         onClick={() => setShowSuccess(false)}
-                        className="text-xs font-bold text-mieno-blue tracking-widest uppercase hover:underline"
+                        className="text-xs font-bold text-mieno-blue tracking-widest hover:underline"
                     >
-                        ← MODIFY STATUS
+                        ← 回答を修正する
                     </button>
                 </m.div>
             )}
