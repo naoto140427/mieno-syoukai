@@ -130,6 +130,8 @@ export async function POST(req: Request) {
       };
     });
 
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY = apiKey;
+
     const result = await streamText({
       model: google('models/gemini-1.5-pro-latest'),
       system: systemPrompt,
