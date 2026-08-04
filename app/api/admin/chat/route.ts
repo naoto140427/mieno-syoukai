@@ -1,5 +1,5 @@
 import { streamText, Message } from 'ai';
-import { google } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createClient } from '@/lib/supabase/server';
 import { GoogleAIFileManager } from '@google/generative-ai/server';
 import { writeFile, unlink } from 'fs/promises';
@@ -130,10 +130,10 @@ export async function POST(req: Request) {
       };
     });
 
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY = apiKey;
+    const googleProvider = createGoogleGenerativeAI({ apiKey });
 
     const result = await streamText({
-      model: google('models/gemini-1.5-pro-latest'),
+      model: googleProvider('models/gemini-1.5-pro-latest'),
       system: systemPrompt,
       messages: coreMessages,
     });
