@@ -133,7 +133,7 @@ export async function POST(req: Request) {
     const googleProvider = createGoogleGenerativeAI({ apiKey });
 
     const result = await streamText({
-      model: googleProvider('models/gemini-1.5-pro-latest'),
+      model: googleProvider('gemini-1.5-pro'),
       system: systemPrompt,
       messages: coreMessages as any,
     });
