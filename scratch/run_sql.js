@@ -1,4 +1,5 @@
 const { Client } = require('pg');
+const fs = require('fs');
 
 async function main() {
   const client = new Client({
@@ -7,18 +8,9 @@ async function main() {
   });
   await client.connect();
   
-  // Create status column if not exists
-  await client.query(`
-    ALTER TABLE news 
-    ADD COLUMN IF NOT EXISTS status text DEFAULT 'PUBLISHED' NOT NULL;
-  `);
-  
-  const res = await client.query(`
-    SELECT column_name, data_type 
-    FROM information_schema.columns 
-    WHERE table_name = 'news';
-  `);
-  console.log(res.rows);
+  const sql = fs.readFileSync('supabase/migrations/20260804000000_add_gemini_file_cache.sql', 'utf8');
+  await client.query(sql);
+  console.log("Migration applied successfully!");
   
   await client.end();
 }

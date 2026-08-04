@@ -123,13 +123,13 @@ export async function POST(req: Request) {
       };
     });
 
-    const result = streamText({
+    const result = await streamText({
       model: google('models/gemini-1.5-pro-latest'),
       system: systemPrompt,
       messages: coreMessages,
     });
 
-    return result.toDataStreamResponse();
+    return result.toAIStreamResponse();
     
   } catch (error) {
     console.error('Chat Error:', error);
