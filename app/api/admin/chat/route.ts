@@ -27,7 +27,14 @@ export async function POST(req: Request) {
       .eq('unit_id', unitId)
       .in('document_type', ['MANUAL', 'PARTS_LIST']);
 
-    const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY || '');
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'GEMINI_API_KEY is not configured on the server.' }), { 
+        status: 500, 
+        headers: { 'Content-Type': 'application/json' } 
+      });
+    }
+    const fileManager = new GoogleAIFileManager(apiKey);
     const fileParts: { type: 'file'; data: string; mimeType: string }[] = [];
 
     // Vercel AI SDK (@ai-sdk/google) は現在 type: 'file' をサポートしていますが、
@@ -132,7 +139,11 @@ export async function POST(req: Request) {
     return result.toAIStreamResponse();
     
   } catch (error) {
-    console.error('Chat Error:', error);
-    return new Response('Error processing request', { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Chat Error:', errorMessage, error);
+    return new Response(JSON.stringify({ error: errorMessage }), { 
+      status: 500, 
+      headers: { 'Content-Type': 'application/json' } 
+    });
   }
 }

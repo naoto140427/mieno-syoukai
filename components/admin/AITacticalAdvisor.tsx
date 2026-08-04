@@ -110,9 +110,14 @@ export default function AITacticalAdvisor({ unitId, unitName }: { unitId: string
                 </div>
               )}
               {error && (
-                <div className="flex items-center gap-2 text-red-400 text-xs mt-2 justify-center bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-                  <AlertCircle size={14} />
-                  <span>通信エラーが発生しました。</span>
+                <div className="flex flex-col gap-2 text-red-400 text-xs mt-2 justify-center bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+                  <div className="flex items-center gap-2 font-bold">
+                    <AlertCircle size={14} />
+                    <span>通信エラーが発生しました。</span>
+                  </div>
+                  <div className="text-[10px] break-all opacity-80 bg-black/20 p-2 rounded">
+                    {error.message}
+                  </div>
                 </div>
               )}
             </div>
