@@ -1,11 +1,6 @@
 import { streamText, Message } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createClient } from '@/lib/supabase/server';
-import { GoogleAIFileManager } from '@google/generative-ai/server';
-import { writeFile, unlink } from 'fs/promises';
-import { join } from 'path';
-import { tmpdir } from 'os';
-import { v4 as uuidv4 } from 'uuid';
 
 export const maxDuration = 300;
 
@@ -34,21 +29,11 @@ export async function POST(req: Request) {
         headers: { 'Content-Type': 'application/json' } 
       });
     }
-    const fileManager = new GoogleAIFileManager(apiKey);
     const fileParts: { type: 'file'; data: string; mimeType: string }[] = [];
-
-    // Vercel AI SDK (@ai-sdk/google) は現在 type: 'file' をサポートしていますが、
-    // URL/Bufferを渡す必要があります。もしGeminiのfileUriが直接使えない場合は、
-    // ここでVercel AI SDKのネイティブな方法に落とし込むか、
-    // dataに fileUri を渡して動くか確認します（Google providerはfileUriをサポートしています）。
 
     if (docs && docs.length > 0) {
       for (const doc of docs) {
-        let fileUri = doc.gemini_file_uri;
-        let expiresAt = doc.gemini_file_expires_at ? new Date(doc.gemini_file_expires_at) : null;
-
-        // キャッシュが無効な場合（期限切れ or 未登録）
-        if (!fileUri || !expiresAt || expiresAt < new Date()) {
+        try {
           console.log(`Downloading ${doc.file_name} from Supabase...`);
           const { data: fileData, error: downloadError } = await supabase.storage
             .from('unit-documents')
@@ -60,45 +45,15 @@ export async function POST(req: Request) {
           }
 
           const arrayBuffer = await fileData.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const tmpFilePath = join(tmpdir(), `${uuidv4()}_${doc.file_name}`);
-          
-          await writeFile(tmpFilePath, buffer);
-          
-          try {
-            console.log(`Uploading ${doc.file_name} to Gemini...`);
-            // Geminiにアップロード
-            const uploadResult = await fileManager.uploadFile(tmpFilePath, {
-              mimeType: doc.mime_type || 'application/pdf',
-              displayName: doc.title,
-            });
-            fileUri = uploadResult.file.uri;
-            
-            // 期限はアップロードから約48時間（安全マージンをとって47時間）
-            const newExpiresAt = new Date(Date.now() + 47 * 60 * 60 * 1000).toISOString();
-            
-            // キャッシュを更新
-            await supabase.from('unit_documents')
-              .update({ gemini_file_uri: fileUri, gemini_file_expires_at: newExpiresAt })
-              .eq('id', doc.id);
-            
-            console.log(`Uploaded to Gemini: ${fileUri}`);
+          const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
-          } catch (uploadError) {
-            console.error('Failed to upload to Gemini:', uploadError);
-          } finally {
-            // クリーンアップ
-            await unlink(tmpFilePath).catch(() => {});
-          }
-        }
-
-        if (fileUri) {
-          // @ai-sdk/google は fileUri を data (string URL) として受け取ることができる
           fileParts.push({
             type: 'file',
-            data: fileUri,
+            data: base64Data,
             mimeType: doc.mime_type || 'application/pdf',
           });
+        } catch (docError) {
+          console.error('Error processing document for Gemini:', docError);
         }
       }
     }
