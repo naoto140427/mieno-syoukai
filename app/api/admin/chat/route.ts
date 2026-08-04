@@ -132,8 +132,13 @@ export async function POST(req: Request) {
 
     const googleProvider = createGoogleGenerativeAI({ apiKey });
 
+    // Temp: Fetch available models
+    const modelsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    const modelsData = await modelsResponse.json();
+    throw new Error("Available models: " + JSON.stringify(modelsData.models?.map((m: any) => m.name)));
+
     const result = await streamText({
-      model: googleProvider('gemini-1.5-pro'),
+      model: googleProvider('gemini-1.5-pro-latest'),
       system: systemPrompt,
       messages: coreMessages as any,
     });
