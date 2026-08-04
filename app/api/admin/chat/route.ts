@@ -91,6 +91,21 @@ export async function POST(req: Request) {
       model: googleProvider('gemini-3.6-flash'),
       system: systemPrompt,
       messages: coreMessages as any,
+      onFinish: async ({ usage }) => {
+        try {
+          if (user) {
+            await supabase.from('ai_usage_logs').insert({
+              user_id: user.id,
+              model: 'gemini-3.6-flash',
+              prompt_tokens: usage.promptTokens,
+              completion_tokens: usage.completionTokens,
+              unit_id: unitId
+            });
+          }
+        } catch (e) {
+          console.error('Failed to log AI usage:', e);
+        }
+      }
     });
 
     return result.toDataStreamResponse();
