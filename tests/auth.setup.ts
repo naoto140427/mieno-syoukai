@@ -3,8 +3,15 @@ import { test as setup, expect } from '@playwright/test';
 const authFile = 'playwright/.auth/user.json';
 
 setup('authenticate', async ({ page }) => {
-  const email = process.env.TEST_USER_EMAIL || 'naoto150127@gmail.com';
-  const password = process.env.TEST_USER_PASSWORD || '0304a0127A';
+  const email = process.env.TEST_USER_EMAIL;
+  const password = process.env.TEST_USER_PASSWORD;
+
+  if (!email || !password) {
+    throw new Error(
+      'TEST_USER_EMAIL と TEST_USER_PASSWORD を環境変数で指定してください。' +
+        '（認証情報をコードに書かないこと。リポジトリは public です）'
+    );
+  }
 
   // Go to the home page first to get a CSRF token / initialize cookies if necessary
   await page.goto('/');

@@ -9,9 +9,28 @@ export async function POST(req: Request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    // if (!user) {
-    //   return new Response('Unauthorized', { status: 401 });
-    // }
+    if (!user) {
+      return new Response(JSON.stringify({ error: '認証が必要です' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 管理者ロールのみ利用可（Gemini トークン消費と車両ドキュメント閲覧を伴うため）
+    const { data: profile } = await supabase
+      .from('agents')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const role = profile?.role;
+    const adminRoles = ['cto', 'ceo', 'cmo', 'admin'];
+    if (!role || !adminRoles.includes(role.toLowerCase())) {
+      return new Response(JSON.stringify({ error: '管理者権限が必要です' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     const { messages, unitId } = await req.json();
 
@@ -65,8 +84,6 @@ export async function POST(req: Request) {
 トラブルの症状が提示されたら、マニュアルのトラブルシューティングに基づき、可能性のある原因と確認手順を提案してください。
 回答は日本語で、簡潔かつ的確に行ってください。出力にはMarkdown（太字やリスト）を使用してください。`;
 
-    const lastMessage = messages[messages.length - 1] as Message;
-    
     // AI SDK v3.x の CoreMessage 形式に変換
     // CoreMessageでは content を Array にして複数のパートを持たせることができる
     const coreMessages = messages.map((m: Message, idx: number) => {

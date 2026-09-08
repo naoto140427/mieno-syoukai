@@ -89,7 +89,7 @@ export async function addNews(data: Omit<News, 'id' | 'created_at'>) {
 
   // INSERT成功後にLINE通知送信（TOURINGカテゴリかつ公開時のみ）
   if (insertedData && insertedData.category === 'TOURING' && insertedData.status === 'PUBLISHED') {
-    const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://mieno-corp.vercel.app'}/news/${insertedData.id}`;
+    const url = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://mieno-shokai.com'}/news/${insertedData.id}`;
     await sendLineNotification(insertedData.title, url);
   }
 
