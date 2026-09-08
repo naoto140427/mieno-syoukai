@@ -3,10 +3,10 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   // 本番環境では完全に無効化する（E2E テスト専用エンドポイント）
-  const isProduction =
-    process.env.VERCEL_ENV === 'production' ||
-    (!process.env.VERCEL_ENV && process.env.NODE_ENV === 'production');
-  if (isProduction) {
+  // Vercel の本番デプロイのみブロックする。
+  // NODE_ENV では `npm run build && npm run start`（Playwright の webServer）も
+  // production 扱いになり、ローカル E2E が実行できなくなるため使わない。
+  if (process.env.VERCEL_ENV === 'production') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
