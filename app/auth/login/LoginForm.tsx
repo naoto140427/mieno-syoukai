@@ -15,7 +15,10 @@ const initialState = {
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
-  const isTestEmail = email === 'naoto150127@gmail.com' || email === 'preview-agent@mieno-shokai.com';
+  // テスト専用アカウントのみパスワード認証へ。実在の運用アカウントは
+  // 通常どおりマジックリンク（signInWithEmail）を使う。
+  const isTestEmail =
+    email === 'preview-agent@mieno-shokai.com' || email === 'test-agent@mieno-shokai.com';
 
   const handleAction = async (prevState: any, formData: FormData) => {
     if (isTestEmail) {

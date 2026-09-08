@@ -51,10 +51,10 @@ export async function signInWithEmail(prevState: Record<string, unknown>, formDa
 
 /** E2E・プレビュー検証専用のパスワードログイン。本番では使用不可。 */
 export async function signInWithTestPassword(prevState: Record<string, unknown>, formData: FormData) {
-  const isProduction =
-    process.env.VERCEL_ENV === 'production' ||
-    (!process.env.VERCEL_ENV && process.env.NODE_ENV === 'production')
-  if (isProduction) {
+  // Vercel の本番デプロイのみブロックする。
+  // NODE_ENV では `npm run build && npm run start`（Playwright の webServer）も
+  // production 扱いになり、ローカル E2E が実行できなくなるため使わない。
+  if (process.env.VERCEL_ENV === 'production') {
     return { success: false, message: 'このログイン方法は本番環境では利用できません。' }
   }
 
