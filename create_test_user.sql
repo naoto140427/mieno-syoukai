@@ -33,7 +33,9 @@ BEGIN
       'authenticated',
       'authenticated',
       'preview-agent@mieno-shokai.com',
-      crypt('AgentTestPass2026!', gen_salt('bf')),
+      -- 実行前に下の <<REPLACE_WITH_PASSWORD>> を実際の値へ置き換えること。
+      -- このリポジトリは public のため、平文パスワードを絶対にコミットしない。
+      crypt('<<REPLACE_WITH_PASSWORD>>', gen_salt('bf')),
       now(),
       null,
       null,

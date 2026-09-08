@@ -2,7 +2,14 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
-  // 開発環境またはプレビュー環境（特定のメールアドレス等）でのみ許可
+  // 本番環境では完全に無効化する（E2E テスト専用エンドポイント）
+  const isProduction =
+    process.env.VERCEL_ENV === 'production' ||
+    (!process.env.VERCEL_ENV && process.env.NODE_ENV === 'production');
+  if (isProduction) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   const { email, password } = await request.json();
 
   if (!email || !password) {
@@ -10,7 +17,8 @@ export async function POST(request: Request) {
   }
 
   // プレビューテスト用の特定のメールアドレスのみ許可する安全策
-  const allowedTestEmails = ['preview-agent@mieno-shokai.com', 'naoto150127@gmail.com'];
+  // 実在の管理者アカウントは許可しない（テスト専用アカウントのみ）
+  const allowedTestEmails = ['preview-agent@mieno-shokai.com', 'test-agent@mieno-shokai.com'];
   if (!allowedTestEmails.includes(email)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }

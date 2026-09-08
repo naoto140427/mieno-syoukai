@@ -8,8 +8,13 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 async function setupTestUser() {
-  const email = 'naoto150127@gmail.com';
-  const password = '0304a0127A';
+  const email = process.env.TEST_USER_EMAIL;
+  const password = process.env.TEST_USER_PASSWORD;
+
+  if (!email || !password) {
+    console.error('TEST_USER_EMAIL と TEST_USER_PASSWORD を環境変数で指定してください。');
+    process.exit(1);
+  }
 
   console.log(`Setting up test user: ${email}`);
 
