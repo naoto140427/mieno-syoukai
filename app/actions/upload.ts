@@ -10,9 +10,9 @@ export async function uploadImage(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (authError || !authData?.user) {
     throw new Error('Unauthorized');
   }
 
@@ -35,9 +35,14 @@ export async function uploadImage(formData: FormData) {
     throw new Error('Failed to upload image');
   }
 
-  const { data: { publicUrl } } = supabase.storage
+  const { data: urlData } = supabase.storage
     .from('mieno-images')
     .getPublicUrl(filePath);
+
+  const publicUrl = urlData?.publicUrl;
+  if (!publicUrl) {
+    throw new Error('Failed to resolve public URL for uploaded image');
+  }
 
   return publicUrl;
 }

@@ -164,50 +164,30 @@ export async function sendLineNotification(title: string, url: string) {
 
   const message = `[MIENO COMMAND CENTER] 新たな作戦『${title}』が発令されました。各員、直ちに詳細を確認しRSVPを提出せよ。 URL: ${url}`;
 
+  const endpoint = groupId
+    ? 'https://api.line.me/v2/bot/message/push'
+    : 'https://api.line.me/v2/bot/message/broadcast';
+  // グループIDがある場合はプッシュ配信、無い場合は個人宛の一斉配信にフォールバックする
+  const payload = {
+    ...(groupId ? { to: groupId } : {}),
+    messages: [{ type: 'text', text: message }],
+  };
+
   try {
-    if (groupId) {
-      // グループIDが設定されている場合はプッシュ配信
-      const response = await fetch('https://api.line.me/v2/bot/message/push', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          to: groupId,
-          messages: [
-            {
-              type: 'text',
-              text: message
-            }
-          ]
-        })
-      });
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
 
-      if (!response.ok) {
-        console.error('Failed to send LINE push notification:', await response.text());
-      }
-    } else {
-      // グループIDがない場合は従来のブロードキャスト（個人宛一斉送信）
-      const response = await fetch('https://api.line.me/v2/bot/message/broadcast', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              type: 'text',
-              text: message
-            }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        console.error('Failed to send LINE broadcast notification:', await response.text());
-      }
+    if (!response.ok) {
+      console.error(
+        `Failed to send LINE ${groupId ? 'push' : 'broadcast'} notification:`,
+        await response.text()
+      );
     }
   } catch (error) {
     console.error('Error sending LINE notification:', error);

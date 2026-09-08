@@ -49,7 +49,15 @@ export async function signInWithEmail(prevState: Record<string, unknown>, formDa
   }
 }
 
+/** E2E・プレビュー検証専用のパスワードログイン。本番では使用不可。 */
 export async function signInWithTestPassword(prevState: Record<string, unknown>, formData: FormData) {
+  const isProduction =
+    process.env.VERCEL_ENV === 'production' ||
+    (!process.env.VERCEL_ENV && process.env.NODE_ENV === 'production')
+  if (isProduction) {
+    return { success: false, message: 'このログイン方法は本番環境では利用できません。' }
+  }
+
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
@@ -57,7 +65,11 @@ export async function signInWithTestPassword(prevState: Record<string, unknown>,
     return { success: false, message: 'メールアドレスとパスワードを入力してください。' }
   }
 
-  const allowedTestEmails = ['preview-agent@mieno-shokai.com', 'naoto150127@gmail.com'];
+  // 実在の管理者アカウントは許可しない。追加したい場合は TEST_USER_EMAILS で指定する。
+  const allowedTestEmails = (process.env.TEST_USER_EMAILS || 'preview-agent@mieno-shokai.com,test-agent@mieno-shokai.com')
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean)
   if (!allowedTestEmails.includes(email)) {
     return { success: false, message: 'テストアカウントではありません。' }
   }
