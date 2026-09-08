@@ -46,3 +46,5 @@ next-env.d.ts
 # Sentry Config File
 .env.sentry-build-plugin
 .env*.local
+# 使い捨てスクリプト置き場。認証情報を含みやすいためコミットしない
+scratch/

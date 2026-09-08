@@ -9,9 +9,38 @@ import type { News } from '@/types/database';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+const ADMIN_ROLES = ['cto', 'ceo', 'cmo', 'admin'];
+
+/**
+ * Server Action は Action ID 付きの POST エンドポイントとして公開されるため、
+ * UI を経由しない直接呼び出しが可能。DB 変更・外部送信を伴う操作の前に必ず呼ぶこと。
+ */
+async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false as const, error: '認証が必要です' };
+  }
+
+  const { data: profile } = await supabase
+    .from('agents')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const role = profile?.role;
+  if (!role || !ADMIN_ROLES.includes(role.toLowerCase())) {
+    return { ok: false as const, error: '管理者権限が必要です' };
+  }
+
+  return { ok: true as const, user };
+}
+
 export async function generateAiReplyDraft(name: string, message: string, strictness: number = 50) {
   try {
     const supabase = await createClient();
+
+    const auth = await requireAdmin(supabase);
+    if (!auth.ok) return { success: false, error: auth.error };
 
     // RAG: Fetch recent news and upcoming touring events
     const { data: recentNews } = await supabase
@@ -122,6 +151,11 @@ ${message}
 
 export async function sendReplyAndUpdateInquiry(id: number, email: string, html: string) {
   try {
+    const supabase = await createClient();
+
+    const auth = await requireAdmin(supabase);
+    if (!auth.ok) return { success: false, error: auth.error };
+
     const { error: emailError } = await resend.emails.send({
       from: 'MIENO CORP. System <info@mieno-shokai.com>',
       to: [email],
@@ -134,7 +168,6 @@ export async function sendReplyAndUpdateInquiry(id: number, email: string, html:
       return { success: false, error: 'Failed to send AI reply email' };
     }
 
-    const supabase = await createClient();
     const { error: dbError } = await supabase
       .from('inquiries')
       .update({ status: 'replied' })
@@ -156,6 +189,9 @@ export async function sendReplyAndUpdateInquiry(id: number, email: string, html:
 export async function updateNewsStatus(id: number, status: string) {
   try {
     const supabase = await createClient();
+
+    const auth = await requireAdmin(supabase);
+    if (!auth.ok) return { success: false, error: auth.error };
     // Assuming status logic maps to some field or category. Let's map it to requirements for now as a makeshift status or just a custom field if we had one.
     // For Kanban we might need a status field. Let's assume 'location' or 'requirements' is used or we just update category if it fits.
     // Actually, let's just update 'category' or 'location' to hold the status for the sake of the board if no status field exists.
@@ -177,6 +213,9 @@ export async function updateNewsStatus(id: number, status: string) {
 export async function saveGlobalSettings(emergencyBanner: boolean, aiStrictness: number) {
   try {
     const supabase = await createClient();
+
+    const auth = await requireAdmin(supabase);
+    if (!auth.ok) return { success: false, error: auth.error };
 
     // Check if table exists, if not we might need to handle it or create it, but let's assume it exists.
     const { error } = await supabase

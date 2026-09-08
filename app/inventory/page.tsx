@@ -17,10 +17,31 @@ async function InventoryFetcher({ isAdmin }: { isAdmin: boolean }) {
     supabase.from('tools').select('*').order('id', { ascending: true })
   ]);
 
+  let todayTokens = 0;
+  let monthTokens = 0;
+
+  if (isAdmin) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const [todayUsage, monthUsage] = await Promise.all([
+      supabase.from('ai_usage_logs').select('total_tokens').gte('created_at', today),
+      supabase.from('ai_usage_logs').select('total_tokens').gte('created_at', firstDayOfMonth)
+    ]);
+
+    if (!todayUsage.error && todayUsage.data) {
+      todayTokens = todayUsage.data.reduce((acc: number, curr: any) => acc + (curr.total_tokens || 0), 0);
+    }
+    if (!monthUsage.error && monthUsage.data) {
+      monthTokens = monthUsage.data.reduce((acc: number, curr: any) => acc + (curr.total_tokens || 0), 0);
+    }
+  }
+
   const consumables = (consumablesRes.data as Consumable[]) || [];
   const tools = (toolsRes.data as Tool[]) || [];
 
-  return <Inventory consumables={consumables} tools={tools} isAdmin={isAdmin} />;
+  return <Inventory consumables={consumables} tools={tools} isAdmin={isAdmin} aiUsage={{ today: todayTokens, month: monthTokens }} />;
 }
 
 function InventorySkeleton() {

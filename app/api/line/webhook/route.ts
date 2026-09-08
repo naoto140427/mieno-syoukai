@@ -1,36 +1,33 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
+/**
+ * LINE Webhook 受信エンドポイント。
+ *
+ * もともとは LINE グループ ID を調べるための一時的な実装で、受信内容をそのまま
+ * service_role キーで `news` テーブルに INSERT していた。署名検証が無いため
+ * 誰でも `news` に行を書き込める状態になっていたので、DB 書き込みを廃止した。
+ *
+ * グループ ID は取得済み（`LINE_GROUP_ID` として Vercel に設定済み）。
+ * 現在はサーバーログにのみ出力する（Vercel のランタイムログで確認可能）。
+ *
+ * 今後この Webhook で実際の処理を行う場合は、必ず `x-line-signature` の
+ * 検証（`LINE_CHANNEL_SECRET` による HMAC-SHA256）を実装してから行うこと。
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
-    let groupId = 'NOT_FOUND';
-    if (body.events && body.events.length > 0) {
+
+    if (Array.isArray(body?.events)) {
       for (const event of body.events) {
-        if (event.source && event.source.type === 'group') {
-          groupId = event.source.groupId;
+        if (event?.source?.type === 'group') {
+          console.log('[LINE Webhook] group event received. groupId:', event.source.groupId);
         }
       }
     }
 
-    // Save to news table temporarily to read it easily
-    await supabase.from('news').insert({
-      title: 'GROUP_ID_LOG',
-      content: groupId + ' | ' + JSON.stringify(body),
-      category: 'COMPANY',
-      status: 'DRAFT',
-      date: new Date().toISOString()
-    });
-
     return NextResponse.json({ status: 'success' }, { status: 200 });
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('[LINE Webhook] error:', error);
     return NextResponse.json({ status: 'error' }, { status: 500 });
   }
 }

@@ -40,6 +40,7 @@ import { updateUnit, addMaintenanceLog, deleteMaintenanceLog, uploadUnitDocument
 import { notFound } from 'next/navigation';
 import ClientMotionWrapper from '@/components/ClientMotionWrapper';
 import imageCompression from 'browser-image-compression';
+import AITacticalAdvisor from './admin/AITacticalAdvisor';
 
 // ─── Odometer digit animation ─────────────────────────────────────────────────
 
@@ -1276,6 +1277,11 @@ export default function UnitDetailClient({ slug, initialUnit, isAdmin }: UnitDet
           </AnimatePresence>
         </div>
       </div>
+
+      {/* AI Tactical Advisor for Admins */}
+      {isAdmin && unit.id && (
+        <AITacticalAdvisor unitId={unit.id} unitName={unit.name.jp} />
+      )}
 
       {/* 削除確認モーダル */}
       <ConfirmModal

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { Unit, UnitDocument } from '@/types/database';
+import { v4 as uuidv4 } from 'uuid';
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -236,7 +237,7 @@ export async function uploadUnitImage(formData: FormData) {
   }
 
   const fileExt = file.name.split('.').pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+  const fileName = `${uuidv4()}.${fileExt}`;
   const storagePath = `units/${unitId}/${fileName}`;
 
   // Upload to mieno-images bucket
@@ -253,9 +254,14 @@ export async function uploadUnitImage(formData: FormData) {
   }
 
   // Get public URL
-  const { data: { publicUrl } } = supabase.storage
+  const { data: urlData } = supabase.storage
     .from('mieno-images')
     .getPublicUrl(storagePath);
+
+  const publicUrl = urlData?.publicUrl;
+  if (!publicUrl) {
+    throw new Error('Failed to resolve public URL for uploaded image');
+  }
 
   // Update unit record
   const { error: dbError } = await supabase

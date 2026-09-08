@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Wrench, Package, Plus, X,
   Minus, RefreshCw, CheckCircle2, AlertTriangle, Info,
-  ArrowUpDown, CalendarClock, MapPin, Hash
+  ArrowUpDown, CalendarClock, MapPin, Hash, Sparkles
 } from "lucide-react";
 import { Consumable, Tool } from "@/types/database";
 import { updateConsumableLevel, toggleToolStatus, addConsumable, addTool, createInventoryRequest } from "@/app/actions/inventory";
@@ -16,6 +16,7 @@ interface InventoryProps {
   consumables?: Consumable[];
   tools?: Tool[];
   isAdmin?: boolean;
+  aiUsage?: { today: number; month: number };
 }
 
 type ToastType = "success" | "error" | "info";
@@ -78,7 +79,7 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function Inventory({ consumables = [], tools = [], isAdmin = false }: InventoryProps) {
+export default function Inventory({ consumables = [], tools = [], isAdmin = false, aiUsage = { today: 0, month: 0 } }: InventoryProps) {
   // UI State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Tool; direction: "asc" | "desc" } | null>(null);
@@ -225,6 +226,74 @@ export default function Inventory({ consumables = [], tools = [], isAdmin = fals
             </motion.button>
           )}
         </div>
+
+        {/* ── AI Token Quota (Admin Only) ─────────────────────────────── */}
+        {isAdmin && (
+          <section className="mb-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 leading-none">AIトークン利用状況</h2>
+                <p className="text-xs text-gray-400 font-mono tracking-widest mt-0.5">AI USAGE QUOTA</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Today's Usage */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100/80 flex flex-col gap-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-base text-gray-900">本日 (4人合計)</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">Gemini 1.5 Flash - Free Tier</p>
+                  </div>
+                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 ${aiUsage.today > 1000000 ? "bg-red-400 animate-pulse" : "bg-emerald-400"}`} />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className={`text-4xl font-black tabular-nums ${aiUsage.today > 1000000 ? "text-red-500" : "text-gray-900"}`}>
+                    {aiUsage.today.toLocaleString()}
+                  </span>
+                  <span className="text-sm text-gray-400 font-medium">/ 1,000,000</span>
+                </div>
+                <div className="space-y-1.5 mt-auto">
+                  <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (aiUsage.today / 1000000) * 100)}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className={`absolute top-0 left-0 h-full rounded-full ${aiUsage.today > 1000000 ? 'bg-red-400' : 'bg-indigo-500'}`}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[11px] text-gray-400 font-medium">
+                    <span>{Math.round((aiUsage.today / 1000000) * 100)}% 使用</span>
+                    {aiUsage.today > 1000000 && <span className="text-red-500 font-semibold">⚠ LIMIT EXCEEDED</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Monthly Usage */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100/80 flex flex-col gap-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-base text-gray-900">今月累計</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">Gemini 1.5 Flash</p>
+                  </div>
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 bg-indigo-400" />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-black tabular-nums text-gray-900">
+                    {aiUsage.month.toLocaleString()}
+                  </span>
+                  <span className="text-sm text-gray-400 font-medium">Tokens</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-auto pt-2 border-t border-gray-50">
+                  ※利用状況はチャットAPIの実行完了時に記録されます
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* ── Consumables ──────────────────────────────────────────────── */}
         <section>
