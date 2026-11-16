@@ -1,0 +1,63 @@
+name: Preview Browser Check
+
+on:
+  deployment_status:
+  pull_request:
+    branches: [preview]
+    paths:
+      - '.github/workflows/preview-browser.yml'
+      - 'scripts/check-preview.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-script:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - run: node --check scripts/check-preview.mjs
+
+  preview-browser:
+    if: >-
+      github.event_name == 'deployment_status' &&
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.creator.login == 'vercel[bot]' &&
+      github.event.deployment.creator.login == 'vercel[bot]' &&
+      github.event.deployment.environment == 'Preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check whether the deployment is for the current preview commit
+        id: preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOYED_SHA: ${{ github.event.deployment.sha }}
+        run: |
+          preview_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/preview" --jq '.object.sha')"
+          if [[ -n "$DEPLOYED_SHA" && "$DEPLOYED_SHA" == "$preview_sha" ]]; then
+            echo 'current=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Skipping: deployment is not for the current preview commit.'
+          fi
+      - uses: actions/checkout@v6
+        if: steps.preview.outputs.current == 'true'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        if: steps.preview.outputs.current == 'true'
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install dependencies and Chromium
+        if: steps.preview.outputs.current == 'true'
+        run: |
+          npm ci --ignore-scripts
+          npx --no-install playwright install --with-deps --only-shell chromium
+      - name: Check public pages on the preview domain
+        if: steps.preview.outputs.current == 'true'
+        run: node scripts/check-preview.mjs
